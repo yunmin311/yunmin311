@@ -36,7 +36,9 @@
 ## 🌱 Now
 
 🎯 特别多想法开发中 · @ Xi'an Jiaotong-Liverpool University
+
   ![snake](https://raw.githubusercontent.com/yunmin311/yunmin311/output/github-contribution-grid-snake.svg)
+
 <!-- ============================================================
      【好玩模块菜单】—— 下面这些是可选件,想更热闹就把某段挪到上面。
      记得把 USERNAME 换成 yunmin311(有的已经填好)。
