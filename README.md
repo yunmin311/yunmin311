@@ -42,3 +42,57 @@ Outside the editor, you'll usually find me around **photography, films, table te
 <sub>Frames, light, places, and things that made me stop for a second.</sub>
 
 <!-- Photography strip will live here -->
+
+<!-- =========================================================
+     03 / SELECTED WORK
+     ========================================================= -->
+
+## 03 // SELECTED WORK
+
+<sub>Tools I wanted to exist, so I built them.</sub>
+
+<br>
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### ▣ [Context Distiller](https://github.com/yunmin311/context-distiller)
+
+A local-first workspace for selecting, structuring, and compiling context before sending it to AI.
+
+<sub>TypeScript · React · Browser Extension · Local-first</sub>
+
+</td>
+<td width="50%" valign="top">
+
+### ▣ [Governance Framework](https://github.com/yunmin311/governance-framework)
+
+A shared source of truth and governance layer for working across multiple AI agents.
+
+<sub>AI Agents · Governance · Markdown · Python</sub>
+
+</td>
+</tr>
+
+<tr>
+<td width="50%" valign="top">
+
+### ▣ [Window Annotator](https://github.com/yunmin311/window-annotator)
+
+Hand-drawn annotations pinned to Windows apps, following move, resize, and scroll.
+
+<sub>Electron · JavaScript · Windows · Desktop</sub>
+
+</td>
+<td width="50%" valign="top">
+
+### ▣ [Work Capsule](https://github.com/yunmin311/work-capsule)
+
+A local-first Windows tool for safely synchronizing work across Git repositories.
+
+<sub>Rust · egui · Git · Windows</sub>
+
+</td>
+</tr>
+</table>
