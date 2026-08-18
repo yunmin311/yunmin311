@@ -96,3 +96,42 @@ A local-first Windows tool for safely synchronizing work across Git repositories
 </td>
 </tr>
 </table>
+
+<!-- =========================================================
+     04 / HOW I WORK
+     ========================================================= -->
+
+## 04 // HOW I WORK
+
+<sub>A small signal of how I build, explore, and move through code.</sub>
+
+### ▣ CODING HABITS
+
+<picture>
+  <img src="./metrics-habits.svg" alt="Coding habits" width="100%">
+</picture>
+
+### ▣ LANGUAGE SIGNAL
+
+<picture>
+  <img src="./metrics-languages.svg" alt="Language analysis" width="100%">
+</picture>
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### ▣ RECENTLY STARRED
+
+<img src="./metrics-stars.svg" alt="Recently starred repositories" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
+### ▣ RECENT ACTIVITY
+
+<img src="./metrics-activity.svg" alt="Recent GitHub activity" width="100%">
+
+</td>
+</tr>
+</table>
