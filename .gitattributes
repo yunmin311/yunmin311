@@ -1,0 +1,7 @@
+# Generated SVGs are rebuilt wholesale by scripts/build.mjs and by the daily
+# workflow, so a line-by-line merge of two builds is never meaningful — it just
+# produces a garbled file. Treat them as indivisible: a conflict then means
+# "pick a build", which is the only correct resolution.
+assets/generated/*.svg -merge -diff
+assets/fonts/*.woff2 binary
+assets/contact/*.png binary
