@@ -63,16 +63,32 @@
     ]
   },
 
+  "_languageNote": "method 'authored-lines' clones each repo and counts lines added in commits this author wrote — the in-depth reading. 'bytes' is the cheap fallback and is used automatically if cloning fails; the panel says which one it is showing. Scope is exactly the four tools in SELECTED WORK so the chart can be checked against the section above it. yunmin311.github.io is out on purpose (~8.7 MB of built HTML once reported '86% HTML'), and so is calendar-app (198 KB of generated markup). `identities` is matched case-insensitively against each commit's author email and name.",
   "languageScope": {
-    "note": "Source bytes across exactly the four tools shown in SELECTED WORK, so the chart can be checked against the section above it. yunmin311.github.io is excluded on purpose (~8.7 MB of built HTML would report '86% HTML'), and so is calendar-app (198 KB of generated markup).",
+    "method": "authored-lines",
     "repos": [
       "yunmin311/work-capsule",
       "yunmin311/window-annotator",
       "yunmin311/context-distiller",
       "yunmin311/governance-framework"
     ],
-    "exclude": ["HTML", "VBScript", "Batchfile", "Makefile", "Dockerfile", "Roff"],
+    "identities": ["liqiyu311@gmail.com", "yunmin311"],
+    "exclude": ["JSON", "SVG", "HTML", "TOML", "Batchfile", "VBScript", "Makefile", "Dockerfile"],
     "limit": 6
+  },
+
+  "_motionNote": "Per-component switches so layout stays the author's decision. Every effect is a one-shot entrance and every animated file also carries a prefers-reduced-motion guard. Set `enabled: false` to turn the whole page static.",
+  "motion": {
+    "enabled": true,
+    "hero": true,
+    "rhythm": true,
+    "languages": true,
+    "stars": true,
+    "activity": true,
+    "contributions": true,
+    "sections": true,
+    "work": true,
+    "fortune": true
   },
 
   "activity": {
@@ -85,16 +101,12 @@
     "days": 90
   },
 
-  "_contactNote": "href is what the README links to. Set contactPage.enabled once GitHub Pages is live on this repo; the buttons then point at a page that copies the value to the clipboard instead of printing it. A README cannot run script, so copy-on-click is only possible off-page.",
-  "contactPage": {
-    "enabled": false,
-    "base": "https://yunmin311.github.io/yunmin311/"
-  },
+  "_contactNote": "A README cannot run script — GitHub strips it — so copy-to-clipboard on click is not possible on this page. EMAIL uses mailto:, which hands the click to whatever the reader's machine uses for mail without printing the address as text. WECHAT links to a QR stripped of the avatar, display name and city that came with it. WEBSITE stays off until yunmin311.github.io actually serves something; it currently 404s.",
   "contact": [
-    { "key": "email", "label": "EMAIL", "href": "mailto:liqiyu311@gmail.com", "copy": "liqiyu311@gmail.com", "enabled": true },
-    { "key": "douyin", "label": "DOUYIN", "href": "", "copy": "", "enabled": false },
-    { "key": "wechat", "label": "WECHAT", "href": "", "copy": "", "enabled": false },
-    { "key": "website", "label": "WEBSITE", "href": "", "copy": "", "enabled": false }
+    { "key": "email", "label": "EMAIL", "href": "mailto:liqiyu311@gmail.com", "enabled": true },
+    { "key": "douyin", "label": "DOUYIN", "href": "https://www.douyin.com/user/MS4wLjABAAAACCMGACneEnYcKlqMPe5wKvyxkUQTcX39bBzWcbGbpBSfWN4hHKN0dnZc64sV6SHR", "enabled": true },
+    { "key": "wechat", "label": "WECHAT", "href": "assets/contact/wechat-qr.png", "enabled": true },
+    { "key": "website", "label": "WEBSITE", "href": "", "enabled": false }
   ],
 
   "fortunes": [

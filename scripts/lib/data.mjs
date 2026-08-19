@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Everything the panels draw is derived here, so the drawing code stays
  * drawing code.
  *
@@ -15,6 +15,7 @@
  */
 
 import { events, graphql, starred, languagesOf } from "./gh.mjs"
+import { authoredLines } from "./authored.mjs"
 import { deEmoji, clamp } from "./design.mjs"
 
 const HOUR = 3600e3
@@ -110,11 +111,14 @@ function contributions(cal) {
   const max = active.length ? Math.max(...active.map((d) => d.n)) : 0
   const peak = active.reduce((best, d) => (!best || d.n > best.n ? d : best), null)
 
-  // Four thresholds derived from the actual distribution, so a quiet year and
-  // a loud one both use the full ramp instead of collapsing into one shade.
+  // Thresholds are quartiles of the days that ACTUALLY have activity, not
+  // fractions of the maximum. A single 50-commit day would otherwise drag every
+  // other day into the lowest band and leave three quarters of the ramp unused.
+  // Forced strictly increasing so no level can be unreachable.
   const sorted = active.map((d) => d.n).sort((a, b) => a - b)
   const q = (p) => (sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))] : 0)
-  const levels = [1, Math.max(2, q(0.35)), Math.max(3, q(0.65)), Math.max(4, q(0.88))]
+  const levels = [1, q(0.25), q(0.5), q(0.75)].map((v, i, a) => Math.max(v, (a[i - 1] ?? 0) + 1))
+  for (let i = 1; i < levels.length; i++) levels[i] = Math.max(levels[i], levels[i - 1] + 1)
 
   let longest = 0
   let run = 0
@@ -144,7 +148,48 @@ function contributions(cal) {
 
 /* --------------------------------------------------------------- languages */
 
+/**
+ * In-depth first, bytes as a fallback.
+ *
+ * The in-depth pass clones each repository and counts lines this author added
+ * in commits this author wrote. If cloning is unavailable it degrades to
+ * repository language bytes — and says so on the panel, because the two
+ * measure genuinely different things and the reader is entitled to know which
+ * one they are looking at.
+ */
 async function languages(cfg) {
+  const scope = cfg.languageScope
+  const { repos, limit, exclude = [] } = scope
+
+  if (scope.method === "authored-lines") {
+    const r = await authoredLines(repos, scope.identities, { skipLanguages: exclude })
+    if (r) {
+      const top = r.ranked.slice(0, limit).map((l) => ({
+        name: l.name, pct: l.pct, amount: `${fmtLines(l.lines)} lines`,
+      }))
+      const partial = r.repos.length < repos.length
+      return {
+        top,
+        repoCount: r.repos.length,
+        caption: "LINES I WROTE, ACROSS SELECTED WORK",
+        summary: `${fmtLines(r.totalLines)} lines`,
+        // Says "3 of 4" when a clone failed, so a partial reading never passes
+        // itself off as a complete one.
+        note:
+          `Lines I added in ${r.commits} commits I authored, across ` +
+          `${partial ? `${r.repos.length} of ${repos.length}` : `all ${repos.length}`} selected repos. ` +
+          `Generated and vendored files excluded.`,
+        method: "authored-lines",
+        partial,
+      }
+    }
+    console.warn("! in-depth analysis unavailable, falling back to repository language bytes")
+  }
+
+  return languageBytes(cfg)
+}
+
+async function languageBytes(cfg) {
   const { repos, limit, exclude = [] } = cfg.languageScope
   const skip = new Set(exclude)
   const totals = new Map()
@@ -171,11 +216,21 @@ async function languages(cfg) {
     .map(([name, bytes]) => ({ name, bytes, pct: sum ? (bytes / sum) * 100 : 0 }))
     .sort((a, b) => b.bytes - a.bytes)
 
-  const top = ranked.slice(0, limit)
-  const restPct = ranked.slice(limit).reduce((a, b) => a + b.pct, 0)
+  const top = ranked.slice(0, limit).map((l) => ({ name: l.name, pct: l.pct, amount: fmtBytes(l.bytes) }))
 
-  return { top, restPct, totalBytes: sum, repoCount: counted.length, repos: counted }
+  return {
+    top,
+    repoCount: counted.length,
+    caption: "SOURCE BYTES ACROSS SELECTED WORK",
+    summary: fmtBytes(sum),
+    note: `Repository language bytes across ${counted.length} selected repositories. Built and vendored output excluded.`,
+    method: "bytes",
+    partial: counted.length < repos.length,
+  }
 }
+
+const fmtLines = (n) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n))
+const fmtBytes = (n) => (n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.round(n / 1024)} KB`)
 
 /* ---------------------------------------------------------------- activity */
 
@@ -239,3 +294,5 @@ export function ago(ms) {
 }
 
 export { WEEKDAYS }
+
+

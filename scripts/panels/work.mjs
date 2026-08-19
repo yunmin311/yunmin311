@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 03 — SELECTED WORK.
  *
  * Four hand-picked cards, not the four most recently pushed repositories. Each
@@ -16,17 +16,15 @@
  * A card is one image so a README can wrap one link around the whole thing.
  */
 
-import { rect, panel, tab, svgDoc, body, S , W_HALF} from "../lib/design.mjs"
+import { rect, panel, tab, svgDoc, body, W_HALF, W_MOBILE, S } from "../lib/design.mjs"
+import { styles, rise, nudge, enabled, STAGGER, DUR } from "../lib/motion.mjs"
 import { adv, MICRO } from "../lib/type.mjs"
 
 export const id = "work"
+export const responsive = true
 
-const W = W_HALF
-const H = 152
-const BOX = { x: 0, y: S.xs, w: W, h: 136 }
-const PAD = S.sm
-const INNER = W - PAD * 2
-const LINES = 4
+const DESKTOP = { w: W_HALF, h: 136, svgH: 152, lines: 4, top: 40, tags: 116 }
+const MOBILE = { w: W_MOBILE, h: 168, svgH: 184, lines: 5, top: 40, tags: 148 }
 const LINE_H = S.sm
 
 /** Greedy wrap at a known advance — the face is monospaced, so this is exact. */
@@ -36,43 +34,54 @@ function wrap(text, px, size = MICRO) {
   let line = ""
   for (const word of String(text).split(/\s+/)) {
     const next = line ? `${line} ${word}` : word
-    if (next.length > max && line) {
-      out.push(line)
-      line = word
-    } else {
-      line = next
-    }
+    if (next.length > max && line) { out.push(line); line = word } else { line = next }
   }
   if (line) out.push(line)
   return out
 }
 
-export function card(t, p) {
+export function card(t, p, cfg, { mobile = false } = {}) {
+  const L = mobile ? MOBILE : DESKTOP
+  const W = L.w
+  const PAD = S.sm
+  const INNER = W - PAD * 2
   const out = []
-  out.push(panel(t, { ...BOX, title: p.name }))
+  const css = []
+  const animate = enabled(cfg, "work")
 
-  const lines = wrap(p.why, INNER).slice(0, LINES)
-  const firstBaseline = 40
-  lines.forEach((l, i) => out.push(body(l, { x: PAD, y: firstBaseline + i * LINE_H, fill: t.inkDim })))
+  out.push(panel(t, { x: 0, y: S.xs, w: W, h: L.h, title: p.name }))
+
+  const lines = wrap(p.why, INNER).slice(0, L.lines)
+  lines.forEach((l, i) => {
+    if (animate) css.push(rise(`l${i}`, { delay: i * STAGGER.row, dur: DUR.normal, dy: 4 }))
+    const el = body(l, { x: PAD, y: L.top + i * LINE_H, fill: t.inkDim })
+    out.push(animate ? `<g class="l${i}">${el}</g>` : el)
+  })
 
   // Divider midway between the last line's baseline and the cap-top of the
   // tags, never closer than 8px to either.
-  const lastBaseline = firstBaseline + (lines.length - 1) * LINE_H
-  const tagsBaseline = 116
-  const rule = Math.round((lastBaseline + (tagsBaseline - 8)) / 2)
+  const lastBaseline = L.top + (lines.length - 1) * LINE_H
+  const rule = Math.round((lastBaseline + (L.tags - 8)) / 2)
   out.push(rect(PAD, rule, INNER, 1, t.lineSoft))
-  out.push(body(p.tags.join("  ·  "), { x: PAD, y: tagsBaseline, fill: t.inkFaint }))
+  out.push(body(p.tags.join(" · "), { x: PAD, y: L.tags, fill: t.inkFaint }))
 
-  out.push(tab(t, { x: W - S.sm, y: BOX.y + BOX.h - 1, text: "View repo →", align: "end", ink: t.accent }))
+  const plate = tab(t, { x: W - S.sm, y: S.xs + L.h - 1, text: "View repo →", align: "end", ink: t.accent })
+  if (animate) {
+    out.push(`<g class="go">${plate}</g>`)
+    css.push(nudge("go"))
+  } else {
+    out.push(plate)
+  }
 
-  return { w: W, h: H, body: out.join(""), title: `${p.name} — ${p.why}` }
+  return {
+    w: W, h: L.svgH, body: out.join(""),
+    css: styles(cfg, "work", css.join("")),
+    title: `${p.name} — ${p.why}`,
+  }
 }
 
-export const build = (t, _ctx, cfg) =>
+export const build = (t, _ctx, cfg, v) =>
   cfg.work.map((p) => {
-    const c = card(t, p)
-    return { key: `work-${p.key}`, svg: svgDoc({ w: c.w, h: c.h, theme: t, body: c.body, title: c.title }) }
+    const c = card(t, p, cfg, v)
+    return { key: `work-${p.key}`, svg: svgDoc({ w: c.w, h: c.h, theme: t, body: c.body, css: c.css, title: c.title }) }
   })
-
-
-

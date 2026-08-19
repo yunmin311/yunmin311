@@ -1,115 +1,133 @@
-﻿/**
+/**
  * 05 — CONTRIBUTION FIELD.
  *
- * The calendar redrawn as a dot matrix that grows into blocks: a quiet day is a
- * 2px dot, a peak day fills its cell. On a year that is genuinely sparse this
- * reads as graph paper with a bloom in it, which is honest — a grid of grey
- * squares just reads as a broken widget.
+ * Cells are FILLED, not sized. The first draft drew each level as a growing
+ * dot — 2px for a quiet day, a full cell for a peak — which looked precise and
+ * read as "there is no data here", because on a year with 20 active days out of
+ * 368 almost every mark was a 2px dot. A filled ramp says the true thing
+ * instead: sparse for most of the year, dense and hot for the last five weeks.
  *
- * Cells are 10px on a 4px gutter, and the five marks are 2/4/6/8/10 — every one
- * a multiple of the 2px base unit, so the field sits on the same grid as the
- * meters and the borders.
+ * Thresholds are the quartiles of the days that ACTUALLY have activity, not
+ * fractions of the maximum. One 50-commit day would otherwise push every other
+ * day into the lowest band and waste three quarters of the ramp.
  */
 
-import { rect, marker, panel, svgDoc, label, body, labelWidth, bodyWidth, U, S , W_FULL} from "../lib/design.mjs"
+import { rect, panel, svgDoc, label, body, labelWidth, bodyWidth, W_FULL, W_MOBILE, S } from "../lib/design.mjs"
+import { styles, bloom, enabled, STAGGER, DUR } from "../lib/motion.mjs"
 
 export const id = "contributions"
 
-const W = W_FULL
-const H = 208
-const BOX = { x: 0, y: S.xs, w: W, h: 192 }
-const CELL = 10 // 5U
-const GAP = 4 // 2U
-const PITCH = CELL + GAP
-const GRID_Y = 48
-
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
-const SIZES = [2, 4, 6, 8, CELL]
 
-const at = (x, y, lv) => {
-  const s = SIZES[lv]
-  const off = (CELL - s) / 2
-  return `<rect x="${x + off}" y="${y + off}" width="${s}" height="${s}"/>`
-}
-const fillFor = (t, lv) => [t.dataEmpty, t.dataLow, t.dataMid, t.dataMid, t.dataHigh][lv]
-const opacityFor = (lv) => (lv === 2 ? 0.6 : 1)
+const DESKTOP = { w: W_FULL, cell: 12, gap: 2, weeks: 53, gridX: 56, h: 192, svgH: 208, lineY: 168 }
+const MOBILE = { w: W_MOBILE, cell: 8, gap: 2, weeks: 26, gridX: 44, h: 200, svgH: 216, lineY: 176 }
 
-export function render(t, ctx) {
+const ramp = (t) => [t.dataEmpty, t.data1, t.data2, t.data3, t.data4]
+
+export function render(t, ctx, cfg, { mobile = false } = {}) {
+  const L = mobile ? MOBILE : DESKTOP
   const c = ctx.contributions
+  const W = L.w
+  const PITCH = L.cell + L.gap
+  const GRID_Y = 48
   const out = []
-  const gridW = c.weeks.length * PITCH - GAP
-  const gridX = 56 // leaves room for the weekday ruler at the 16px margin
+  const css = []
+  const colours = ramp(t)
+  const animate = enabled(cfg, "contributions")
 
-  out.push(panel(t, { ...BOX, title: "Contribution field", meta: `${c.totalDays} days` }))
+  const weeks = c.weeks.slice(-L.weeks)
+  const shown = weeks.flat()
+
+  out.push(
+    panel(t, {
+      x: 0, y: S.xs, w: W, h: L.h,
+      title: "Contribution field",
+      meta: mobile ? `last ${L.weeks} weeks` : `${c.totalDays} days`,
+    })
+  )
 
   // ---- rulers ------------------------------------------------------------
   let lastMonth = -1
-  c.weeks.forEach((week, i) => {
+  weeks.forEach((week, i) => {
     const m = new Date(week[0].date + "T00:00:00Z").getUTCMonth()
-    if (m === lastMonth || i > c.weeks.length - 3) return
+    if (m === lastMonth || i > weeks.length - 3) return
     lastMonth = m
-    out.push(label(MONTHS[m], { x: gridX + i * PITCH, y: 40, tracking: 1, fill: t.inkFaint }))
+    out.push(label(MONTHS[m], { x: L.gridX + i * PITCH, y: 40, tracking: 1, fill: t.inkFaint }))
   })
   for (const [row, name] of [[0, "MON"], [2, "WED"], [4, "FRI"]]) {
-    out.push(label(name, { x: gridX - S.sm - labelWidth(name, 1), y: GRID_Y + row * PITCH + 9, tracking: 1, fill: t.inkFaint }))
+    out.push(
+      label(name, {
+        x: L.gridX - S.xs - labelWidth(name, 1),
+        y: GRID_Y + row * PITCH + Math.round(L.cell / 2) + 4,
+        tracking: 1,
+        fill: t.inkFaint,
+      })
+    )
   }
 
   // ---- field -------------------------------------------------------------
-  // Grouped by level so fill is written five times rather than once per day; a
-  // year is ~370 cells and the attributes dominate the file.
-  const buckets = SIZES.map(() => [])
-  c.weeks.forEach((week, i) => {
+  // Grouped by week, then by level inside the week: one group per week is what
+  // lets the reveal sweep across the year without a class on every cell.
+  weeks.forEach((week, i) => {
+    const byLevel = {}
     week.forEach((day) => {
-      const lv = c.level(day.n)
       const row = (day.wd + 6) % 7 // GitHub weeks start Sunday; ours start Monday
-      buckets[lv].push(at(gridX + i * PITCH, GRID_Y + row * PITCH, lv))
+      const lv = c.level(day.n)
+      ;(byLevel[lv] ||= []).push(
+        `<rect x="${L.gridX + i * PITCH}" y="${GRID_Y + row * PITCH}" width="${L.cell}" height="${L.cell}"/>`
+      )
     })
-  })
-  buckets.forEach((cells, lv) => {
-    if (cells.length) out.push(`<g fill="${fillFor(t, lv)}" opacity="${opacityFor(lv)}">${cells.join("")}</g>`)
+    const inner = Object.entries(byLevel)
+      .map(([lv, cells]) => `<g fill="${colours[lv]}">${cells.join("")}</g>`)
+      .join("")
+    out.push(animate ? `<g class="w${i}">${inner}</g>` : inner)
+    if (animate) css.push(bloom(`w${i}`, { delay: i * STAGGER.cell, dur: DUR.fast }))
   })
 
-  // ---- legend and readout, one line --------------------------------------
-  const lineY = 168
-  out.push(rect(S.sm, 150, W - S.sm * 2, 1, t.lineSoft))
+  // ---- legend and readout ------------------------------------------------
+  const lineY = L.lineY
+  out.push(rect(S.sm, lineY - 20, W - S.sm * 2, 1, t.lineSoft))
   out.push(label("LESS", { x: S.sm, y: lineY, tracking: 1, fill: t.inkFaint }))
   const lx = S.sm + labelWidth("LESS", 1) + S.xs
-  out.push(SIZES.map((_, i) => `<g fill="${fillFor(t, i)}" opacity="${opacityFor(i)}">${at(lx + i * PITCH, lineY - 9, i)}</g>`).join(""))
-  out.push(label("MORE", { x: lx + 4 * PITCH + CELL + S.xs, y: lineY, tracking: 1, fill: t.inkFaint }))
+  const sw = 10
+  out.push(
+    colours
+      .map((fill, i) => `<rect x="${lx + i * (sw + 2)}" y="${lineY - sw + 1}" width="${sw}" height="${sw}" fill="${fill}"/>`)
+      .join("")
+  )
+  out.push(label("MORE", { x: lx + 5 * (sw + 2) + 4, y: lineY, tracking: 1, fill: t.inkFaint }))
 
-  // Packed from the right using measured widths. Fixed x positions were what
-  // ran "ACTIVE DAYS" into its own value in the previous draft.
   const peak = c.peak ? new Date(c.peak.date + "T00:00:00Z") : null
   const month = peak ? MONTHS[peak.getUTCMonth()] : ""
-  const facts = [
-    ["TOTAL", String(c.total), false],
-    ["ACTIVE DAYS", String(c.activeDays), false],
-    ["PEAK", peak ? `${c.max} on ${month[0]}${month.slice(1).toLowerCase()} ${peak.getUTCDate()}` : "—", true],
-  ]
+  const facts = mobile
+    ? [
+        ["TOTAL", String(shown.reduce((a, d) => a + d.n, 0)), false],
+        ["ACTIVE", String(shown.filter((d) => d.n > 0).length), true],
+      ]
+    : [
+        ["TOTAL", String(c.total), false],
+        ["ACTIVE DAYS", String(c.activeDays), false],
+        ["PEAK", peak ? `${c.max} on ${month[0]}${month.slice(1).toLowerCase()} ${peak.getUTCDate()}` : "—", true],
+      ]
+
   let right = W - S.sm
   for (const [name, v, hot] of [...facts].reverse()) {
-    const vw = bodyWidth(v)
-    const lw = labelWidth(name, 1)
-    const x = right - (lw + S.sm + vw)
+    const x = right - (labelWidth(name, 1) + S.sm + bodyWidth(v))
     out.push(label(name, { x, y: lineY, tracking: 1, fill: t.inkDim }))
     out.push(body(v, { x: right, y: lineY, fill: hot ? t.accent : t.ink, anchor: "end" }))
     right = x - S.lg
   }
 
   return {
-    w: W, h: H, body: out.join(""),
-    title: `${c.total} contributions over ${c.totalDays} days, ${c.activeDays} active`,
+    w: W,
+    h: L.svgH,
+    body: out.join(""),
+    css: styles(cfg, "contributions", css.join("")),
+    title: `${c.total} contributions over ${c.totalDays} days, ${c.activeDays} of them active, peak ${c.max}`,
   }
 }
 
-export const build = (t, ctx, cfg) => {
-  const r = render(t, ctx, cfg)
-  return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, title: r.title })
+export const build = (t, ctx, cfg, v) => {
+  const r = render(t, ctx, cfg, v)
+  return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title })
 }
-
-
-
-
-
-
-

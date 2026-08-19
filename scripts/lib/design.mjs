@@ -29,6 +29,14 @@ import { fontFace, label, value, body, text, width, labelWidth, valueWidth, body
 export const W_FULL = 824
 export const W_HALF = 408
 
+/**
+ * Phone. GitHub's mobile README column is roughly 344px, and below that the
+ * page is already scrolling. Panels get a real narrow layout at this width
+ * rather than being scaled: an 824px panel shrunk to 344 puts 11px type at
+ * 4.6px, which is not small, it is gone.
+ */
+export const W_MOBILE = 344
+
 /** Base grid unit for chrome. */
 export const U = 2
 
@@ -49,7 +57,14 @@ export const THEMES = {
     inkDim: "#8B949E",
     inkFaint: "#6E7681",
     accent: "#58A6FF",
-    dataEmpty: "#232A33",
+    // Four filled steps, not four dot sizes. A sparse year drawn as growing
+    // dots reads as "no data"; drawn as a filled ramp it reads as what it is —
+    // concentrated recent work.
+    dataEmpty: "#242B34",
+    data1: "#1B3E66",
+    data2: "#255C9E",
+    data3: "#3B82D8",
+    data4: "#58A6FF",
     dataLow: "#1F3A5F",
     dataMid: "#2C6BC9",
     dataHigh: "#58A6FF",
@@ -64,7 +79,11 @@ export const THEMES = {
     inkDim: "#57606A",
     inkFaint: "#818B98",
     accent: "#0969DA",
-    dataEmpty: "#E4E9EE",
+    dataEmpty: "#EBEFF3",
+    data1: "#C6DEFA",
+    data2: "#7FB3F0",
+    data3: "#3B82D8",
+    data4: "#0A58B8",
     dataLow: "#BFDBFE",
     dataMid: "#60A5FA",
     dataHigh: "#0969DA",

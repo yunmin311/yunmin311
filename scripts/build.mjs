@@ -58,15 +58,29 @@ if (flag("offline")) {
   }
 }
 
+/**
+ * Desktop and phone are separate FILES, not one file scaled. The README pairs
+ * them with <source media="(max-width: 500px)">, because an 824px panel shrunk
+ * into a 344px column renders 11px type at 4.6px — which is not small, it is
+ * gone. A panel opts in with `export const responsive = true`.
+ */
+const VARIANTS = [
+  { key: "", mobile: false },
+  { key: "-m", mobile: true },
+]
+
 let written = 0
 for (const panel of PANELS) {
   if (only && !only.has(panel.id)) continue
-  for (const theme of Object.values(THEMES)) {
-    const svg = panel.build(theme, ctx, cfg)
-    await writeFile(resolve(OUT, `${panel.id}-${theme.name}.svg`), svg, "utf8")
-    written++
-    if (theme.name === "dark") {
-      console.log(`  ${panel.id.padEnd(15)} ${String(svg.length).padStart(7)} B  ${describe(panel.id, ctx)}`)
+  for (const variant of VARIANTS) {
+    if (variant.mobile && !panel.responsive) continue
+    for (const theme of Object.values(THEMES)) {
+      const svg = panel.build(theme, ctx, cfg, variant)
+      await writeFile(resolve(OUT, `${panel.id}${variant.key}-${theme.name}.svg`), svg, "utf8")
+      written++
+      if (theme.name === "dark" && !variant.mobile) {
+        console.log(`  ${panel.id.padEnd(15)} ${String(svg.length).padStart(7)} B  ${describe(panel.id, ctx)}`)
+      }
     }
   }
 }
@@ -75,15 +89,18 @@ for (const panel of PANELS) {
 for (const mod of [sections, work, contact]) {
   if (only && !only.has(mod.id)) continue
   let n = 0
-  for (const theme of Object.values(THEMES)) {
-    for (const f of mod.build(theme, ctx, cfg)) {
-      const name = mod.id === "contact" ? `btn-${f.key}` : f.key
-      await writeFile(resolve(OUT, `${name}-${theme.name}.svg`), f.svg, "utf8")
-      written++
-      n++
+  for (const variant of VARIANTS) {
+    if (variant.mobile && !mod.responsive) continue
+    for (const theme of Object.values(THEMES)) {
+      for (const f of mod.build(theme, ctx, cfg, variant)) {
+        const base = mod.id === "contact" ? `btn-${f.key}` : f.key
+        await writeFile(resolve(OUT, `${base}${variant.key}-${theme.name}.svg`), f.svg, "utf8")
+        written++
+        n++
+      }
     }
   }
-  console.log(`  ${mod.id.padEnd(15)}          ${n / 2} file(s) per theme`)
+  console.log(`  ${mod.id.padEnd(15)}          ${n} file(s)`)
 }
 
 console.log(`\n${written} file(s) -> assets/generated/`)

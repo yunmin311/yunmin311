@@ -1,58 +1,65 @@
-﻿/**
+/**
  * 04c — RECENTLY STARRED.
  *
  * Three repositories, no counts. A star is only interesting here as a signal of
  * what pulls attention; how many other people starred the same thing says
  * nothing about the person whose profile this is.
+ *
+ * The panel is one image, so a README cannot give each row its own link. The
+ * whole panel is wrapped in a link to the stars tab instead, and the bottom
+ * plate says where that goes — one honest way in, rather than three rows that
+ * look clickable and are not.
  */
 
-import { rect, marker, panel, svgDoc, body, bodyWidth, fit, MARKER_GAP, S , W_HALF} from "../lib/design.mjs"
+import { panel, svgDoc, body, bodyWidth, fit, W_HALF, W_MOBILE, S } from "../lib/design.mjs"
+import { styles, rise, enabled, STAGGER, DUR } from "../lib/motion.mjs"
 import { ago } from "../lib/data.mjs"
 
 export const id = "stars"
+export const responsive = true
 
-const W = W_HALF
-const H = 216
-const BOX = { x: 0, y: S.xs, w: W, h: 200 }
-const PAD = S.sm
-const PITCH = 56
-const INNER = W - PAD * 2
+const DESKTOP = { w: W_HALF, h: 200, svgH: 216, pitch: 56, top: 40 }
+const MOBILE = { w: W_MOBILE, h: 200, svgH: 216, pitch: 56, top: 40 }
 
-export function render(t, ctx) {
+export function render(t, ctx, cfg, { mobile = false } = {}) {
+  const L = mobile ? MOBILE : DESKTOP
+  const W = L.w
+  const PAD = S.sm
+  const INNER = W - PAD * 2
   const list = ctx.stars.slice(0, 3)
   const out = []
+  const css = []
+  const animate = enabled(cfg, "stars")
 
-  out.push(panel(t, { ...BOX, title: "Recently starred", meta: "what caught my eye" }))
+  out.push(
+    panel(t, { x: 0, y: S.xs, w: W, h: L.h, title: "Recently starred", meta: "all stars →" })
+  )
 
   list.forEach((s, i) => {
-    const y = 40 + i * PITCH
+    const y = L.top + i * L.pitch
     const [owner, name] = s.name.split("/")
     const when = s.starredAt ? ago(new Date(s.starredAt).getTime()) : ""
     const ownerW = bodyWidth(`${owner}/`)
+    if (animate) css.push(rise(`e${i}`, { delay: i * STAGGER.row, dur: DUR.normal }))
 
-    // No bullet column and no rule between entries: whitespace already
-    // separates them, and both were crowding the text they sat next to. The
-    // newest entry is marked by putting its timestamp in the accent instead.
-    out.push(body(`${owner}/`, { x: PAD, y, fill: t.inkFaint }))
-    out.push(body(fit(name, INNER - ownerW - 40), { x: PAD + ownerW, y, fill: t.ink }))
-    out.push(body(when, { x: W - PAD, y, fill: i === 0 ? t.accent : t.inkFaint, anchor: "end" }))
-    if (s.description) out.push(body(fit(s.description, INNER), { x: PAD, y: y + S.sm, fill: t.inkDim }))
+    const row =
+      body(`${owner}/`, { x: PAD, y, fill: t.inkFaint }) +
+      body(fit(name, INNER - ownerW - 40), { x: PAD + ownerW, y, fill: t.ink }) +
+      body(when, { x: W - PAD, y, fill: i === 0 ? t.accent : t.inkFaint, anchor: "end" }) +
+      (s.description ? body(fit(s.description, INNER), { x: PAD, y: y + S.sm, fill: t.inkDim }) : "")
+    out.push(animate ? `<g class="e${i}">${row}</g>` : row)
   })
 
-  if (!list.length) out.push(body("no recent stars", { x: PAD, y: 40, fill: t.inkFaint }))
+  if (!list.length) out.push(body("no recent stars", { x: PAD, y: L.top, fill: t.inkFaint }))
 
-  return { w: W, h: H, body: out.join(""), title: `Recently starred — ${list.map((s) => s.name).join(", ")}` }
+  return {
+    w: W, h: L.svgH, body: out.join(""),
+    css: styles(cfg, "stars", css.join("")),
+    title: `Recently starred — ${list.map((s) => s.name).join(", ")}`,
+  }
 }
 
-export const build = (t, ctx, cfg) => {
-  const r = render(t, ctx, cfg)
-  return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, title: r.title })
+export const build = (t, ctx, cfg, v) => {
+  const r = render(t, ctx, cfg, v)
+  return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title })
 }
-
-
-
-
-
-
-
-

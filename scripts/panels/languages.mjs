@@ -4,95 +4,137 @@
  * One hue at four designed steps, not a rainbow: the ranking is the
  * information, and six unrelated colours only make it harder to read.
  *
- * Scope is printed on the panel. An unqualified language chart on a GitHub
- * profile is usually measuring build output — this one covers exactly the four
- * tools shown in SELECTED WORK, so a reader can check it.
+ * WHAT IS COUNTED. Lines added by this author, in commits this author wrote,
+ * across exactly the four repositories shown in SELECTED WORK — not bytes on
+ * disk. Bytes count vendored files, generated output, and whatever a
+ * collaborator or a scaffolding tool contributed; an unqualified language
+ * chart on a GitHub profile is usually measuring somebody else's boilerplate.
+ * The method and the scope are printed on the panel so the claim can be
+ * checked.
  */
 
-import { rect, panel, svgDoc, label, body, bodyWidth, S , W_FULL} from "../lib/design.mjs"
+import { rect, panel, svgDoc, label, body, W_FULL, W_MOBILE, S } from "../lib/design.mjs"
+import { styles, fill, rise, enabled, STAGGER, DUR } from "../lib/motion.mjs"
 
 export const id = "languages"
+export const responsive = true
 
-const W = W_FULL
-const H = 192
-const BOX = { x: 0, y: S.xs, w: W, h: 176 }
-const PAD = S.sm
-const BAR = { y: 52, h: 12 } // 6U
+const DESKTOP = {
+  w: W_FULL, h: 176, svgH: 192,
+  bar: { y: 52, h: 12 }, cols: 2, rowTop: 84, rowPitch: S.md,
+  rule: 144, note: 160, amounts: true,
+}
+const MOBILE = {
+  w: W_MOBILE, h: 288, svgH: 304,
+  bar: { y: 52, h: 12 }, cols: 1, rowTop: 88, rowPitch: S.md,
+  rule: 240, note: 256, amounts: false,
+}
+
 const PITCH = 6 // 3U
 const CELLW = 4 // 2U
 
-const kb = (n) => (n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.round(n / 1024)} KB`)
-
-export function render(t, ctx) {
-  const L = ctx.languages
+function wrap(text, px) {
+  const max = Math.floor(px / 7)
   const out = []
-  const innerW = W - PAD * 2
+  let line = ""
+  for (const w of String(text).split(/\s+/)) {
+    const next = line ? `${line} ${w}` : w
+    if (next.length > max && line) { out.push(line); line = w } else { line = next }
+  }
+  if (line) out.push(line)
+  return out
+}
 
-  out.push(panel(t, { ...BOX, title: "Language signal", meta: `${L.repoCount} repos · ${kb(L.totalBytes)}` }))
-  out.push(label("SOURCE BYTES ACROSS SELECTED WORK", { x: PAD, y: 40, tracking: 1, fill: t.ink }))
+export function render(t, ctx, cfg, { mobile = false } = {}) {
+  const L = mobile ? MOBILE : DESKTOP
+  const W = L.w
+  const Lang = ctx.languages
+  const out = []
+  const css = []
+  const innerW = W - S.sm * 2
+  const animate = enabled(cfg, "languages")
 
-  // The ramp is four designed steps plus a neutral tail, rather than one blue
-  // at falling opacity — opacity that reads on #0D1117 disappears on white.
-  const ramp = [t.dataHigh, t.dataMid, t.dataLow, t.dataLow, t.dataEmpty, t.dataEmpty]
-  const fade = [1, 1, 1, 0.6, 1, 0.7]
+  out.push(
+    panel(t, {
+      x: 0, y: S.xs, w: W, h: L.h,
+      title: "Language signal",
+      meta: `${Lang.repoCount} repos · ${Lang.summary}`,
+    })
+  )
+  out.push(label(Lang.caption, { x: S.sm, y: 40, tracking: 1, fill: t.ink }))
+
+  // Four designed steps plus a neutral tail, rather than one blue at falling
+  // opacity — opacity that reads on #0D1117 disappears on white.
+  const ramp = [t.data4, t.data3, t.data2, t.data1, t.dataEmpty, t.dataEmpty]
 
   // ---- share bar ---------------------------------------------------------
   // One slot is left blank between languages; without it the steps read as a
   // single ribbon rather than as ranked segments.
   const slots = Math.floor((innerW + (PITCH - CELLW)) / PITCH)
-  const cells = slots - L.top.length
-  const counts = L.top.map((l) => Math.max(1, Math.round((l.pct / 100) * cells)))
+  const cells = slots - Lang.top.length
+  const counts = Lang.top.map((l) => Math.max(1, Math.round((l.pct / 100) * cells)))
   const spent = counts.reduce((a, b) => a + b, 0)
   if (spent > cells) counts[0] -= spent - cells
   const tail = Math.max(0, cells - counts.reduce((a, b) => a + b, 0))
 
-  const at = (i) => `<rect x="${PAD + i * PITCH}" y="${BAR.y}" width="${CELLW}" height="${BAR.h}"/>`
+  const at = (i) => `<rect x="${S.sm + i * PITCH}" y="${L.bar.y}" width="${CELLW}" height="${L.bar.h}"/>`
+  const segments = []
   let cursor = 0
   counts.forEach((count, i) => {
     const g = []
     for (let k = 0; k < count; k++, cursor++) g.push(at(cursor))
-    if (g.length) out.push(`<g fill="${ramp[i] ?? t.dataEmpty}" opacity="${fade[i] ?? 1}">${g.join("")}</g>`)
+    if (g.length) segments.push(`<g fill="${ramp[i] ?? t.dataEmpty}">${g.join("")}</g>`)
     cursor++
   })
   if (tail > 0) {
     const g = []
     for (let k = 0; k < tail; k++, cursor++) g.push(at(cursor))
-    out.push(`<g fill="${t.dataEmpty}">${g.join("")}</g>`)
+    segments.push(`<g fill="${t.dataEmpty}">${g.join("")}</g>`)
+  }
+
+  // The bar scales up from its left edge. Scaling the bar rather than sliding a
+  // cover over it means a stalled animation leaves the chart visible.
+  if (animate) {
+    out.push(`<g class="bf">${segments.join("")}</g>`)
+    css.push(fill("bf", { dur: DUR.slow, delay: 60 }))
+  } else {
+    out.push(segments.join(""))
   }
 
   // ---- legend ------------------------------------------------------------
-  const colW = innerW / 2
-  L.top.forEach((l, i) => {
-    const x = PAD + Math.floor(i / 3) * colW
-    const y = 84 + (i % 3) * S.md
+  const colW = innerW / L.cols
+  const perCol = Math.ceil(Lang.top.length / L.cols)
+  Lang.top.forEach((l, i) => {
+    const x = S.sm + Math.floor(i / perCol) * colW
+    const y = L.rowTop + (i % perCol) * L.rowPitch
+    if (animate) css.push(rise(`r${i}`, { delay: 120 + i * STAGGER.row, dur: DUR.normal }))
 
-    out.push(rect(x, y - 7, 8, 8, ramp[i] ?? t.dataEmpty, fade[i] < 1 ? `opacity="${fade[i]}"` : ""))
-    out.push(body(l.name, { x: x + S.sm, y, fill: t.ink }))
-    out.push(body(`${l.pct.toFixed(1)}%`, { x: x + colW - 104, y, fill: t.ink, anchor: "end" }))
-    out.push(body(kb(l.bytes), { x: x + colW - S.md, y, fill: t.inkFaint, anchor: "end" }))
+    const row =
+      rect(x, y - 7, 8, 8, ramp[i] ?? t.dataEmpty) +
+      body(l.name, { x: x + S.sm, y, fill: t.ink }) +
+      body(`${l.pct.toFixed(1)}%`, { x: x + colW - (L.amounts ? 104 : S.md), y, fill: t.ink, anchor: "end" }) +
+      (L.amounts ? body(l.amount, { x: x + colW - S.md, y, fill: t.inkFaint, anchor: "end" }) : "")
+    out.push(animate ? `<g class="r${i}">${row}</g>` : row)
   })
 
   // ---- method ------------------------------------------------------------
-  out.push(rect(PAD, 144, innerW, 1, t.lineSoft))
-  out.push(
-    body(`Measured across ${L.repoCount} selected repositories. Built and vendored output excluded.`, {
-      x: PAD, y: 160, fill: t.inkFaint,
-    })
-  )
+  out.push(rect(S.sm, L.rule, innerW, 1, t.lineSoft))
+  // Wrapped at both widths rather than trusting it to fit: the note grows when a
+  // repository fails to clone, and the desktop version was being cut mid-word.
+  wrap(Lang.note, innerW)
+    .slice(0, mobile ? 3 : 2)
+    .forEach((l, i) => out.push(body(l, { x: S.sm, y: L.note + i * S.sm, fill: t.inkFaint })))
 
   return {
-    w: W, h: H, body: out.join(""),
-    title: `Language signal — ${L.top.map((l) => `${l.name} ${l.pct.toFixed(1)}%`).join(", ")}`,
+    w: W, h: L.svgH, body: out.join(""),
+    css: styles(cfg, "languages", css.join("")),
+    title: `Language signal — ${Lang.top.map((l) => `${l.name} ${l.pct.toFixed(1)}%`).join(", ")}`,
   }
 }
 
-export const build = (t, ctx, cfg) => {
-  const r = render(t, ctx, cfg)
-  return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, title: r.title })
+export const build = (t, ctx, cfg, v) => {
+  const r = render(t, ctx, cfg, v)
+  return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title })
 }
-
-
-
-
 
 

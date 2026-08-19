@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 07 — CONTACT.
  *
  * One button shape, one border, one blue pixel each. No brand colours: Gmail
@@ -37,6 +37,8 @@ export function button(t, text) {
   return { w: w + U, h: H + U, body: face, title: s }
 }
 
+export const responsive = false
+
 export const build = (t, _ctx, cfg) =>
   cfg.contact
     .filter((c) => c.enabled)
@@ -44,3 +46,4 @@ export const build = (t, _ctx, cfg) =>
       const b = button(t, c.label)
       return { key: c.key, svg: svgDoc({ w: b.w, h: b.h, theme: t, body: b.body, title: b.title, paintBg: false }) }
     })
+

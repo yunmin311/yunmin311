@@ -1,5 +1,5 @@
-﻿/**
- * Section headers, and the small meta strip that sits inside 01.
+/**
+ * Section headers, and the small meta strip inside 01.
  *
  * Generated rather than written as Markdown headings so the page has one
  * typeface from top to bottom. The brief's objection to SVG headers was
@@ -7,24 +7,39 @@
  * apply when they come out of the same loop as everything else: the text lives
  * in config.json and the styling lives here.
  *
- * These are set at 11px like the panels, not at 22px. A header a size larger
- * than everything under it turned the page into a stack of announcements; the
- * number in accent plus a rule running to the margin says "new section" without
- * raising its voice.
+ * Set at 11px like the panels, not larger. A header a size above everything
+ * under it turned the page into a stack of announcements; the number in accent
+ * plus a rule running to the margin says "new section" without raising its
+ * voice.
  */
 
-import { rect, marker, svgDoc, label, body, labelWidth, bodyWidth, U, S , W_FULL} from "../lib/design.mjs"
+import { rect, svgDoc, label, body, labelWidth, bodyWidth, W_FULL, W_MOBILE, S } from "../lib/design.mjs"
+import { styles, draw, rise, enabled, STAGGER, DUR } from "../lib/motion.mjs"
 
 export const id = "sections"
+export const responsive = true
 
-const W = W_FULL
 const BASELINE = 20
 const RULE_Y = 16 // mid cap-height, so the rule reads as a continuation of the text
 
+const wrapAt = (text, px) => {
+  const max = Math.max(8, Math.floor(px / 7))
+  const out = []
+  let line = ""
+  for (const w of String(text).split(/\s+/)) {
+    const next = line ? `${line} ${w}` : w
+    if (next.length > max && line) { out.push(line); line = w } else { line = next }
+  }
+  if (line) out.push(line)
+  return out
+}
+
 /* ------------------------------------------------------------------ header */
 
-function header(t, { num, title, sub }) {
+function header(t, { num, title, sub }, W, cfg) {
   const out = []
+  const css = []
+  const animate = enabled(cfg, "sections")
   let x = 0
 
   if (num) {
@@ -37,13 +52,22 @@ function header(t, { num, title, sub }) {
   out.push(label(name, { x, y: BASELINE, tracking: 2, fill: t.ink }))
   x += labelWidth(name, 2) + S.sm
 
-  out.push(rect(x, RULE_Y, W - x, 1, t.line))
-  if (sub) out.push(body(sub, { x: 0, y: 40, fill: t.inkDim }))
+  const rule = rect(x, RULE_Y, Math.max(0, W - x), 1, t.line)
+  if (animate) {
+    out.push(`<g class="ru">${rule}</g>`)
+    css.push(draw("ru", { dur: DUR.slow }))
+  } else {
+    out.push(rule)
+  }
+
+  const subLines = sub ? wrapAt(sub, W) : []
+  subLines.forEach((l, i) => out.push(body(l, { x: 0, y: 40 + i * S.sm, fill: t.inkDim })))
 
   return {
     w: W,
-    h: sub ? 48 : 28,
+    h: subLines.length ? 32 + subLines.length * S.sm : 28,
     body: out.join(""),
+    css: styles(cfg, "sections", css.join("")),
     title: `${num ? num + " // " : ""}${title}${sub ? " — " + sub : ""}`,
   }
 }
@@ -66,51 +90,58 @@ function chip(t, x, y, text) {
   }
 }
 
-function metaStrip(t, cfg) {
+function metaStrip(t, cfg, W) {
   const out = []
+  const css = []
+  const animate = enabled(cfg, "sections")
 
-  // Row 1 — where the attention is, not a todo list.
   out.push(label("CURRENTLY EXPLORING", { x: 0, y: 16, tracking: 1, fill: t.ink }))
+
+  // Chips wrap to a new row when the next one would overflow, which is what
+  // lets the strip survive a 344px column without a second layout.
   let x = labelWidth("CURRENTLY EXPLORING", 1) + S.md
-  for (const item of cfg.exploring) {
-    const c = chip(t, x, 2, item)
-    out.push(c.svg)
-    x += c.w + S.xs
-  }
-
-  // Rule sits midway between the baseline above and the cap-top below, with at
-  // least 8px either side. Every divider on this page is placed that way.
-  out.push(rect(0, 40, W, 1, t.lineSoft))
-
-  // Row 2 — two sentences, deliberately not a wall of values.
-  out.push(label("PRINCIPLES_", { x: 0, y: 64, tracking: 1, fill: t.inkFaint }))
-  let px = labelWidth("PRINCIPLES_", 1) + S.md
-  cfg.principles.forEach((p, i) => {
-    if (i) {
-      out.push(body("·", { x: px, y: 64, fill: t.inkFaint }))
-      px += bodyWidth("·  ")
+  let row = 0
+  cfg.exploring.forEach((item, i) => {
+    let c = chip(t, x, 2 + row * 26, item)
+    if (x + c.w > W) {
+      row++
+      x = 0
+      c = chip(t, x, 2 + row * 26, item)
     }
-    out.push(body(p, { x: px, y: 64, fill: t.inkDim }))
-    px += bodyWidth(p) + S.sm
+    if (animate) css.push(rise(`k${i}`, { delay: i * STAGGER.row, dur: DUR.normal, dy: 4 }))
+    out.push(animate ? `<g class="k${i}">${c.svg}</g>` : c.svg)
+    x += c.w + S.xs
   })
 
+  const ruleY = 40 + row * 26
+  out.push(rect(0, ruleY, W, 1, t.lineSoft))
+
+  const pBaseline = ruleY + 24
+  out.push(label("PRINCIPLES_", { x: 0, y: pBaseline, tracking: 1, fill: t.inkFaint }))
+  const pStart = labelWidth("PRINCIPLES_", 1) + S.md
+  const joined = cfg.principles.join("   ·   ")
+  const avail = W - pStart
+  const lines = bodyWidth(joined) <= avail ? [joined] : wrapAt(joined, avail)
+  lines.forEach((l, i) => out.push(body(l, { x: pStart, y: pBaseline + i * S.sm, fill: t.inkDim })))
+
   return {
-    w: W, h: 72, body: out.join(""),
+    w: W,
+    h: pBaseline + (lines.length - 1) * S.sm + 12,
+    body: out.join(""),
+    css: styles(cfg, "sections", css.join("")),
     title: `Currently exploring: ${cfg.exploring.join(", ")}. ${cfg.principles.join(" ")}`,
   }
 }
 
 /* ------------------------------------------------------------------ export */
 
-export const build = (t, _ctx, cfg) => {
+export const build = (t, _ctx, cfg, { mobile = false } = {}) => {
+  const W = mobile ? W_MOBILE : W_FULL
   const files = cfg.sections.map((s) => {
-    const r = header(t, s)
-    return { key: `sec-${s.key}`, svg: svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, title: r.title, paintBg: false }) }
+    const r = header(t, s, W, cfg)
+    return { key: `sec-${s.key}`, svg: svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, paintBg: false }) }
   })
-  const m = metaStrip(t, cfg)
-  files.push({ key: "about-meta", svg: svgDoc({ w: m.w, h: m.h, theme: t, body: m.body, title: m.title, paintBg: false }) })
+  const m = metaStrip(t, cfg, W)
+  files.push({ key: "about-meta", svg: svgDoc({ w: m.w, h: m.h, theme: t, body: m.body, css: m.css, title: m.title, paintBg: false }) })
   return files
 }
-
-
-
