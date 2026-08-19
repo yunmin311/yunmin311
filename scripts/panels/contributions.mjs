@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 05 — CONTRIBUTION FIELD.
  *
  * Cells are FILLED, not sized. The first draft drew each level as a growing
@@ -20,8 +20,8 @@ export const responsive = true
 
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 
-const DESKTOP = { w: W_FULL, cell: 12, gap: 2, weeks: 53, gridX: 56, h: 192, svgH: 208, lineY: 168 }
-const MOBILE = { w: W_MOBILE, cell: 8, gap: 2, weeks: 22, gridX: 40, h: 200, svgH: 216, lineY: 176 }
+const DESKTOP = { w: W_FULL, cell: 12, gap: 2, weeks: 53, gridX: 56, h: 192, svgH: 208, lineY: 168, factsY: 168 }
+const MOBILE = { w: W_MOBILE, cell: 8, gap: 2, weeks: 22, gridX: 40, h: 224, svgH: 240, lineY: 184, factsY: 204 }
 
 const ramp = (t) => [t.dataEmpty, t.data1, t.data2, t.data3, t.data4]
 
@@ -48,12 +48,19 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
   )
 
   // ---- rulers ------------------------------------------------------------
+  // A month label is skipped when it would land on top of the previous one.
+  // At the phone's 10px pitch two months starting three weeks apart collide,
+  // which is how "MAR APR" rendered as "MAMAPR".
   let lastMonth = -1
+  let lastLabelEnd = -Infinity
   weeks.forEach((week, i) => {
     const m = new Date(week[0].date + "T00:00:00Z").getUTCMonth()
     if (m === lastMonth || i > weeks.length - 3) return
+    const x = L.gridX + i * PITCH
+    if (x < lastLabelEnd + 8) return
     lastMonth = m
-    out.push(label(MONTHS[m], { x: L.gridX + i * PITCH, y: 40, tracking: 1, fill: t.inkFaint }))
+    lastLabelEnd = x + labelWidth(MONTHS[m], 1)
+    out.push(label(MONTHS[m], { x, y: 40, tracking: 1, fill: t.inkFaint }))
   })
   for (const [row, name] of [[0, "MON"], [2, "WED"], [4, "FRI"]]) {
     out.push(
@@ -135,8 +142,10 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
   let right = W - S.sm
   for (const [name, v, hot] of [...facts].reverse()) {
     const x = right - (labelWidth(name, 1) + S.sm + bodyWidth(v))
-    out.push(label(name, { x, y: lineY, tracking: 1, fill: t.inkDim }))
-    out.push(body(v, { x: right, y: lineY, fill: hot ? t.accent : t.ink, anchor: "end" }))
+    // On the phone the readout drops to its own line: the legend and three
+    // label/value pairs cannot share 252px without running into each other.
+    out.push(label(name, { x, y: L.factsY, tracking: 1, fill: t.inkDim }))
+    out.push(body(v, { x: right, y: L.factsY, fill: hot ? t.accent : t.ink, anchor: "end" }))
     right = x - S.lg
   }
 

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 04a — CODING RHYTHM.
  *
  * Segmented meters rather than solid bars: every column shows its full scale in
@@ -41,10 +41,10 @@ const DESKTOP = {
 }
 
 const MOBILE = {
-  w: W_MOBILE, h: 296, svgH: 312,
+  w: W_MOBILE, h: 350, svgH: 366,
   hours: { x: S.sm, bar: 8, pitch: 10, label: 40, bottom: 108, ruler: 120 },
   days: { x: S.sm, bar: 28, pitch: 36, label: 148, bottom: 216, ruler: 228 },
-  rule: 246, rows: [268, 292], cols: 2,
+  rule: 246, rows: [266, 286, 306, 326], cols: 1,
   facts: ["PEAK", "BUSIEST", "NIGHT", "STREAK"],
   ticks: [0, 6, 12, 18],
 }
