@@ -63,23 +63,13 @@ Outside the editor you'll usually find me around **photography, films, table ten
 </picture>
 
 <!-- Side-by-side images rather than a table: a table forces a horizontal
-     scrollbar on a phone, whereas inline images simply wrap and stack. -->
-<a href="https://github.com/yunmin311/context-distiller"><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/work-context-distiller-dark.svg">
-  <img alt="Context Distiller — a local-first workspace for selecting, grouping and compiling context before it reaches an AI. TypeScript, React 19, WXT, Manifest V3." src="assets/generated/work-context-distiller-light.svg">
-</picture></a>
-<a href="https://github.com/yunmin311/governance-framework"><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/work-governance-framework-dark.svg">
-  <img alt="Governance Framework — one source of truth for working across several AI agents. Markdown, YAML, Python, validators." src="assets/generated/work-governance-framework-light.svg">
-</picture></a>
-<a href="https://github.com/yunmin311/window-annotator"><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/work-window-annotator-dark.svg">
-  <img alt="Window Annotator — hand-drawn annotations pinned to any Windows window, following move, resize and scroll. Electron, JavaScript, koffi FFI." src="assets/generated/work-window-annotator-light.svg">
-</picture></a>
-<a href="https://github.com/yunmin311/work-capsule"><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/work-work-capsule-dark.svg">
-  <img alt="Work Capsule — one-click, fast-forward-only Git sync for every folder you choose. Rust, egui, Windows." src="assets/generated/work-work-capsule-light.svg">
-</picture></a>
+     scrollbar on a phone, whereas inline images simply wrap and stack.
+     Each anchor has to stay on ONE line — broken across lines, the markdown
+     parser closes the inline context and the cards stop flowing together. -->
+<a href="https://github.com/yunmin311/context-distiller"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/generated/work-context-distiller-dark.svg"><img alt="Context Distiller — a local-first workspace for selecting, grouping and compiling context before it reaches an AI. TypeScript, React 19, WXT, Manifest V3." src="assets/generated/work-context-distiller-light.svg"></picture></a>
+<a href="https://github.com/yunmin311/governance-framework"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/generated/work-governance-framework-dark.svg"><img alt="Governance Framework — one source of truth for working across several AI agents. Markdown, YAML, Python, validators." src="assets/generated/work-governance-framework-light.svg"></picture></a>
+<a href="https://github.com/yunmin311/window-annotator"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/generated/work-window-annotator-dark.svg"><img alt="Window Annotator — hand-drawn annotations pinned to any Windows window, following move, resize and scroll. Electron, JavaScript, koffi FFI." src="assets/generated/work-window-annotator-light.svg"></picture></a>
+<a href="https://github.com/yunmin311/work-capsule"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/generated/work-work-capsule-dark.svg"><img alt="Work Capsule — one-click, fast-forward-only Git sync for every folder you choose. Rust, egui, Windows." src="assets/generated/work-work-capsule-light.svg"></picture></a>
 
 <!-- ═══ 04 // HOW I WORK ═════════════════════════════════════════════════ -->
 
@@ -98,14 +88,8 @@ Outside the editor you'll usually find me around **photography, films, table ten
   <img alt="Language signal — source bytes across the four selected repositories, built and vendored output excluded." src="assets/generated/languages-light.svg">
 </picture>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/stars-dark.svg">
-  <img alt="Recently starred repositories" src="assets/generated/stars-light.svg">
-</picture>
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/activity-dark.svg">
-  <img alt="Recent activity — releases, repositories opened to the public, pull requests" src="assets/generated/activity-light.svg">
-</picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="assets/generated/stars-dark.svg"><img alt="Recently starred repositories" src="assets/generated/stars-light.svg"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="assets/generated/activity-dark.svg"><img alt="Recent activity — releases, repositories opened to the public, pull requests" src="assets/generated/activity-light.svg"></picture>
 
 <!-- ═══ 05 // CONTRIBUTIONS ══════════════════════════════════════════════ -->
 
