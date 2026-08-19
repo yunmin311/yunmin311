@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 05 — CONTRIBUTION FIELD.
  *
  * Cells are FILLED, not sized. The first draft drew each level as a growing
@@ -16,11 +16,12 @@ import { rect, panel, svgDoc, label, body, labelWidth, bodyWidth, W_FULL, W_MOBI
 import { styles, bloom, enabled, STAGGER, DUR } from "../lib/motion.mjs"
 
 export const id = "contributions"
+export const responsive = true
 
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 
 const DESKTOP = { w: W_FULL, cell: 12, gap: 2, weeks: 53, gridX: 56, h: 192, svgH: 208, lineY: 168 }
-const MOBILE = { w: W_MOBILE, cell: 8, gap: 2, weeks: 26, gridX: 44, h: 200, svgH: 216, lineY: 176 }
+const MOBILE = { w: W_MOBILE, cell: 8, gap: 2, weeks: 22, gridX: 40, h: 200, svgH: 216, lineY: 176 }
 
 const ramp = (t) => [t.dataEmpty, t.data1, t.data2, t.data3, t.data4]
 
@@ -131,3 +132,4 @@ export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title })
 }
+

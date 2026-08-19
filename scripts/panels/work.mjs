@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 03 — SELECTED WORK.
  *
  * Four hand-picked cards, not the four most recently pushed repositories. Each
@@ -24,7 +24,7 @@ export const id = "work"
 export const responsive = true
 
 const DESKTOP = { w: W_HALF, h: 136, svgH: 152, lines: 4, top: 40, tags: 116 }
-const MOBILE = { w: W_MOBILE, h: 168, svgH: 184, lines: 5, top: 40, tags: 148 }
+const MOBILE = { w: W_MOBILE, h: 184, svgH: 200, lines: 6, top: 40, tags: 164 }
 const LINE_H = S.sm
 
 /** Greedy wrap at a known advance — the face is monospaced, so this is exact. */
@@ -85,3 +85,4 @@ export const build = (t, _ctx, cfg, v) =>
     const c = card(t, p, cfg, v)
     return { key: `work-${p.key}`, svg: svgDoc({ w: c.w, h: c.h, theme: t, body: c.body, css: c.css, title: c.title }) }
   })
+

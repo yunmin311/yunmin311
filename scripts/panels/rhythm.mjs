@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 04a — CODING RHYTHM.
  *
  * Segmented meters rather than solid bars: every column shows its full scale in
@@ -42,8 +42,8 @@ const DESKTOP = {
 
 const MOBILE = {
   w: W_MOBILE, h: 296, svgH: 312,
-  hours: { x: S.sm, bar: 10, pitch: 12, label: 40, bottom: 108, ruler: 120 },
-  days: { x: S.sm, bar: 36, pitch: 44, label: 148, bottom: 216, ruler: 228 },
+  hours: { x: S.sm, bar: 8, pitch: 10, label: 40, bottom: 108, ruler: 120 },
+  days: { x: S.sm, bar: 28, pitch: 36, label: 148, bottom: 216, ruler: 228 },
   rule: 246, rows: [268, 292], cols: 2,
   facts: ["PEAK", "BUSIEST", "NIGHT", "STREAK"],
   ticks: [0, 6, 12, 18],
@@ -158,3 +158,4 @@ export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title })
 }
+

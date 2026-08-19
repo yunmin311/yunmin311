@@ -39,6 +39,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/build.mjs
 
+      # Fails the run if the README points at an asset the build did not
+      # produce. A missing phone variant is invisible on a desktop and broken
+      # on every phone, so it has to be caught here rather than by a reader.
+      - name: Check the README against what was built
+        run: node scripts/check.mjs
+
       - name: Commit if anything moved
         run: |
           if [ -z "$(git status --porcelain assets/generated)" ]; then

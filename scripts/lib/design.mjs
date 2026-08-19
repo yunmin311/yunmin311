@@ -30,12 +30,12 @@ export const W_FULL = 824
 export const W_HALF = 408
 
 /**
- * Phone. GitHub's mobile README column is roughly 344px, and below that the
- * page is already scrolling. Panels get a real narrow layout at this width
+ * Phone. Measured on a 390px device the README column is 293px, so panels are
+ * drawn at 288 and render essentially 1:1. Panels get a real narrow layout at this width
  * rather than being scaled: an 824px panel shrunk to 344 puts 11px type at
  * 4.6px, which is not small, it is gone.
  */
-export const W_MOBILE = 344
+export const W_MOBILE = 288
 
 /** Base grid unit for chrome. */
 export const U = 2
@@ -218,6 +218,7 @@ export const deEmoji = (str) =>
     .trim()
 
 export { label, value, body, text, width, labelWidth, valueWidth, bodyWidth, fit, MICRO, BIG, adv, cap, n as num }
+
 
 
 
