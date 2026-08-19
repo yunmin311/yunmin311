@@ -12,10 +12,10 @@ import { ago } from "../lib/data.mjs"
 export const id = "stars"
 
 const W = 430
-const H = 192
-const BOX = { x: 0, y: S.xs, w: W, h: 176 }
-const PAD = S.md
-const PITCH = S.xl // 48
+const H = 216
+const BOX = { x: 0, y: S.xs, w: W, h: 200 }
+const PAD = S.sm
+const PITCH = 56
 const INNER = W - PAD * 2
 
 export function render(t, ctx) {
@@ -30,15 +30,13 @@ export function render(t, ctx) {
     const when = s.starredAt ? ago(new Date(s.starredAt).getTime()) : ""
     const ownerW = bodyWidth(`${owner}/`)
 
-    // Marker sits on the content baseline rather than floating between it and
-    // the border, so the panel has one left edge instead of two.
-    const tx = PAD + MARKER_GAP
-    out.push(marker(t, PAD, y - 5, i === 0 ? t.accent : t.inkFaint))
-    out.push(body(`${owner}/`, { x: tx, y, fill: t.inkFaint }))
-    out.push(body(fit(name, INNER - MARKER_GAP - ownerW - 40), { x: tx + ownerW, y, fill: t.ink }))
-    out.push(body(when, { x: W - PAD, y, fill: t.inkFaint, anchor: "end" }))
-    if (s.description) out.push(body(fit(s.description, INNER - MARKER_GAP), { x: tx, y: y + S.sm, fill: t.inkDim }))
-    if (i < list.length - 1) out.push(rect(PAD, y + S.md, INNER, 1, t.lineSoft))
+    // No bullet column and no rule between entries: whitespace already
+    // separates them, and both were crowding the text they sat next to. The
+    // newest entry is marked by putting its timestamp in the accent instead.
+    out.push(body(`${owner}/`, { x: PAD, y, fill: t.inkFaint }))
+    out.push(body(fit(name, INNER - ownerW - 40), { x: PAD + ownerW, y, fill: t.ink }))
+    out.push(body(when, { x: W - PAD, y, fill: i === 0 ? t.accent : t.inkFaint, anchor: "end" }))
+    if (s.description) out.push(body(fit(s.description, INNER), { x: PAD, y: y + S.sm, fill: t.inkDim }))
   })
 
   if (!list.length) out.push(body("no recent stars", { x: PAD, y: 40, fill: t.inkFaint }))
@@ -50,5 +48,8 @@ export const build = (t, ctx, cfg) => {
   const r = render(t, ctx, cfg)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, title: r.title })
 }
+
+
+
 
 

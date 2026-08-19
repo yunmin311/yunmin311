@@ -71,9 +71,9 @@ export function render(t, ctx) {
 
   // ---- legend and readout, one line --------------------------------------
   const lineY = 168
-  out.push(rect(S.md, 152, W - S.md * 2, 1, t.lineSoft))
-  out.push(label("LESS", { x: S.md, y: lineY, tracking: 1, fill: t.inkFaint }))
-  const lx = S.md + labelWidth("LESS", 1) + S.xs
+  out.push(rect(S.sm, 150, W - S.sm * 2, 1, t.lineSoft))
+  out.push(label("LESS", { x: S.sm, y: lineY, tracking: 1, fill: t.inkFaint }))
+  const lx = S.sm + labelWidth("LESS", 1) + S.xs
   out.push(SIZES.map((_, i) => `<g fill="${fillFor(t, i)}" opacity="${opacityFor(i)}">${at(lx + i * PITCH, lineY - 9, i)}</g>`).join(""))
   out.push(label("MORE", { x: lx + 4 * PITCH + CELL + S.xs, y: lineY, tracking: 1, fill: t.inkFaint }))
 
@@ -86,14 +86,13 @@ export function render(t, ctx) {
     ["ACTIVE DAYS", String(c.activeDays), false],
     ["PEAK", peak ? `${c.max} on ${month[0]}${month.slice(1).toLowerCase()} ${peak.getUTCDate()}` : "—", true],
   ]
-  let right = W - S.md
+  let right = W - S.sm
   for (const [name, v, hot] of [...facts].reverse()) {
     const vw = bodyWidth(v)
     const lw = labelWidth(name, 1)
-    const x = right - (U + S.xs + lw + S.sm + vw)
-    out.push(marker(t, x, lineY - 6, hot ? t.accent : t.inkFaint))
-    out.push(label(name, { x: x + U + S.xs, y: lineY, tracking: 1, fill: t.inkDim }))
-    out.push(body(v, { x: right, y: lineY, fill: t.ink, anchor: "end" }))
+    const x = right - (lw + S.sm + vw)
+    out.push(label(name, { x, y: lineY, tracking: 1, fill: t.inkDim }))
+    out.push(body(v, { x: right, y: lineY, fill: hot ? t.accent : t.ink, anchor: "end" }))
     right = x - S.lg
   }
 
@@ -107,4 +106,6 @@ export const build = (t, ctx, cfg) => {
   const r = render(t, ctx, cfg)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, title: r.title })
 }
+
+
 

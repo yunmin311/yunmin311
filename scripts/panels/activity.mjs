@@ -11,10 +11,10 @@ import { rect, marker, panel, svgDoc, label, body, fit, MARKER_GAP, S } from "..
 export const id = "activity"
 
 const W = 430
-const H = 192
-const BOX = { x: 0, y: S.xs, w: W, h: 176 }
-const PAD = S.md
-const PITCH = 32
+const H = 216
+const BOX = { x: 0, y: S.xs, w: W, h: 200 }
+const PAD = S.sm
+const PITCH = 40
 const LIMIT = 4
 const INNER = W - PAD * 2
 
@@ -26,12 +26,11 @@ export function render(t, ctx, cfg) {
 
   list.forEach((a, i) => {
     const y = 40 + i * PITCH
-    out.push(marker(t, PAD, y - 5, i === 0 ? t.accent : t.inkFaint))
-    out.push(label(a.tag, { x: PAD + MARKER_GAP, y, tracking: 1, fill: t.inkDim }))
-    out.push(body(a.ago, { x: W - PAD, y, fill: t.inkFaint, anchor: "end" }))
-    out.push(body(fit(a.repo, INNER - MARKER_GAP - 80), { x: PAD + MARKER_GAP, y: y + S.sm, fill: t.ink }))
+    // Same as the starred panel: no bullet column, no rule between entries.
+    out.push(label(a.tag, { x: PAD, y, tracking: 1, fill: t.inkDim }))
+    out.push(body(a.ago, { x: W - PAD, y, fill: i === 0 ? t.accent : t.inkFaint, anchor: "end" }))
+    out.push(body(fit(a.repo, INNER - 80), { x: PAD, y: y + S.sm, fill: t.ink }))
     if (a.detail) out.push(body(a.detail, { x: W - PAD, y: y + S.sm, fill: t.inkFaint, anchor: "end" }))
-    if (i < list.length - 1) out.push(rect(PAD, y + S.md, INNER, 1, t.lineSoft))
   })
 
   if (!list.length) out.push(body("nothing worth reporting", { x: PAD, y: 40, fill: t.inkFaint }))
@@ -43,5 +42,8 @@ export const build = (t, ctx, cfg) => {
   const r = render(t, ctx, cfg)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, title: r.title })
 }
+
+
+
 
 

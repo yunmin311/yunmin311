@@ -16,8 +16,8 @@ export const id = "languages"
 const W = 880
 const H = 192
 const BOX = { x: 0, y: S.xs, w: W, h: 176 }
-const PAD = S.md
-const BAR = { y: 48, h: 12 } // 6U
+const PAD = S.sm
+const BAR = { y: 52, h: 12 } // 6U
 const PITCH = 6 // 3U
 const CELLW = 4 // 2U
 
@@ -64,7 +64,7 @@ export function render(t, ctx) {
   const colW = innerW / 2
   L.top.forEach((l, i) => {
     const x = PAD + Math.floor(i / 3) * colW
-    const y = 88 + (i % 3) * S.md
+    const y = 84 + (i % 3) * S.md
 
     out.push(rect(x, y - 7, 8, 8, ramp[i] ?? t.dataEmpty, fade[i] < 1 ? `opacity="${fade[i]}"` : ""))
     out.push(body(l.name, { x: x + S.sm, y, fill: t.ink }))
@@ -73,7 +73,7 @@ export function render(t, ctx) {
   })
 
   // ---- method ------------------------------------------------------------
-  out.push(rect(PAD, 148, innerW, 1, t.lineSoft))
+  out.push(rect(PAD, 144, innerW, 1, t.lineSoft))
   out.push(
     body(`Measured across ${L.repoCount} selected repositories. Built and vendored output excluded.`, {
       x: PAD, y: 160, fill: t.inkFaint,
@@ -90,4 +90,6 @@ export const build = (t, ctx, cfg) => {
   const r = render(t, ctx, cfg)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, title: r.title })
 }
+
+
 

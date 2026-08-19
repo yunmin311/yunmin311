@@ -1,4 +1,4 @@
-/**
+﻿/**
  * The visual system. Full rationale and the measured sources it came from are
  * in DESIGN.md at the repository root; this file is that document expressed as
  * code, and the two are meant to stay in step.
@@ -115,11 +115,11 @@ export function tab(t, { x, y, text, align = "start", ink }) {
  * against numbers that happen to look right.
  */
 export const bounds = ({ x, y, w, h }) => ({
-  left: x + S.md,
-  right: x + w - S.md,
+  left: x + S.sm,
+  right: x + w - S.sm,
   top: y + S.md,
   bottom: y + h - S.md,
-  width: w - S.md * 2,
+  width: w - S.sm * 2,
 })
 
 export function panel(t, { x, y, w, h, title, meta, fill = true }) {
@@ -151,11 +151,9 @@ export const MARKER_GAP = 12 // marker (2px) + 10px, so text keeps one left base
  * box, and the pair stopped reading as one fact.
  */
 export function readout(t, { x, y, name, val, accent = false }) {
-  const lx = x + MARKER_GAP
   return (
-    marker(t, x, y - 6, accent ? t.accent : t.inkFaint) +
-    label(name, { x: lx, y, tracking: 1, fill: t.inkDim }) +
-    body(val, { x: lx + labelWidth(name, 1) + S.sm, y, fill: t.ink })
+    label(name, { x, y, tracking: 1, fill: t.inkDim }) +
+    body(val, { x: x + labelWidth(name, 1) + S.sm, y, fill: accent ? t.accent : t.ink })
   )
 }
 
@@ -190,3 +188,5 @@ export const deEmoji = (str) =>
     .trim()
 
 export { label, value, body, text, width, labelWidth, valueWidth, bodyWidth, fit, MICRO, BIG, adv, cap, n as num }
+
+

@@ -18,7 +18,7 @@ export const id = "rhythm"
 const W = 880
 const H = 192
 const BOX = { x: 0, y: S.xs, w: W, h: 176 }
-const PAD = S.md
+const PAD = S.sm
 
 const CELL = 4 // 2U
 const GAP = 2 // 1U
@@ -76,7 +76,7 @@ export function render(t, ctx) {
   out.push(flush(t, buckets))
 
   // ---- readout -----------------------------------------------------------
-  out.push(rect(PAD, 140, W - PAD * 2, 1, t.lineSoft))
+  out.push(rect(PAD, 138, W - PAD * 2, 1, t.lineSoft))
   const cw = (W - PAD * 2) / 4
   const facts = [
     ["PEAK WINDOW", r.peakWindow, true],
@@ -95,4 +95,6 @@ export const build = (t, ctx, cfg) => {
   const r = render(t, ctx, cfg)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, title: r.title })
 }
+
+
 
