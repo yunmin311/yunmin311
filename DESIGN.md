@@ -17,6 +17,19 @@ from design principles alone.
 | `Owl-Listener/designer-skills` — `typography-scale` | 4–5 sizes in regular use · uppercase labels get **wide tracking** |
 | `Owl-Listener/designer-skills` — `dark-mode-design` | *don't invert — redesign surfaces per theme*; semantic tokens, not flipped hex |
 
+**The canvas is 831px.** Measured on the live profile, not assumed:
+`document.querySelector('article.markdown-body').getBoundingClientRect().width` → **831**.
+Panels were being drawn at 880 and scaled to 0.944, which resampled a pixel face onto
+fractional pixels — the actual reason the type kept reading as soft. Two 432px cards plus the
+space between them came to 871 and wrapped, which is why the two-up rows collapsed into one
+column. So:
+
+| canvas | px | why |
+|---|---|---|
+| full panel | **824** | under 831, renders 1:1 on desktop, still scales down on a phone |
+| half panel | **408** | `2 × 408 + 7px word space = 823`, so two fit side by side |
+| hero | **831** | its longest line is 59 glyphs × 14px = 826 and needs the full column |
+
 **The ratio that matters.** In the reference, the headline number is `24 / 450 ≈ 5.3%` of the
 box that holds it, and body is `14 / 450 ≈ 3.1%`.
 
@@ -124,7 +137,13 @@ From the anti-AI-taste list, plus what this brief rules out:
 1. Every type size under 6% of its container's width.
 2. Every y position and inset on the 8px scale.
 3. Every chrome dimension a multiple of 2.
-4. Both themes rendered and read at 1440 / 768 / 375, no horizontal scroll.
-5. Blurred to illegibility, the page still shows: quiet opening → short text →
+4. **No image scaled on desktop.** On the live profile,
+   `[...document.querySelectorAll('article.markdown-body img')].filter(i => i.naturalWidth !== Math.round(i.getBoundingClientRect().width))`
+   must come back empty. A scaled pixel face is a soft pixel face.
+5. Two-up rows actually sit two-up — check the rendered `top` of each image, not the source.
+6. Both themes verified on the real page, not only in the local preview: emulate
+   `prefers-color-scheme: dark` and confirm each `img.currentSrc` ends in `-dark.svg`.
+7. No divider within 8px of the baseline above it or the cap-top below it.
+8. Blurred to illegibility, the page still shows: quiet opening → short text →
    photographic band → structured grid → dense instrument row → fine texture →
    one closing line.
