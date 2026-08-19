@@ -36,8 +36,13 @@ const on = (cfg, name) => cfg?.motion?.[name] !== false && cfg?.motion?.enabled 
  * no rule behind it, which is inert.
  */
 export function styles(cfg, name, css) {
-  if (!on(cfg, name)) return ""
-  return `${css}${REDUCE}`
+  if (cfg?.motion?.enabled === false) return ""
+  const parts = []
+  // Ambient chrome is shared by every panel: the corner lamp, the peak
+  // indicator, the caret. Entrance CSS is per component on top of it.
+  if (cfg?.motion?.ambient !== false) parts.push(lamp("led"), tick("pk"), blink("cr"))
+  if (on(cfg, name) && css) parts.push(css)
+  return parts.length ? `${parts.join("")}${REDUCE}` : ""
 }
 
 export const enabled = on
@@ -103,3 +108,58 @@ export const nudge = (cls, { dur = 2400, dx = 3 } = {}) =>
 export const blink = (cls = "cr", { period = 1060 } = {}) =>
   `@keyframes ${cls}-k{0%,50%{opacity:1}50.01%,100%{opacity:0}}` +
   `.${cls}{animation:${cls}-k ${period}ms step-end infinite}`
+
+/* ------------------------------------------------------------- ambient ---
+ *
+ * The effects above happen once and stop. These never stop, which is what
+ * makes a pixel interface feel powered rather than printed, and they are drawn
+ * from the idioms that language already has: a status lamp breathing, a caret
+ * blinking, a peak indicator ticking, a value sweeping along a readout.
+ *
+ * All of them touch chrome only — a corner lamp, a highlight passing over a
+ * bar, the single cell that is already marked as the peak. None of them
+ * changes what a cell means, because an animation that alters a reading is a
+ * lie that moves.
+ *
+ * They are also fail-safe in the same way: each rests at full opacity or at its
+ * natural position, so an animation that never starts costs nothing.
+ */
+
+/** Status lamp. Slow, shallow breath — a device that is on, not a notification. */
+export const lamp = (cls = "led", { period = 2600, low = 0.28 } = {}) =>
+  `@keyframes ${cls}-k{0%,100%{opacity:1}50%{opacity:${low}}}` +
+  `.${cls}{animation:${cls}-k ${period}ms ${EASE} infinite}`
+
+/** Peak indicator. A hard on/off tick, the way a level meter marks its ceiling. */
+export const tick = (cls = "pk", { period = 1800 } = {}) =>
+  `@keyframes ${cls}-k{0%,64%{opacity:1}65%,82%{opacity:0.25}83%,100%{opacity:1}}` +
+  `.${cls}{animation:${cls}-k ${period}ms step-end infinite}`
+
+/**
+ * A highlight travelling along a bar, like a value being read off it.
+ *
+ * This turned out to be the one ambient effect that actually reads at a
+ * glance, so it is the model for the rest: something crossing the data, rather
+ * than a two-pixel lamp breathing in a corner where nobody sees it.
+ */
+export const stream = (cls, { distance, period = 4200, axis = "X" }) =>
+  `@keyframes ${cls}-k{0%{transform:translate${axis}(0);opacity:0}` +
+  `6%{opacity:0.9}86%{opacity:0.9}` +
+  `100%{transform:translate${axis}(${distance}px);opacity:0}}` +
+  `.${cls}{animation:${cls}-k ${period}ms linear infinite}`
+
+/**
+ * A scan head crossing a chart. Same idea as `stream`, sized to sweep a whole
+ * panel rather than one bar, and held at low opacity so it passes over the data
+ * without repainting it.
+ */
+export const playhead = (cls, { distance, period = 6400, axis = "X", peak = 0.55 }) =>
+  `@keyframes ${cls}-k{0%{transform:translate${axis}(0);opacity:0}` +
+  `10%{opacity:${peak}}80%{opacity:${peak}}` +
+  `100%{transform:translate${axis}(${distance}px);opacity:0}}` +
+  `.${cls}{animation:${cls}-k ${period}ms linear infinite}`
+
+/** Marching ants — the selection marquee every early graphical interface had. */
+export const ants = (cls, { period = 900, dash = 4 } = {}) =>
+  `@keyframes ${cls}-k{to{stroke-dashoffset:${-dash * 2}}}` +
+  `.${cls}{stroke-dasharray:${dash} ${dash};animation:${cls}-k ${period}ms linear infinite}`

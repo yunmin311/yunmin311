@@ -26,8 +26,8 @@ import { fontFace, label, value, body, text, width, labelWidth, valueWidth, body
  * cleanly on a phone. Two half panels plus the space between them also have to
  * fit, which 2x432 did not.
  */
-export const W_FULL = 824
-export const W_HALF = 408
+export const W_FULL = 820
+export const W_HALF = 404
 
 /**
  * Phone. Measured on a 390px device the README column is 293px, so panels are
@@ -35,7 +35,7 @@ export const W_HALF = 408
  * rather than being scaled: an 824px panel shrunk to 344 puts 11px type at
  * 4.6px, which is not small, it is gone.
  */
-export const W_MOBILE = 288
+export const W_MOBILE = 284
 
 /** Base grid unit for chrome. */
 export const U = 2
@@ -68,6 +68,9 @@ export const THEMES = {
     dataLow: "#1F3A5F",
     dataMid: "#2C6BC9",
     dataHigh: "#58A6FF",
+    // Darker than the page, so the offset block reads as a shadow and not as
+    // another panel.
+    shadow: "#000000",
   },
   light: {
     name: "light",
@@ -87,6 +90,7 @@ export const THEMES = {
     dataLow: "#BFDBFE",
     dataMid: "#60A5FA",
     dataHigh: "#0969DA",
+    shadow: "#BFC8D2",
   },
 }
 
@@ -152,8 +156,19 @@ export const bounds = ({ x, y, w, h }) => ({
   width: w - S.sm * 2,
 })
 
-export function panel(t, { x, y, w, h, title, meta, fill = true }) {
+/**
+ * Hard offset shadow, the text-mode kind: a solid block down and to the right,
+ * no blur, no gradient. This is how DOS-era windowing (Turbo Vision and every
+ * TUI since) gave a panel depth on a grid that had no sub-pixels to spend.
+ *
+ * The canvas carries SHADOW extra pixels of bleed on the right and bottom, so
+ * adding it changed no coordinate inside any panel.
+ */
+export const SHADOW = 4
+
+export function panel(t, { x, y, w, h, title, meta, fill = true, shadow = true }) {
   const out = []
+  if (shadow) out.push(rect(x + SHADOW, y + SHADOW, w, h, t.shadow))
   if (fill) out.push(rect(x, y, w, h, t.panel))
 
   out.push(hline(x, y, w, t.line))
@@ -164,7 +179,8 @@ export function panel(t, { x, y, w, h, title, meta, fill = true }) {
   if (title) out.push(tab(t, { x: x + S.sm, y, text: title, ink: t.ink }))
   if (meta) out.push(tab(t, { x: x + w - S.sm, y: y + h - 1, text: meta, align: "end", ink: t.inkFaint }))
 
-  out.push(marker(t, x + S.tight, y + S.tight))
+  // The corner square is the panel's status lamp; motion.mjs breathes it.
+  out.push(rect(x + S.tight, y + S.tight, U, U, t.accent, `class="led"`))
 
   return out.join("")
 }
@@ -189,15 +205,17 @@ export function readout(t, { x, y, name, val, accent = false }) {
 
 /* --------------------------------------------------------------- documents */
 
-export function svgDoc({ w, h, theme, body: content, defs = "", css = "", title = "", paintBg = true }) {
+export function svgDoc({ w, h, theme, body: content, defs = "", css = "", title = "", paintBg = true, bleed = 0 }) {
+  const W = w + bleed
+  const H = h + bleed
   const safe = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
   return [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"`,
     ` shape-rendering="crispEdges" role="img" aria-label="${safe(title)}">`,
     title ? `<title>${safe(title)}</title>` : "",
     defs ? `<defs>${defs}</defs>` : "",
     `<style>${fontFace()}${css}</style>`,
-    paintBg ? rect(0, 0, w, h, theme.page) : "",
+    paintBg ? rect(0, 0, W, H, theme.page) : "",
     content,
     `</svg>`,
   ].join("")
@@ -218,6 +236,9 @@ export const deEmoji = (str) =>
     .trim()
 
 export { label, value, body, text, width, labelWidth, valueWidth, bodyWidth, fit, MICRO, BIG, adv, cap, n as num }
+
+
+
 
 
 

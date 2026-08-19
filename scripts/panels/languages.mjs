@@ -13,8 +13,8 @@
  * checked.
  */
 
-import { rect, panel, svgDoc, label, body, W_FULL, W_MOBILE, S } from "../lib/design.mjs"
-import { styles, fill, rise, enabled, STAGGER, DUR } from "../lib/motion.mjs"
+import { rect, panel, svgDoc, label, body, W_FULL, W_MOBILE, S , SHADOW} from "../lib/design.mjs"
+import { styles, fill, rise, stream, enabled, STAGGER, DUR } from "../lib/motion.mjs"
 
 export const id = "languages"
 export const responsive = true
@@ -61,7 +61,8 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
       meta: `${Lang.repoCount} repos · ${Lang.summary}`,
     })
   )
-  out.push(label(Lang.caption, { x: S.sm, y: 40, tracking: 1, fill: t.ink }))
+  // The full caption is 35 glyphs — 280px — and the phone column gives 256.
+  out.push(label(mobile ? "LINES I WROTE" : Lang.caption, { x: S.sm, y: 40, tracking: 1, fill: t.ink }))
 
   // Four designed steps plus a neutral tail, rather than one blue at falling
   // opacity — opacity that reads on #0D1117 disappears on white.
@@ -101,6 +102,12 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
     out.push(segments.join(""))
   }
 
+  // A highlight sweeps the bar, the way a value gets read off a readout.
+  if (animate) {
+    out.push(`<g class="st"><rect x="${S.sm}" y="${L.bar.y}" width="${CELLW}" height="${L.bar.h}" fill="${t.accent}"/></g>`)
+    css.push(stream("st", { distance: innerW - CELLW }))
+  }
+
   // ---- legend ------------------------------------------------------------
   const colW = innerW / L.cols
   const perCol = Math.ceil(Lang.top.length / L.cols)
@@ -134,7 +141,10 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
 
 export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
-  return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title })
+  return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, bleed: SHADOW })
 }
+
+
+
 
 

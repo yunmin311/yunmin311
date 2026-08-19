@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 04c — RECENTLY STARRED.
  *
  * Three repositories, no counts. A star is only interesting here as a signal of
@@ -11,7 +11,7 @@
  * look clickable and are not.
  */
 
-import { panel, svgDoc, body, bodyWidth, fit, W_HALF, W_MOBILE, S } from "../lib/design.mjs"
+import { panel, svgDoc, body, bodyWidth, fit, W_HALF, W_MOBILE, S , SHADOW} from "../lib/design.mjs"
 import { styles, rise, enabled, STAGGER, DUR } from "../lib/motion.mjs"
 import { ago } from "../lib/data.mjs"
 
@@ -61,5 +61,6 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
 
 export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
-  return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title })
+  return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, bleed: SHADOW })
 }
+

@@ -16,7 +16,7 @@
  * A card is one image so a README can wrap one link around the whole thing.
  */
 
-import { rect, panel, tab, svgDoc, body, W_HALF, W_MOBILE, S } from "../lib/design.mjs"
+import { rect, panel, tab, svgDoc, body, W_HALF, W_MOBILE, S , SHADOW} from "../lib/design.mjs"
 import { styles, rise, nudge, enabled, STAGGER, DUR } from "../lib/motion.mjs"
 import { adv, MICRO } from "../lib/type.mjs"
 
@@ -63,7 +63,9 @@ export function card(t, p, cfg, { mobile = false } = {}) {
   const lastBaseline = L.top + (lines.length - 1) * LINE_H
   const rule = Math.round((lastBaseline + (L.tags - 8)) / 2)
   out.push(rect(PAD, rule, INNER, 1, t.lineSoft))
-  out.push(body(p.tags.join(" · "), { x: PAD, y: L.tags, fill: t.inkFaint }))
+  wrap(p.tags.join(" · "), INNER)
+    .slice(0, 2)
+    .forEach((l, i) => out.push(body(l, { x: PAD, y: L.tags + i * LINE_H, fill: t.inkFaint })))
 
   const plate = tab(t, { x: W - S.sm, y: S.xs + L.h - 1, text: "View repo →", align: "end", ink: t.accent })
   if (animate) {
@@ -83,6 +85,8 @@ export function card(t, p, cfg, { mobile = false } = {}) {
 export const build = (t, _ctx, cfg, v) =>
   cfg.work.map((p) => {
     const c = card(t, p, cfg, v)
-    return { key: `work-${p.key}`, svg: svgDoc({ w: c.w, h: c.h, theme: t, body: c.body, css: c.css, title: c.title }) }
+    return { key: `work-${p.key}`, svg: svgDoc({ w: c.w, h: c.h, theme: t, body: c.body, css: c.css, title: c.title, bleed: SHADOW }) }
   })
+
+
 

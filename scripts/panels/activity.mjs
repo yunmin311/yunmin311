@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 04d — RECENT ACTIVITY.
  *
  * Releases, repositories opened to the public, pull requests, issues. Pushes
@@ -6,7 +6,7 @@
  * the noise most profiles mistake for evidence of work.
  */
 
-import { panel, svgDoc, label, body, fit, W_HALF, W_MOBILE, S } from "../lib/design.mjs"
+import { panel, svgDoc, label, body, fit, W_HALF, W_MOBILE, S , SHADOW} from "../lib/design.mjs"
 import { styles, rise, enabled, STAGGER, DUR } from "../lib/motion.mjs"
 
 export const id = "activity"
@@ -52,5 +52,6 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
 
 export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
-  return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title })
+  return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, bleed: SHADOW })
 }
+

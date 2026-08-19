@@ -12,8 +12,8 @@
  * day into the lowest band and waste three quarters of the ramp.
  */
 
-import { rect, panel, svgDoc, label, body, labelWidth, bodyWidth, W_FULL, W_MOBILE, S } from "../lib/design.mjs"
-import { styles, bloom, enabled, STAGGER, DUR } from "../lib/motion.mjs"
+import { rect, panel, svgDoc, label, body, labelWidth, bodyWidth, W_FULL, W_MOBILE, S , SHADOW} from "../lib/design.mjs"
+import { styles, bloom, playhead, enabled, STAGGER, DUR } from "../lib/motion.mjs"
 
 export const id = "contributions"
 export const responsive = true
@@ -69,13 +69,19 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
   // ---- field -------------------------------------------------------------
   // Grouped by week, then by level inside the week: one group per week is what
   // lets the reveal sweep across the year without a class on every cell.
+  // A day with activity fills its whole cell; a day without one is a small
+  // centred dot. The graph-paper texture from the first draft survives where it
+  // belongs — in the empty half — while every real day reads at full strength.
+  const DOT = 4
   weeks.forEach((week, i) => {
     const byLevel = {}
     week.forEach((day) => {
       const row = (day.wd + 6) % 7 // GitHub weeks start Sunday; ours start Monday
       const lv = c.level(day.n)
+      const size = lv === 0 ? DOT : L.cell
+      const off = (L.cell - size) / 2
       ;(byLevel[lv] ||= []).push(
-        `<rect x="${L.gridX + i * PITCH}" y="${GRID_Y + row * PITCH}" width="${L.cell}" height="${L.cell}"/>`
+        `<rect x="${L.gridX + i * PITCH + off}" y="${GRID_Y + row * PITCH + off}" width="${size}" height="${size}"/>`
       )
     })
     const inner = Object.entries(byLevel)
@@ -84,6 +90,13 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
     out.push(animate ? `<g class="w${i}">${inner}</g>` : inner)
     if (animate) css.push(bloom(`w${i}`, { delay: i * STAGGER.cell, dur: DUR.fast }))
   })
+
+  if (animate) {
+    const span = weeks.length * PITCH - L.gap
+    const tall = 7 * PITCH - L.gap
+    out.push(`<g class="ph"><rect x="${L.gridX}" y="${GRID_Y}" width="2" height="${tall}" fill="${t.accent}"/></g>`)
+    css.push(playhead("ph", { distance: span - 2, period: 9000 }))
+  }
 
   // ---- legend and readout ------------------------------------------------
   const lineY = L.lineY
@@ -130,6 +143,8 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
 
 export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
-  return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title })
+  return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, bleed: SHADOW })
 }
+
+
 

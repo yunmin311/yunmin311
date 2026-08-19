@@ -21,8 +21,8 @@
  * a private repository contributes a timestamp and nothing else.
  */
 
-import { rect, panel, readout, svgDoc, label, labelWidth, W_FULL, W_MOBILE, S } from "../lib/design.mjs"
-import { styles, grow, enabled, STAGGER, DUR } from "../lib/motion.mjs"
+import { rect, panel, readout, svgDoc, label, labelWidth, W_FULL, W_MOBILE, S , SHADOW} from "../lib/design.mjs"
+import { styles, grow, playhead, enabled, STAGGER, DUR } from "../lib/motion.mjs"
 
 export const id = "rhythm"
 export const responsive = true
@@ -61,7 +61,12 @@ function meter(buckets, { x, bottom, w, v, max, hot, cls }) {
     ;(i < filled ? lit : off).push(`<rect x="${x}" y="${y}" width="${w}" height="${CELL}"/>`)
   }
   if (off.length) buckets.off.push(off.join(""))
-  if (lit.length) buckets[hot ? "hot" : "on"].push(cls ? `<g class="${cls}">${lit.join("")}</g>` : lit.join(""))
+  if (!lit.length) return
+  // The ceiling cell of the peak column gets its own group so it can tick.
+  const crown = hot ? lit.pop() : null
+  const rest = lit.join("")
+  const inner = (cls && rest ? `<g class="${cls}">${rest}</g>` : rest) + (crown ? `<g class="pk">${crown}</g>` : "")
+  buckets[hot ? "hot" : "on"].push(inner)
 }
 
 const flush = (t, b) =>
@@ -133,6 +138,17 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
   out.push(rect(L.days.x, L.days.bottom, 7 * L.days.pitch - (L.days.pitch - L.days.bar), 1, t.line))
   out.push(flush(t, buckets))
 
+  // A scan head crosses the day, the way a playhead crosses a timeline. Low
+  // opacity so it passes over the meters without repainting them.
+  if (animate) {
+    const span = 24 * L.hours.pitch - (L.hours.pitch - L.hours.bar)
+    const top = L.hours.bottom - CELLS * (CELL + GAP)
+    out.push(
+      `<g class="ph"><rect x="${L.hours.x}" y="${top}" width="2" height="${L.hours.bottom - top}" fill="${t.accent}"/></g>`
+    )
+    css.push(playhead("ph", { distance: span - 2, period: 7200 }))
+  }
+
   // ---- readout -----------------------------------------------------------
   out.push(rect(S.sm, L.rule, W - S.sm * 2, 1, t.lineSoft))
   const cw = (W - S.sm * 2) / L.cols
@@ -156,6 +172,9 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
 
 export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
-  return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title })
+  return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, bleed: SHADOW })
 }
+
+
+
 
