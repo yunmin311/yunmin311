@@ -12,7 +12,7 @@
  */
 
 import { panel, svgDoc, body, bodyWidth, fit, W_HALF, W_MOBILE, S , SHADOW} from "../lib/design.mjs"
-import { styles, rise, enabled, STAGGER, DUR } from "../lib/motion.mjs"
+import { styles, cursor, enabled } from "../lib/motion.mjs"
 import { ago } from "../lib/data.mjs"
 
 export const id = "stars"
@@ -40,15 +40,21 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
     const [owner, name] = s.name.split("/")
     const when = s.starredAt ? ago(new Date(s.starredAt).getTime()) : ""
     const ownerW = bodyWidth(`${owner}/`)
-    if (animate) css.push(rise(`e${i}`, { delay: i * STAGGER.row, dur: DUR.normal }))
 
     const row =
       body(`${owner}/`, { x: PAD, y, fill: t.inkFaint }) +
       body(fit(name, INNER - ownerW - 40), { x: PAD + ownerW, y, fill: t.ink }) +
       body(when, { x: W - PAD, y, fill: i === 0 ? t.accent : t.inkFaint, anchor: "end" }) +
       (s.description ? body(fit(s.description, INNER), { x: PAD, y: y + S.sm, fill: t.inkDim }) : "")
-    out.push(animate ? `<g class="e${i}">${row}</g>` : row)
+    out.push(row)
   })
+
+  // This panel's own motion: a selection cursor resting on one row at a time,
+  // the way a list behaves in a text-mode interface.
+  if (animate && list.length) {
+    out.push(`<g class="cur"><rect x="6" y="${L.top - 11}" width="2" height="26" fill="${t.accent}"/></g>`)
+    css.push(cursor("cur", { stops: list.map((_, i) => i * L.pitch), period: 5400 }))
+  }
 
   if (!list.length) out.push(body("no recent stars", { x: PAD, y: L.top, fill: t.inkFaint }))
 
@@ -63,4 +69,5 @@ export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, bleed: SHADOW })
 }
+
 

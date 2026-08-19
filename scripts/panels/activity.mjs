@@ -7,7 +7,7 @@
  */
 
 import { panel, svgDoc, label, body, fit, W_HALF, W_MOBILE, S , SHADOW} from "../lib/design.mjs"
-import { styles, rise, enabled, STAGGER, DUR } from "../lib/motion.mjs"
+import { styles, tape, enabled } from "../lib/motion.mjs"
 
 export const id = "activity"
 export const responsive = true
@@ -31,15 +31,25 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
 
   list.forEach((a, i) => {
     const y = L.top + i * L.pitch
-    if (animate) css.push(rise(`e${i}`, { delay: i * STAGGER.row, dur: DUR.normal }))
+
 
     const row =
       label(a.tag, { x: PAD, y, tracking: 1, fill: t.inkDim }) +
       body(a.ago, { x: W - PAD, y, fill: i === 0 ? t.accent : t.inkFaint, anchor: "end" }) +
       body(fit(a.repo, INNER - 80), { x: PAD, y: y + S.sm, fill: t.ink }) +
       (a.detail ? body(a.detail, { x: W - PAD, y: y + S.sm, fill: t.inkFaint, anchor: "end" }) : "")
-    out.push(animate ? `<g class="e${i}">${row}</g>` : row)
+    out.push(row)
   })
+
+  // This panel's own motion: a tape of marks crawling down the edge, the way
+  // a log advances. The step equals the spacing, so the loop is seamless.
+  if (animate && list.length) {
+    const step = 20
+    const marks = []
+    for (let y = 16; y < L.h; y += step) marks.push(`<rect x="6" y="${y}" width="2" height="8" fill="${t.accent}"/>`)
+    out.push(`<g class="tp" opacity="0.5">${marks.join("")}</g>`)
+    css.push(tape("tp", { step, period: 2600 }))
+  }
 
   if (!list.length) out.push(body("nothing worth reporting", { x: PAD, y: L.top, fill: t.inkFaint }))
 
@@ -54,4 +64,5 @@ export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, bleed: SHADOW })
 }
+
 

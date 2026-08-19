@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Motion.
  *
  * Every effect here is an ENTRANCE, not a loop. An SVG in a README replays its
@@ -40,7 +40,7 @@ export function styles(cfg, name, css) {
   const parts = []
   // Ambient chrome is shared by every panel: the corner lamp, the peak
   // indicator, the caret. Entrance CSS is per component on top of it.
-  if (cfg?.motion?.ambient !== false) parts.push(lamp("led"), tick("pk"), blink("cr"))
+  if (cfg?.motion?.ambient !== false) parts.push(lampFor(name), blink("cr"))
   if (on(cfg, name) && css) parts.push(css)
   return parts.length ? `${parts.join("")}${REDUCE}` : ""
 }
@@ -163,3 +163,59 @@ export const playhead = (cls, { distance, period = 6400, axis = "X", peak = 0.55
 export const ants = (cls, { period = 900, dash = 4 } = {}) =>
   `@keyframes ${cls}-k{to{stroke-dashoffset:${-dash * 2}}}` +
   `.${cls}{stroke-dasharray:${dash} ${dash};animation:${cls}-k ${period}ms linear infinite}`
+
+/**
+ * Each module gets its own effect below, not one effect moved around. The
+ * point of a pixel interface is that different instruments behave differently:
+ * a level meter flickers, a list has a selection cursor, a log scrolls, a
+ * readout sweeps, a selectable thing marches.
+ */
+
+/** Level-meter flicker for the cell at the top of a column. */
+export const flicker = (cls, { delay = 0, period = 2200 } = {}) =>
+  `@keyframes ${cls}-k{0%,56%{opacity:1}58%,64%{opacity:0.3}66%,100%{opacity:1}}` +
+  `.${cls}{animation:${cls}-k ${period}ms step-end ${delay}ms infinite}`
+
+/** A selection cursor stepping down a list and resting on each row. */
+export const cursor = (cls, { stops, period = 5400 }) => {
+  const n = stops.length
+  const frames = stops
+    .map((y, i) => {
+      const a = Math.round((i / n) * 10000) / 100
+      const b = Math.round(((i + 0.86) / n) * 10000) / 100
+      return `${a}%,${b}%{transform:translateY(${y}px)}`
+    })
+    .join("")
+  return `@keyframes ${cls}-k{${frames}100%{transform:translateY(${stops[0]}px)}}` +
+    `.${cls}{animation:${cls}-k ${period}ms step-end infinite}`
+}
+
+/** A tape of marks crawling down an edge, the way a log advances. */
+export const tape = (cls, { step, period = 2600 }) =>
+  `@keyframes ${cls}-k{from{transform:translateY(0)}to{transform:translateY(${step}px)}}` +
+  `.${cls}{animation:${cls}-k ${period}ms linear infinite}`
+
+/** A block travelling along a rule. */
+export const slide = (cls, { distance, period = 7600 }) =>
+  `@keyframes ${cls}-k{0%{transform:translateX(0);opacity:0}` +
+  `8%{opacity:1}90%{opacity:1}100%{transform:translateX(${distance}px);opacity:0}}` +
+  `.${cls}{animation:${cls}-k ${period}ms linear infinite}`
+
+/** Indicator keys lighting one after another. */
+export const keylight = (cls, { index, count, period = 4400 }) => {
+  const on = Math.round((index / count) * 10000) / 100
+  const off = Math.round(((index + 0.7) / count) * 10000) / 100
+  return `@keyframes ${cls}-k{0%,${on}%{opacity:0.25}${on + 0.01}%,${off}%{opacity:1}${off + 0.01}%,100%{opacity:0.25}}` +
+    `.${cls}{animation:${cls}-k ${period}ms step-end infinite}`
+}
+
+/**
+ * The corner lamp runs at a different rate in every panel, derived from the
+ * panel's own name. A rack of instruments does not blink in unison.
+ */
+export const lampFor = (name) => {
+  let h = 0
+  for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) % 997
+  return lamp("led", { period: 2100 + (h % 9) * 170 })
+}
+

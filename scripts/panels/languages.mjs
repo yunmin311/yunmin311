@@ -13,7 +13,7 @@
  * checked.
  */
 
-import { rect, panel, svgDoc, label, body, W_FULL, W_MOBILE, S , SHADOW} from "../lib/design.mjs"
+import { rect, panel, svgDoc, label, body, W_FULL, W_MOBILE, S , SHADOW, pixelRule} from "../lib/design.mjs"
 import { styles, fill, rise, stream, enabled, STAGGER, DUR } from "../lib/motion.mjs"
 
 export const id = "languages"
@@ -125,7 +125,7 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
   })
 
   // ---- method ------------------------------------------------------------
-  out.push(rect(S.sm, L.rule, innerW, 1, t.lineSoft))
+  out.push(pixelRule(S.sm, L.rule, innerW, t.lineSoft))
   // Wrapped at both widths rather than trusting it to fit: the note grows when a
   // repository fails to clone, and the desktop version was being cut mid-word.
   wrap(Lang.note, innerW)
@@ -143,6 +143,7 @@ export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, bleed: SHADOW })
 }
+
 
 
 

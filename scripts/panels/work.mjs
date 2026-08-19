@@ -16,8 +16,8 @@
  * A card is one image so a README can wrap one link around the whole thing.
  */
 
-import { rect, panel, tab, svgDoc, body, W_HALF, W_MOBILE, S , SHADOW} from "../lib/design.mjs"
-import { styles, rise, nudge, enabled, STAGGER, DUR } from "../lib/motion.mjs"
+import { rect, panel, tab, svgDoc, body, W_HALF, W_MOBILE, S , SHADOW, pixelRule} from "../lib/design.mjs"
+import { styles, ants, nudge, enabled } from "../lib/motion.mjs"
 import { adv, MICRO } from "../lib/type.mjs"
 
 export const id = "work"
@@ -52,17 +52,23 @@ export function card(t, p, cfg, { mobile = false } = {}) {
   out.push(panel(t, { x: 0, y: S.xs, w: W, h: L.h, title: p.name }))
 
   const lines = wrap(p.why, INNER).slice(0, L.lines)
-  lines.forEach((l, i) => {
-    if (animate) css.push(rise(`l${i}`, { delay: i * STAGGER.row, dur: DUR.normal, dy: 4 }))
-    const el = body(l, { x: PAD, y: L.top + i * LINE_H, fill: t.inkDim })
-    out.push(animate ? `<g class="l${i}">${el}</g>` : el)
-  })
+  lines.forEach((l, i) => out.push(body(l, { x: PAD, y: L.top + i * LINE_H, fill: t.inkDim })))
+
+  // This card's own motion: a selection marquee crawling around it — the marker
+  // every early graphical interface used for "this one is pickable".
+  if (animate) {
+    out.push(
+      `<rect class="ma" x="${S.tight}" y="${S.xs + S.tight}" width="${W - S.tight * 2}" height="${L.h - S.xs}" ` +
+        `fill="none" stroke="${t.accent}" stroke-width="1" opacity="0.4" shape-rendering="auto"/>`
+    )
+    css.push(ants("ma", { period: 1200, dash: 4 }))
+  }
 
   // Divider midway between the last line's baseline and the cap-top of the
   // tags, never closer than 8px to either.
   const lastBaseline = L.top + (lines.length - 1) * LINE_H
   const rule = Math.round((lastBaseline + (L.tags - 8)) / 2)
-  out.push(rect(PAD, rule, INNER, 1, t.lineSoft))
+  out.push(pixelRule(PAD, rule, INNER, t.lineSoft))
   wrap(p.tags.join(" · "), INNER)
     .slice(0, 2)
     .forEach((l, i) => out.push(body(l, { x: PAD, y: L.tags + i * LINE_H, fill: t.inkFaint })))
@@ -87,6 +93,8 @@ export const build = (t, _ctx, cfg, v) =>
     const c = card(t, p, cfg, v)
     return { key: `work-${p.key}`, svg: svgDoc({ w: c.w, h: c.h, theme: t, body: c.body, css: c.css, title: c.title, bleed: SHADOW }) }
   })
+
+
 
 
 

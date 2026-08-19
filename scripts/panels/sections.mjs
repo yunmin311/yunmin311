@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Section headers, and the small meta strip inside 01.
  *
  * Generated rather than written as Markdown headings so the page has one
@@ -13,8 +13,8 @@
  * voice.
  */
 
-import { rect, svgDoc, label, body, labelWidth, bodyWidth, W_FULL, W_MOBILE, S } from "../lib/design.mjs"
-import { styles, draw, rise, enabled, STAGGER, DUR } from "../lib/motion.mjs"
+import { rect, svgDoc, label, body, labelWidth, bodyWidth, W_FULL, W_MOBILE, S , pixelRule, pixelFrame} from "../lib/design.mjs"
+import { styles, draw, slide, keylight, enabled, DUR } from "../lib/motion.mjs"
 
 export const id = "sections"
 export const responsive = true
@@ -52,7 +52,7 @@ function header(t, { num, title, sub }, W, cfg) {
   out.push(label(name, { x, y: BASELINE, tracking: 2, fill: t.ink }))
   x += labelWidth(name, 2) + S.sm
 
-  const rule = rect(x, RULE_Y, Math.max(0, W - x), 1, t.line)
+  const rule = pixelRule(x, RULE_Y, Math.max(0, W - x), t.line)
   if (animate) {
     out.push(`<g class="ru">${rule}</g>`)
     css.push(draw("ru", { dur: DUR.slow }))
@@ -82,10 +82,7 @@ function chip(t, x, y, text) {
     w,
     svg:
       rect(x, y, w, h, t.panel) +
-      rect(x, y, w, 1, t.line) +
-      rect(x, y + h - 1, w, 1, t.line) +
-      rect(x, y, 1, h, t.line) +
-      rect(x + w - 1, y, 1, h, t.line) +
+      pixelFrame(t, x, y, w, h, t.line, 1, 2) +
       body(text, { x: x + S.sm - 4, y: y + 14, fill: t.inkDim }),
   }
 }
@@ -108,13 +105,17 @@ function metaStrip(t, cfg, W) {
       x = 0
       c = chip(t, x, 2 + row * 26, item)
     }
-    if (animate) css.push(rise(`k${i}`, { delay: i * STAGGER.row, dur: DUR.normal, dy: 4 }))
-    out.push(animate ? `<g class="k${i}">${c.svg}</g>` : c.svg)
+    // Indicator keys light one after another, like a row of console lamps.
+    const lamp = animate
+      ? `<rect class="k${i}" x="${x + 6}" y="${2 + row * 26 + 8}" width="4" height="4" fill="${t.accent}"/>`
+      : ""
+    if (animate) css.push(keylight(`k${i}`, { index: i, count: cfg.exploring.length, period: 4400 }))
+    out.push(c.svg + lamp)
     x += c.w + S.xs
   })
 
   const ruleY = 40 + row * 26
-  out.push(rect(0, ruleY, W, 1, t.lineSoft))
+  out.push(pixelRule(0, ruleY, W, t.lineSoft))
 
   const pBaseline = ruleY + 24
   out.push(label("PRINCIPLES_", { x: 0, y: pBaseline, tracking: 1, fill: t.inkFaint }))
@@ -145,3 +146,6 @@ export const build = (t, _ctx, cfg, { mobile = false } = {}) => {
   files.push({ key: "about-meta", svg: svgDoc({ w: m.w, h: m.h, theme: t, body: m.body, css: m.css, title: m.title, paintBg: false }) })
   return files
 }
+
+
+

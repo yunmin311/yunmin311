@@ -21,8 +21,8 @@
  * a private repository contributes a timestamp and nothing else.
  */
 
-import { rect, panel, readout, svgDoc, label, labelWidth, W_FULL, W_MOBILE, S , SHADOW} from "../lib/design.mjs"
-import { styles, grow, playhead, enabled, STAGGER, DUR } from "../lib/motion.mjs"
+import { rect, panel, readout, svgDoc, label, labelWidth, W_FULL, W_MOBILE, S , SHADOW, pixelRule} from "../lib/design.mjs"
+import { styles, grow, flicker, enabled, STAGGER, DUR } from "../lib/motion.mjs"
 
 export const id = "rhythm"
 export const responsive = true
@@ -62,10 +62,14 @@ function meter(buckets, { x, bottom, w, v, max, hot, cls }) {
   }
   if (off.length) buckets.off.push(off.join(""))
   if (!lit.length) return
-  // The ceiling cell of the peak column gets its own group so it can tick.
-  const crown = hot ? lit.pop() : null
+  // Every column's ceiling cell gets its own group. This panel's ambient
+  // effect is the flicker a level meter has at the top of its reading — no
+  // other module on the page does that, and no other module borrows it.
+  const crown = lit.pop()
   const rest = lit.join("")
-  const inner = (cls && rest ? `<g class="${cls}">${rest}</g>` : rest) + (crown ? `<g class="pk">${crown}</g>` : "")
+  const inner =
+    (cls && rest ? `<g class="${cls}">${rest}</g>` : rest) +
+    (cls ? `<g class="x${cls}">${crown}</g>` : crown)
   buckets[hot ? "hot" : "on"].push(inner)
 }
 
@@ -108,7 +112,10 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
       x: L.hours.x + i * L.hours.pitch, bottom: L.hours.bottom, w: L.hours.bar,
       v, max: hMax, hot: i === r.peakHour, cls: animate ? `h${i}` : null,
     })
-    if (animate) css.push(grow(`h${i}`, { delay: i * STAGGER.cell, dur: DUR.normal }))
+    if (animate) {
+      css.push(grow(`h${i}`, { delay: i * STAGGER.cell, dur: DUR.normal }))
+      css.push(flicker(`xh${i}`, { delay: (i % 7) * 190, period: 2100 + (i % 5) * 260 }))
+    }
   })
   out.push(rect(L.hours.x, L.hours.bottom, 24 * L.hours.pitch - (L.hours.pitch - L.hours.bar), 1, t.line))
   for (const h of L.ticks) {
@@ -126,7 +133,10 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
       x, bottom: L.days.bottom, w: L.days.bar,
       v, max: dMax, hot: i === peakDay, cls: animate ? `d${i}` : null,
     })
-    if (animate) css.push(grow(`d${i}`, { delay: 200 + i * STAGGER.row, dur: DUR.normal }))
+    if (animate) {
+      css.push(grow(`d${i}`, { delay: 200 + i * STAGGER.row, dur: DUR.normal }))
+      css.push(flicker(`xd${i}`, { delay: (i % 4) * 260, period: 2400 + (i % 3) * 300 }))
+    }
     out.push(
       label(NAMES[i], {
         x: x + Math.round((L.days.bar - labelWidth(NAMES[i], 1)) / 2),
@@ -138,19 +148,8 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
   out.push(rect(L.days.x, L.days.bottom, 7 * L.days.pitch - (L.days.pitch - L.days.bar), 1, t.line))
   out.push(flush(t, buckets))
 
-  // A scan head crosses the day, the way a playhead crosses a timeline. Low
-  // opacity so it passes over the meters without repainting them.
-  if (animate) {
-    const span = 24 * L.hours.pitch - (L.hours.pitch - L.hours.bar)
-    const top = L.hours.bottom - CELLS * (CELL + GAP)
-    out.push(
-      `<g class="ph"><rect x="${L.hours.x}" y="${top}" width="2" height="${L.hours.bottom - top}" fill="${t.accent}"/></g>`
-    )
-    css.push(playhead("ph", { distance: span - 2, period: 7200 }))
-  }
-
   // ---- readout -----------------------------------------------------------
-  out.push(rect(S.sm, L.rule, W - S.sm * 2, 1, t.lineSoft))
+  out.push(pixelRule(S.sm, L.rule, W - S.sm * 2, t.lineSoft))
   const cw = (W - S.sm * 2) / L.cols
   const values = [r.peakWindow, r.busiestDay, `${r.nightShare}%`, `${c.longestStreak} days`]
   L.facts.forEach((name, i) => {
@@ -174,6 +173,10 @@ export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, bleed: SHADOW })
 }
+
+
+
+
 
 
 

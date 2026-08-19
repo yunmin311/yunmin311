@@ -130,10 +130,7 @@ export function tab(t, { x, y, text, align = "start", ink }) {
 
   return (
     rect(left, top, w, TAB_H, t.page) +
-    rect(left, top, w, 1, t.line) +
-    rect(left, top + TAB_H - 1, w, 1, t.line) +
-    rect(left, top, 1, TAB_H, t.line) +
-    rect(left + w - 1, top, 1, TAB_H, t.line) +
+    pixelFrame(t, left, top, w, TAB_H, t.line, 1, 2) +
     label(s, { x: left + S.sm - 4, y: top + 12, tracking: 1, fill: ink ?? t.inkDim })
   )
 }
@@ -166,21 +163,52 @@ export const bounds = ({ x, y, w, h }) => ({
  */
 export const SHADOW = 4
 
+/** Border thickness. 2px, so the frame reads as blocks rather than as a hairline. */
+export const BORDER = 2
+/** How much of each corner is cut away to make a stepped corner. */
+export const NOTCH = 4
+
+/**
+ * A frame with stepped corners: the edges stop short and a smaller block
+ * bridges the gap diagonally. This is how a pixel grid draws a rounded corner
+ * — it cannot curve, so it steps — and it is the single detail that makes a
+ * box read as drawn on a grid rather than as a CSS border.
+ */
+export function pixelFrame(t, x, y, w, h, colour, b = BORDER, notch = NOTCH) {
+  const out = [
+    rect(x + notch, y, w - notch * 2, b, colour),
+    rect(x + notch, y + h - b, w - notch * 2, b, colour),
+    rect(x, y + notch, b, h - notch * 2, colour),
+    rect(x + w - b, y + notch, b, h - notch * 2, colour),
+  ]
+  // The step itself: one block per corner, set in by half the notch.
+  const s = notch / 2
+  out.push(rect(x + s, y + s, s, b, colour), rect(x + s, y + s, b, s, colour))
+  out.push(rect(x + w - s - s, y + s, s, b, colour), rect(x + w - s - b, y + s, b, s, colour))
+  out.push(rect(x + s, y + h - s - b, s, b, colour), rect(x + s, y + h - s - s, b, s, colour))
+  out.push(rect(x + w - s - s, y + h - s - b, s, b, colour), rect(x + w - s - b, y + h - s - s, b, s, colour))
+  return out.join("")
+}
+
+/** A rule made of blocks rather than a continuous line. */
+export function pixelRule(x, y, w, colour, { on = 2, off = 2, thick = 2 } = {}) {
+  const out = []
+  for (let i = 0; i < w; i += on + off) out.push(rect(x + i, y, Math.min(on, w - i), thick, colour))
+  return out.join("")
+}
+
 export function panel(t, { x, y, w, h, title, meta, fill = true, shadow = true }) {
   const out = []
   if (shadow) out.push(rect(x + SHADOW, y + SHADOW, w, h, t.shadow))
   if (fill) out.push(rect(x, y, w, h, t.panel))
 
-  out.push(hline(x, y, w, t.line))
-  out.push(hline(x, y + h - 1, w, t.line))
-  out.push(vline(x, y, h, t.line))
-  out.push(vline(x + w - 1, y, h, t.line))
+  out.push(pixelFrame(t, x, y, w, h, t.line))
 
   if (title) out.push(tab(t, { x: x + S.sm, y, text: title, ink: t.ink }))
   if (meta) out.push(tab(t, { x: x + w - S.sm, y: y + h - 1, text: meta, align: "end", ink: t.inkFaint }))
 
   // The corner square is the panel's status lamp; motion.mjs breathes it.
-  out.push(rect(x + S.tight, y + S.tight, U, U, t.accent, `class="led"`))
+  out.push(rect(x + 6, y + 6, U * 2, U * 2, t.accent, `class="led"`))
 
   return out.join("")
 }
@@ -236,6 +264,7 @@ export const deEmoji = (str) =>
     .trim()
 
 export { label, value, body, text, width, labelWidth, valueWidth, bodyWidth, fit, MICRO, BIG, adv, cap, n as num }
+
 
 
 

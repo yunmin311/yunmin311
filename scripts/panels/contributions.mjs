@@ -12,7 +12,7 @@
  * day into the lowest band and waste three quarters of the ramp.
  */
 
-import { rect, panel, svgDoc, label, body, labelWidth, bodyWidth, W_FULL, W_MOBILE, S , SHADOW} from "../lib/design.mjs"
+import { rect, panel, svgDoc, label, body, labelWidth, bodyWidth, W_FULL, W_MOBILE, S , SHADOW, pixelRule} from "../lib/design.mjs"
 import { styles, bloom, playhead, enabled, STAGGER, DUR } from "../lib/motion.mjs"
 
 export const id = "contributions"
@@ -100,7 +100,7 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
 
   // ---- legend and readout ------------------------------------------------
   const lineY = L.lineY
-  out.push(rect(S.sm, lineY - 20, W - S.sm * 2, 1, t.lineSoft))
+  out.push(pixelRule(S.sm, lineY - 20, W - S.sm * 2, t.lineSoft))
   out.push(label("LESS", { x: S.sm, y: lineY, tracking: 1, fill: t.inkFaint }))
   const lx = S.sm + labelWidth("LESS", 1) + S.xs
   const sw = 10
@@ -145,6 +145,8 @@ export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, bleed: SHADOW })
 }
+
+
 
 
 

@@ -9,7 +9,7 @@
  * whole image, and these point at four different places.
  */
 
-import { rect, marker, svgDoc, label, labelWidth, U, S } from "../lib/design.mjs"
+import { rect, marker, svgDoc, label, labelWidth, U, S , pixelFrame} from "../lib/design.mjs"
 
 export const id = "contact"
 
@@ -46,4 +46,5 @@ export const build = (t, _ctx, cfg) =>
       const b = button(t, c.label)
       return { key: c.key, svg: svgDoc({ w: b.w, h: b.h, theme: t, body: b.body, title: b.title, paintBg: false }) }
     })
+
 
