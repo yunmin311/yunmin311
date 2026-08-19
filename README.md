@@ -1,137 +1,153 @@
-<!-- =========================================================
-     01 / HERO — Pixel typing banner
-     ========================================================= -->
+<!--
+  This page is generated, not hand-maintained.
+
+  Every image under assets/generated/ comes out of `node scripts/build.mjs`,
+  one file per theme, paired below with <picture> so GitHub can pick. The design
+  system they are built against — type ladder, spacing scale, colour budget, and
+  the measured sources it came from — is written down in DESIGN.md.
+
+  To change wording, edit scripts/config.json and rebuild. Editing an SVG by
+  hand will be overwritten by the next scheduled run.
+-->
 
 <div align="center">
 
 <picture>
-  <source
-    media="(prefers-color-scheme: dark)"
-    srcset="https://readme-typing-svg.demolab.com?font=Press+Start+2P&size=16&duration=4200&pause=1100&color=58A6FF&center=true&vCenter=true&width=950&height=55&lines=Building+tools+for+thinking%2C+creating%2C+and+working+with+AI.;Turning+messy+ideas+into+systems+that+actually+run.;Always+building+something+I+wish+already+existed."
-  />
-  <source
-    media="(prefers-color-scheme: light)"
-    srcset="https://readme-typing-svg.demolab.com?font=Press+Start+2P&size=16&duration=4200&pause=1100&color=0969DA&center=true&vCenter=true&width=950&height=55&lines=Building+tools+for+thinking%2C+creating%2C+and+working+with+AI.;Turning+messy+ideas+into+systems+that+actually+run.;Always+building+something+I+wish+already+existed."
-  />
-  <img
-    src="https://readme-typing-svg.demolab.com?font=Press+Start+2P&size=16&duration=4200&pause=1100&color=0969DA&center=true&vCenter=true&width=950&height=55&lines=Building+tools+for+thinking%2C+creating%2C+and+working+with+AI.;Turning+messy+ideas+into+systems+that+actually+run.;Always+building+something+I+wish+already+existed."
-    alt="Typing introduction"
-  />
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/hero-dark.svg">
+  <img alt="Building tools for thinking, creating, and working with AI. Turning messy ideas into systems that actually run. Always building something I wish already existed." src="assets/generated/hero-light.svg">
 </picture>
 
 </div>
 
-<!-- =========================================================
-     02 / ABOUT
-     ========================================================= -->
+<!-- ═══ 01 // ABOUT ME ═══════════════════════════════════════════════════ -->
 
-## 01 // ABOUT ME
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/sec-01-dark.svg">
+  <img alt="01 // About me" src="assets/generated/sec-01-light.svg">
+</picture>
 
 Hi, I'm **Qiyu Li**.
 
-I build AI-native tools and creative software around **thinking, creating, and working with AI**. I'm especially interested in human–AI interaction, visual systems, and turning messy ideas into things that actually work.
+I build AI-native tools and creative software around **thinking, creating, and working with AI** — mostly around human–AI interaction, visual systems, and turning messy ideas into things that actually work.
 
-Outside the editor, you'll usually find me around **photography, films, table tennis, and whatever I'm curious about next.**
-
-<!-- =========================================================
-     03 / THROUGH MY LENS
-     ========================================================= -->
-
-## 02 // THROUGH MY LENS
-
-<sub>Frames, light, places, and things that made me stop for a second.</sub>
-
-<!-- Photography strip will live here -->
-
-<!-- =========================================================
-     03 / SELECTED WORK
-     ========================================================= -->
-
-## 03 // SELECTED WORK
-
-<sub>Tools I wanted to exist, so I built them.</sub>
-
-<br>
-
-<table>
-<tr>
-<td width="50%" valign="top">
-
-### ▣ [Context Distiller](https://github.com/yunmin311/context-distiller)
-
-A local-first workspace for selecting, structuring, and compiling context before sending it to AI.
-
-<sub>TypeScript · React · Browser Extension · Local-first</sub>
-
-</td>
-<td width="50%" valign="top">
-
-### ▣ [Governance Framework](https://github.com/yunmin311/governance-framework)
-
-A shared source of truth and governance layer for working across multiple AI agents.
-
-<sub>AI Agents · Governance · Markdown · Python</sub>
-
-</td>
-</tr>
-
-<tr>
-<td width="50%" valign="top">
-
-### ▣ [Window Annotator](https://github.com/yunmin311/window-annotator)
-
-Hand-drawn annotations pinned to Windows apps, following move, resize, and scroll.
-
-<sub>Electron · JavaScript · Windows · Desktop</sub>
-
-</td>
-<td width="50%" valign="top">
-
-### ▣ [Work Capsule](https://github.com/yunmin311/work-capsule)
-
-A local-first Windows tool for safely synchronizing work across Git repositories.
-
-<sub>Rust · egui · Git · Windows</sub>
-
-</td>
-</tr>
-</table>
-
-<!-- =========================================================
-     04 / HOW I WORK
-     ========================================================= -->
-
-## 04 // HOW I WORK
-
-<sub>A small signal of how I build, explore, and move through code.</sub>
-
-### ▣ CODING HABITS
+Outside the editor you'll usually find me around **photography, films, table tennis**, and whatever I'm curious about next.
 
 <picture>
-  <img src="./metrics-habits.svg" alt="Coding habits" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/about-meta-dark.svg">
+  <img alt="Currently exploring: human–AI interaction, creative software, cinematography, visual systems. Principles: human judgment stays in the loop; build the tools I wish already existed." src="assets/generated/about-meta-light.svg">
 </picture>
 
-### ▣ LANGUAGE SIGNAL
+<!-- ═══ 02 // THROUGH MY LENS ════════════════════════════════════════════
+     Hidden until the real photographs are in assets/photography/.
+     `node scripts/build-lens.mjs` builds the contact sheet from whatever is
+     in that folder; the section is deliberately absent rather than showing a
+     placeholder or a "coming soon" card.
 
 <picture>
-  <img src="./metrics-languages.svg" alt="Language analysis" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/sec-02-dark.svg">
+  <img alt="02 // Through my lens" src="assets/generated/sec-02-light.svg">
 </picture>
 
-<table>
-<tr>
-<td width="50%" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/lens-dark.svg">
+  <img alt="A contact sheet of my photographs, scrolling slowly" src="assets/generated/lens-light.svg">
+</picture>
 
-### ▣ RECENTLY STARRED
+     ═══════════════════════════════════════════════════════════════════════ -->
 
-<img src="./metrics-stars.svg" alt="Recently starred repositories" width="100%">
+<!-- ═══ 03 // SELECTED WORK ══════════════════════════════════════════════ -->
 
-</td>
-<td width="50%" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/sec-03-dark.svg">
+  <img alt="03 // Selected work — tools I wanted to exist, so I built them." src="assets/generated/sec-03-light.svg">
+</picture>
 
-### ▣ RECENT ACTIVITY
+<!-- Side-by-side images rather than a table: a table forces a horizontal
+     scrollbar on a phone, whereas inline images simply wrap and stack. -->
+<a href="https://github.com/yunmin311/context-distiller"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/work-context-distiller-dark.svg">
+  <img alt="Context Distiller — a local-first workspace for selecting, grouping and compiling context before it reaches an AI. TypeScript, React 19, WXT, Manifest V3." src="assets/generated/work-context-distiller-light.svg">
+</picture></a>
+<a href="https://github.com/yunmin311/governance-framework"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/work-governance-framework-dark.svg">
+  <img alt="Governance Framework — one source of truth for working across several AI agents. Markdown, YAML, Python, validators." src="assets/generated/work-governance-framework-light.svg">
+</picture></a>
+<a href="https://github.com/yunmin311/window-annotator"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/work-window-annotator-dark.svg">
+  <img alt="Window Annotator — hand-drawn annotations pinned to any Windows window, following move, resize and scroll. Electron, JavaScript, koffi FFI." src="assets/generated/work-window-annotator-light.svg">
+</picture></a>
+<a href="https://github.com/yunmin311/work-capsule"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/work-work-capsule-dark.svg">
+  <img alt="Work Capsule — one-click, fast-forward-only Git sync for every folder you choose. Rust, egui, Windows." src="assets/generated/work-work-capsule-light.svg">
+</picture></a>
 
-<img src="./metrics-activity.svg" alt="Recent GitHub activity" width="100%">
+<!-- ═══ 04 // HOW I WORK ═════════════════════════════════════════════════ -->
 
-</td>
-</tr>
-</table>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/sec-04-dark.svg">
+  <img alt="04 // How I work — where the hours go, and what the code is actually made of." src="assets/generated/sec-04-light.svg">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/rhythm-dark.svg">
+  <img alt="Coding rhythm — activity by hour and by weekday, from the public events feed." src="assets/generated/rhythm-light.svg">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/languages-dark.svg">
+  <img alt="Language signal — source bytes across the four selected repositories, built and vendored output excluded." src="assets/generated/languages-light.svg">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/stars-dark.svg">
+  <img alt="Recently starred repositories" src="assets/generated/stars-light.svg">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/activity-dark.svg">
+  <img alt="Recent activity — releases, repositories opened to the public, pull requests" src="assets/generated/activity-light.svg">
+</picture>
+
+<!-- ═══ 05 // CONTRIBUTIONS ══════════════════════════════════════════════ -->
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/sec-05-dark.svg">
+  <img alt="05 // Contributions" src="assets/generated/sec-05-light.svg">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/contributions-dark.svg">
+  <img alt="A year of contributions drawn as a dot matrix" src="assets/generated/contributions-light.svg">
+</picture>
+
+<!-- ═══ 06 // AESTHETIC INPUTS ═══════════════════════════════════════════ -->
+<!-- AESTHETIC_INPUTS_SLOT -->
+
+<!-- ═══ 07 // CONTACT ════════════════════════════════════════════════════ -->
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/sec-07-dark.svg">
+  <img alt="07 // Contact" src="assets/generated/sec-07-light.svg">
+</picture>
+
+<a href="mailto:liqiyu311@gmail.com"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/btn-email-dark.svg">
+  <img alt="Email" src="assets/generated/btn-email-light.svg">
+</picture></a>
+<!-- TODO(contact): DOUYIN, WECHAT and WEBSITE buttons are built and waiting in
+     scripts/config.json — flip `enabled` once there is a real Douyin URL, a QR
+     to link to, and a live site. A README cannot run script, so click-to-copy
+     needs the small contact page in docs/ and GitHub Pages switched on for
+     this repository; then set contactPage.enabled and rebuild. Nothing here is
+     guessed and nothing is shown that does not resolve. -->
+
+<!-- ═══ 08 // FORTUNE ════════════════════════════════════════════════════ -->
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/sec-08-dark.svg">
+  <img alt="08 // Fortune" src="assets/generated/sec-08-light.svg">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/generated/fortune-dark.svg">
+  <img alt="A line that changes daily" src="assets/generated/fortune-light.svg">
+</picture>

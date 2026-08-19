@@ -1,0 +1,122 @@
+{
+  "login": "yunmin311",
+  "timezone": "Asia/Shanghai",
+
+  "sections": [
+    { "key": "01", "num": "01", "title": "About me" },
+    { "key": "02", "num": "02", "title": "Through my lens", "sub": "Frames, light, places, and things that made me stop for a second." },
+    { "key": "03", "num": "03", "title": "Selected work", "sub": "Tools I wanted to exist, so I built them." },
+    { "key": "04", "num": "04", "title": "How I work", "sub": "Where the hours go, and what the code is actually made of." },
+    { "key": "05", "num": "05", "title": "Contributions" },
+    { "key": "07", "num": "07", "title": "Contact" },
+    { "key": "08", "num": "08", "title": "Fortune" }
+  ],
+
+  "_workNote": "Hand-curated, not sorted by recency. Tech tags were read off each repository's actual manifest and language breakdown, not off its README badges.",
+  "work": [
+    {
+      "key": "context-distiller",
+      "num": "01",
+      "name": "Context Distiller",
+      "why": "Picking what an AI gets to see is the part nobody tooled. This is a workspace for selecting, grouping and compiling that context into one plain-text message — locally, and never sent for you.",
+      "tags": ["TypeScript", "React 19", "WXT", "Manifest V3"],
+      "url": "https://github.com/yunmin311/context-distiller"
+    },
+    {
+      "key": "governance-framework",
+      "num": "02",
+      "name": "Governance Framework",
+      "why": "Run several AI agents and they forget, contradict each other, and disagree about which file is real. Pinning the facts into files fixes what a smarter model cannot.",
+      "tags": ["Markdown", "YAML", "Python", "Validators"],
+      "url": "https://github.com/yunmin311/governance-framework"
+    },
+    {
+      "key": "window-annotator",
+      "num": "03",
+      "name": "Window Annotator",
+      "why": "Drawing on the thing you are looking at should not depend on the app supporting it. Hand-drawn marks pin to any Windows window and follow it as it moves, resizes and scrolls.",
+      "tags": ["Electron", "JavaScript", "koffi FFI", "Windows"],
+      "url": "https://github.com/yunmin311/window-annotator"
+    },
+    {
+      "key": "work-capsule",
+      "num": "04",
+      "name": "Work Capsule",
+      "why": "Keeping work in sync across machines should not risk it. One click pulls, optionally commits and pushes every folder you chose — fast-forward only, never rewriting history.",
+      "tags": ["Rust", "egui", "Git", "Windows"],
+      "url": "https://github.com/yunmin311/work-capsule"
+    }
+  ],
+
+  "exploring": ["Human–AI interaction", "Creative software", "Cinematography", "Visual systems"],
+
+  "principles": [
+    "Human judgment stays in the loop.",
+    "Build the tools I wish already existed."
+  ],
+
+  "hero": {
+    "lines": [
+      "Building tools for thinking, creating, and working with AI.",
+      "Turning messy ideas into systems that actually run.",
+      "Always building something I wish already existed."
+    ]
+  },
+
+  "languageScope": {
+    "note": "Source bytes across exactly the four tools shown in SELECTED WORK, so the chart can be checked against the section above it. yunmin311.github.io is excluded on purpose (~8.7 MB of built HTML would report '86% HTML'), and so is calendar-app (198 KB of generated markup).",
+    "repos": [
+      "yunmin311/work-capsule",
+      "yunmin311/window-annotator",
+      "yunmin311/context-distiller",
+      "yunmin311/governance-framework"
+    ],
+    "exclude": ["HTML", "VBScript", "Batchfile", "Makefile", "Dockerfile", "Roff"],
+    "limit": 6
+  },
+
+  "activity": {
+    "types": ["pr", "release", "review", "issue", "ref/create", "public", "fork"],
+    "limit": 5,
+    "days": 120
+  },
+
+  "rhythm": {
+    "days": 90
+  },
+
+  "_contactNote": "href is what the README links to. Set contactPage.enabled once GitHub Pages is live on this repo; the buttons then point at a page that copies the value to the clipboard instead of printing it. A README cannot run script, so copy-on-click is only possible off-page.",
+  "contactPage": {
+    "enabled": false,
+    "base": "https://yunmin311.github.io/yunmin311/"
+  },
+  "contact": [
+    { "key": "email", "label": "EMAIL", "href": "mailto:liqiyu311@gmail.com", "copy": "liqiyu311@gmail.com", "enabled": true },
+    { "key": "douyin", "label": "DOUYIN", "href": "", "copy": "", "enabled": false },
+    { "key": "wechat", "label": "WECHAT", "href": "", "copy": "", "enabled": false },
+    { "key": "website", "label": "WEBSITE", "href": "", "copy": "", "enabled": false }
+  ],
+
+  "fortunes": [
+    "The tool you keep meaning to build is the one you need most.",
+    "A system nobody can explain is a system nobody can fix.",
+    "Autocomplete is not agreement.",
+    "Ship the ugly version. The pretty one never arrives on its own.",
+    "Every abstraction is a promise you will have to keep later.",
+    "If it only works when you are watching, it does not work.",
+    "Good defaults beat good documentation.",
+    "The messy draft already knows what the clean one is trying to say.",
+    "A model can hold the context. It cannot hold the responsibility.",
+    "Name it badly and you will build it badly.",
+    "Delete the feature you keep apologising for.",
+    "The best interface is the one you stop noticing.",
+    "Constraints are the part of the brief that survives contact with reality.",
+    "You cannot automate a decision you have never made by hand.",
+    "Any pipeline long enough contains one step nobody understands.",
+    "Taste is just the errors you have already made, remembered.",
+    "If the demo needs narration, the design is not finished.",
+    "Prototypes are arguments. Ship the one that wins.",
+    "Most 'AI problems' are unclear-input problems wearing a costume.",
+    "Two hours of naming things saves two weeks of explaining them."
+  ]
+}

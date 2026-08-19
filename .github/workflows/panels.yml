@@ -1,0 +1,55 @@
+name: Rebuild panels
+
+# The generated SVGs are committed rather than built on demand, so the profile
+# renders instantly and keeps working if this workflow ever breaks.
+on:
+  schedule:
+    - cron: "17 1 * * *" # 09:17 Asia/Shanghai
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/**"
+      - "assets/fonts/**"
+      - ".github/workflows/panels.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: panels
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build
+        env:
+          # Public data only. The token exists because the contribution
+          # calendar and the GraphQL endpoint refuse anonymous requests, not
+          # because any private scope is needed.
+          METRICS_TOKEN: ${{ secrets.METRICS_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/build.mjs
+
+      - name: Commit if anything moved
+        run: |
+          if [ -z "$(git status --porcelain assets/generated)" ]; then
+            echo "no change"
+            exit 0
+          fi
+          # Committed as the bot on purpose: a daily automated commit under a
+          # personal identity would inflate the very contribution graph this
+          # profile displays.
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/generated
+          git commit -m "Rebuild panels"
+          git push

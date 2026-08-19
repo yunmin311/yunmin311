@@ -1,0 +1,9 @@
+# Local QA only — regenerate with `node scripts/preview.mjs`
+.preview.html
+.playwright-mcp/
+qa*.png
+
+# Fetched API data, kept so layout can be iterated offline
+scripts/.cache.json
+
+node_modules/
