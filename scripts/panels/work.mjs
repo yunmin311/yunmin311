@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 03 — SELECTED WORK.
  *
  * Four hand-picked cards, not the four most recently pushed repositories. Each
@@ -16,12 +16,12 @@
  * A card is one image so a README can wrap one link around the whole thing.
  */
 
-import { rect, panel, tab, svgDoc, body, S } from "../lib/design.mjs"
+import { rect, panel, tab, svgDoc, body, S , W_HALF} from "../lib/design.mjs"
 import { adv, MICRO } from "../lib/type.mjs"
 
 export const id = "work"
 
-const W = 432
+const W = W_HALF
 const H = 152
 const BOX = { x: 0, y: S.xs, w: W, h: 136 }
 const PAD = S.sm
@@ -73,3 +73,6 @@ export const build = (t, _ctx, cfg) =>
     const c = card(t, p)
     return { key: `work-${p.key}`, svg: svgDoc({ w: c.w, h: c.h, theme: t, body: c.body, title: c.title }) }
   })
+
+
+

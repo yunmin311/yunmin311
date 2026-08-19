@@ -11,11 +11,11 @@
  * aggregate distributions are drawn; no repository is named.
  */
 
-import { rect, panel, readout, svgDoc, label, labelWidth, body, S } from "../lib/design.mjs"
+import { rect, panel, readout, svgDoc, label, labelWidth, body, S , W_FULL} from "../lib/design.mjs"
 
 export const id = "rhythm"
 
-const W = 880
+const W = W_FULL
 const H = 192
 const BOX = { x: 0, y: S.xs, w: W, h: 176 }
 const PAD = S.sm
@@ -25,8 +25,8 @@ const GAP = 2 // 1U
 const CELLS = 10
 const METER_BOTTOM = 108
 
-const HOURS = { x: PAD, bar: 16, pitch: 22 }
-const DAYS = { x: 600, bar: 24, pitch: 36 }
+const HOURS = { x: PAD, bar: 16, pitch: 20 }
+const DAYS = { x: 548, bar: 26, pitch: 36 }
 const NAMES = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
 
 function meter(buckets, x, w, v, max, hot) {
@@ -95,6 +95,10 @@ export const build = (t, ctx, cfg) => {
   const r = render(t, ctx, cfg)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, title: r.title })
 }
+
+
+
+
 
 
 

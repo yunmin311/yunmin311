@@ -1,9 +1,15 @@
 /**
- * HERO — three sentences typed out, inside a viewfinder crop frame.
+ * HERO — three sentences typed out.
  *
  * This is the one place the personality budget is spent, so it is the only
- * place 22px type appears. Its container is the full 880px canvas, which keeps
- * it at 2.5% — well inside the sizing rule that pushed every panel down to 11px.
+ * place 22px type appears.
+ *
+ * Its canvas is 831px rather than the 824px the panels use, because the
+ * longest line is 59 glyphs at a 14px advance — 826px — and 831 is exactly the
+ * width of GitHub's profile README column. It therefore still renders 1:1 and
+ * still fits. There is no crop frame: at that width the marks would have sat
+ * two pixels from the type, and four corners around a single line read as an
+ * empty box anyway.
  *
  * The typewriter needs no clipping: a page-coloured cover sits over the
  * finished line and slides right in `steps(n)`, one glyph per step, with the
@@ -13,46 +19,25 @@
  * whole pixels for its entire run.
  */
 
-import { rect, marker, svgDoc, value, U, S } from "../lib/design.mjs"
+import { rect, svgDoc, value, U, S } from "../lib/design.mjs"
 import { adv, cap, BIG } from "../lib/type.mjs"
 
 export const id = "hero"
 
-const W = 880
-const H = 80
+const W = 831
+const H = 56
 const STEP = adv(BIG) // 14px
 const CAP = cap(BIG) // 16px
-const BASELINE = 48
-
-// The longest line is 59 glyphs at a 14px advance — 826px — so the frame has to
-// clear 853px, not the comfortable margin it would otherwise want.
-const FRAME = { l: 12, r: W - 13, t: 12, b: 68, arm: 14 }
+const BASELINE = 34
 
 const CYCLE = 24 // seconds for the full three-line loop
 const TYPE = 14.17 // % of cycle spent typing
 const HOLD = 13.33 // % the finished line rests
 const ERASE = 5.83 // % spent erasing
 
-/** L-shaped viewfinder mark; `sx`/`sy` point the arms inward. */
-function cropMark(t, x, y, sx, sy, accent = false) {
-  const a = FRAME.arm
-  return (
-    rect(sx > 0 ? x : x - a + 1, y, a, 1, t.inkFaint) +
-    rect(x, sy > 0 ? y : y - a + 1, 1, a, t.inkFaint) +
-    (accent ? marker(t, x + S.tight * sx - (sx < 0 ? U : 0), y + S.tight * sy - (sy < 0 ? U : 0)) : "")
-  )
-}
-
 export function render(t, _ctx, cfg) {
   const lines = cfg.hero.lines
   const out = []
-
-  // A diagonal pair of crop marks, not four. The longest line is 826px wide so
-  // the frame has to be nearly full-bleed, and four corners around that much
-  // air read as an empty box rather than as a frame. Two opposite corners are
-  // the photographer's convention anyway.
-  out.push(cropMark(t, FRAME.l, FRAME.t, 1, 1, true))
-  out.push(cropMark(t, FRAME.r, FRAME.b, -1, -1))
 
   const css = [`.cr{animation:blink 1.06s step-end infinite}@keyframes blink{0%,50%{opacity:1}50.01%,100%{opacity:0}}`]
 
@@ -86,6 +71,10 @@ export function render(t, _ctx, cfg) {
       `.c${i}{animation:t${i} ${CYCLE}s linear infinite}`
     )
   })
+
+  // A single base line rather than a frame: it gives the type something to sit
+  // on without enclosing all that air.
+  out.push(rect(0, H - 8, W, 1, t.lineSoft))
 
   return { w: W, h: H, body: out.join(""), css: css.join(""), title: lines.join(" ") }
 }

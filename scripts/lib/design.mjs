@@ -18,6 +18,17 @@
 
 import { fontFace, label, value, body, text, width, labelWidth, valueWidth, bodyWidth, fit, MICRO, BIG, adv, cap } from "./type.mjs"
 
+/**
+ * Canvas widths, measured rather than assumed. GitHub's profile README column
+ * is 831px, so an 880px panel was being scaled to 0.944 and the pixel face was
+ * resampled onto fractional pixels — the real cause of "the type looks soft".
+ * Designing under that width renders 1:1 on desktop and still scales down
+ * cleanly on a phone. Two half panels plus the space between them also have to
+ * fit, which 2x432 did not.
+ */
+export const W_FULL = 824
+export const W_HALF = 408
+
 /** Base grid unit for chrome. */
 export const U = 2
 
@@ -188,5 +199,6 @@ export const deEmoji = (str) =>
     .trim()
 
 export { label, value, body, text, width, labelWidth, valueWidth, bodyWidth, fit, MICRO, BIG, adv, cap, n as num }
+
 
 

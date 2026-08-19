@@ -9,11 +9,11 @@
  * tools shown in SELECTED WORK, so a reader can check it.
  */
 
-import { rect, panel, svgDoc, label, body, bodyWidth, S } from "../lib/design.mjs"
+import { rect, panel, svgDoc, label, body, bodyWidth, S , W_FULL} from "../lib/design.mjs"
 
 export const id = "languages"
 
-const W = 880
+const W = W_FULL
 const H = 192
 const BOX = { x: 0, y: S.xs, w: W, h: 176 }
 const PAD = S.sm
@@ -90,6 +90,9 @@ export const build = (t, ctx, cfg) => {
   const r = render(t, ctx, cfg)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, title: r.title })
 }
+
+
+
 
 
 

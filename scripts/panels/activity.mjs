@@ -6,11 +6,11 @@
  * the noise most profiles mistake for evidence of work.
  */
 
-import { rect, marker, panel, svgDoc, label, body, fit, MARKER_GAP, S } from "../lib/design.mjs"
+import { rect, marker, panel, svgDoc, label, body, fit, MARKER_GAP, S , W_HALF} from "../lib/design.mjs"
 
 export const id = "activity"
 
-const W = 430
+const W = W_HALF
 const H = 216
 const BOX = { x: 0, y: S.xs, w: W, h: 200 }
 const PAD = S.sm
@@ -42,6 +42,9 @@ export const build = (t, ctx, cfg) => {
   const r = render(t, ctx, cfg)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, title: r.title })
 }
+
+
+
 
 
 

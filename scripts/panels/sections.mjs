@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Section headers, and the small meta strip that sits inside 01.
  *
  * Generated rather than written as Markdown headings so the page has one
@@ -13,11 +13,11 @@
  * raising its voice.
  */
 
-import { rect, marker, svgDoc, label, body, labelWidth, bodyWidth, U, S } from "../lib/design.mjs"
+import { rect, marker, svgDoc, label, body, labelWidth, bodyWidth, U, S , W_FULL} from "../lib/design.mjs"
 
 export const id = "sections"
 
-const W = 880
+const W = W_FULL
 const BASELINE = 20
 const RULE_Y = 16 // mid cap-height, so the rule reads as a continuation of the text
 
@@ -111,3 +111,6 @@ export const build = (t, _ctx, cfg) => {
   files.push({ key: "about-meta", svg: svgDoc({ w: m.w, h: m.h, theme: t, body: m.body, title: m.title, paintBg: false }) })
   return files
 }
+
+
+

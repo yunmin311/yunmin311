@@ -11,11 +11,11 @@
  * meters and the borders.
  */
 
-import { rect, marker, panel, svgDoc, label, body, labelWidth, bodyWidth, U, S } from "../lib/design.mjs"
+import { rect, marker, panel, svgDoc, label, body, labelWidth, bodyWidth, U, S , W_FULL} from "../lib/design.mjs"
 
 export const id = "contributions"
 
-const W = 880
+const W = W_FULL
 const H = 208
 const BOX = { x: 0, y: S.xs, w: W, h: 192 }
 const CELL = 10 // 5U
@@ -38,7 +38,7 @@ export function render(t, ctx) {
   const c = ctx.contributions
   const out = []
   const gridW = c.weeks.length * PITCH - GAP
-  const gridX = Math.round((W - gridW) / 2 / S.xs) * S.xs
+  const gridX = 56 // leaves room for the weekday ruler at the 16px margin
 
   out.push(panel(t, { ...BOX, title: "Contribution field", meta: `${c.totalDays} days` }))
 
@@ -106,6 +106,10 @@ export const build = (t, ctx, cfg) => {
   const r = render(t, ctx, cfg)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, title: r.title })
 }
+
+
+
+
 
 
 

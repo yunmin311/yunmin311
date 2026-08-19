@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 08 — FORTUNE.
  *
  * One line, no frame. It rotates on a date-derived index, so the page changes
@@ -9,12 +9,12 @@
  * wide on every machine that renders it.
  */
 
-import { svgDoc, body, rect, S } from "../lib/design.mjs"
+import { svgDoc, body, rect, S , W_FULL} from "../lib/design.mjs"
 import { adv, MICRO } from "../lib/type.mjs"
 
 export const id = "fortune"
 
-const W = 880
+const W = W_FULL
 const H = 24
 const BASELINE = 16
 const X = S.sm
@@ -41,3 +41,6 @@ export const build = (t, ctx, cfg) => {
   const r = render(t, ctx, cfg)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title })
 }
+
+
+
