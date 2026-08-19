@@ -1,4 +1,4 @@
-﻿/**
+/**
  * The visual system. Full rationale and the measured sources it came from are
  * in DESIGN.md at the repository root; this file is that document expressed as
  * code, and the two are meant to stay in step.
@@ -63,7 +63,9 @@ export const THEMES = {
     titleInk: "#79C0FF",
     // Four filled steps, not four dot sizes. Step one has to be clearly
     // brighter than "empty" or a quiet day reads as no day at all.
-    dataEmpty: "#21262D",
+    // Bright enough that a meter's unfilled capacity still reads — that is the
+    // whole point of a segmented meter — while data1 stays clearly above it.
+    dataEmpty: "#252C36",
     data1: "#1E4C8C",
     data2: "#2E77D0",
     data3: "#54A0F5",
