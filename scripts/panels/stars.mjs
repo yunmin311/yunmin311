@@ -12,7 +12,7 @@
  */
 
 import { panel, svgDoc, body, bodyWidth, fit, W_HALF, W_MOBILE, S , SHADOW} from "../lib/design.mjs"
-import { styles, cursor, enabled } from "../lib/motion.mjs"
+import { styles, rowlight, enabled } from "../lib/motion.mjs"
 import { ago } from "../lib/data.mjs"
 
 export const id = "stars"
@@ -49,11 +49,14 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
     out.push(row)
   })
 
-  // This panel's own motion: a selection cursor resting on one row at a time,
-  // the way a list behaves in a text-mode interface.
+  // Shared with RECENT ACTIVITY. The two list panels sit side by side, so they
+  // behave the same way: a highlight sliding down and resting on each entry.
+  // Two different effects on a matched pair read as two unrelated gadgets.
   if (animate && list.length) {
-    out.push(`<g class="cur"><rect x="6" y="${L.top - 11}" width="2" height="26" fill="${t.accent}"/></g>`)
-    css.push(cursor("cur", { stops: list.map((_, i) => i * L.pitch), period: 5400 }))
+    out.splice(1, 0,
+      `<g class="rl"><rect x="${S.xs}" y="${L.top - 14}" width="${W - S.xs * 2}" height="34" fill="${t.accent}"/></g>`
+    )
+    css.push(rowlight("rl", { stops: list.map((_, i) => i * L.pitch), period: 6000 }))
   }
 
   if (!list.length) out.push(body("no recent stars", { x: PAD, y: L.top, fill: t.inkFaint }))
@@ -69,5 +72,7 @@ export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, bleed: SHADOW })
 }
+
+
 
 

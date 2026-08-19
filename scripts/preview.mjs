@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Writes a local QA page showing every generated asset at 1:1, on both
  * backgrounds and at both widths. Not shipped — it exists so the panels get
  * looked at before they get committed.
@@ -13,7 +13,7 @@ import { dirname, resolve } from "node:path"
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const files = (await readdir(resolve(ROOT, "assets/generated"))).filter((f) => f.endsWith(".svg"))
 
-const ORDER = ["hero", "sec-01", "about-meta", "sec-03", "work", "sec-04", "rhythm", "languages", "stars", "activity", "sec-05", "contributions", "sec-07", "btn", "sec-08", "fortune"]
+const ORDER = ["hero", "sec-01", "about", "sec-03", "work", "sec-04", "rhythm", "languages", "stars", "activity", "sec-05", "contributions", "sec-07", "btn", "sec-08", "fortune"]
 const rank = (f) => {
   const i = ORDER.findIndex((o) => f.startsWith(o))
   return i === -1 ? 99 : i
@@ -56,3 +56,4 @@ ${block("light", true)}
 
 await writeFile(resolve(ROOT, ".preview.html"), html, "utf8")
 console.log(`· wrote .preview.html (${files.length} assets)`)
+

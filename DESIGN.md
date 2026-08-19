@@ -1,4 +1,4 @@
-# Design baseline — Modern Pixel Interface
+﻿# Design baseline — Modern Pixel Interface
 
 The system every generated panel is built against. Declared before drawing, so
 the panels are checked against it rather than against taste. Values that came
@@ -111,6 +111,7 @@ dark ramps *up* into light, light ramps *down* into dark.
 | `inkDim` | `#8B949E` | `#57606A` | labels, prose |
 | `inkFaint` | `#6E7681` | `#818B98` | rulers, footnotes, meta |
 | `accent` | `#58A6FF` | `#0969DA` | the bright blue |
+| `titleInk` | `#79C0FF` | `#0969DA` | panel and section titles |
 | `dataEmpty` | `#1C2128` | `#E4E9EE` | unfilled capacity |
 | `dataLow` | `#1F3A5F` | `#BFDBFE` | ramp 1 |
 | `dataMid` | `#2C6BC9` | `#60A5FA` | ramp 2 |
@@ -121,6 +122,44 @@ jobs — a panel's corner marker, the single peak in a chart, the newest item in
 a list, and a caret. Anything else reaching for it is decoration.
 
 ---
+
+## 5b. Motion
+
+Two layers, both switchable per component in `scripts/config.json`.
+
+**Entrance** runs once when the image loads. **Ambient** never stops, and it is
+what makes the page read as powered rather than printed. Each module gets its
+OWN ambient behaviour, because different instruments behave differently:
+
+| module | ambient |
+|---|---|
+| hero | typewriter and caret |
+| 01 about | indicator keys lighting in turn |
+| section rules | drawn out from the left |
+| work cards | selection marquee, plus the arrow |
+| coding rhythm | every column's ceiling cell flickers, as a level meter does |
+| language signal | a highlight sweeping the bar |
+| starred + activity | **one shared** row highlight — they are a matched pair sitting side by side, and two different effects made them read as unrelated gadgets |
+| contribution field | a diagonal wave; cells bucketed by `(col + row) % 8` so the crest travels |
+| fortune | caret |
+
+**Rule: no effect may start from `opacity: 0`.** An SVG shown through `<img>`
+does not reliably start its animations — browsers defer them while the image is
+off-screen. QA caught three panels rendering completely *empty* because their
+rows were still at zero opacity. Every recipe animates `transform` only, so a
+stalled animation leaves the element at its natural size and position.
+`prefers-reduced-motion` is honoured in every animated file.
+
+**Rule: motion may not repaint data.** Scan heads and highlights are low-opacity
+passes over a chart; the peak indicator is applied to the cell already marked as
+the peak. An animation that alters a reading is a lie that moves.
+
+## 5c. Hover
+
+A README cannot have one. GitHub strips script, and an SVG loaded through
+`<img>` receives no pointer events, so `:hover` has nothing to attach to. The
+only hover that works is the browser's native tooltip, so every image carries a
+`title`. Anything more would need the page to stop being a README.
 
 ## 6. Do not
 
@@ -147,3 +186,4 @@ From the anti-AI-taste list, plus what this brief rules out:
 8. Blurred to illegibility, the page still shows: quiet opening → short text →
    photographic band → structured grid → dense instrument row → fine texture →
    one closing line.
+

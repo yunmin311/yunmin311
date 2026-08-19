@@ -57,14 +57,17 @@ export const THEMES = {
     inkDim: "#8B949E",
     inkFaint: "#6E7681",
     accent: "#58A6FF",
-    // Four filled steps, not four dot sizes. A sparse year drawn as growing
-    // dots reads as "no data"; drawn as a filled ramp it reads as what it is —
-    // concentrated recent work.
-    dataEmpty: "#242B34",
-    data1: "#1B3E66",
-    data2: "#255C9E",
-    data3: "#3B82D8",
-    data4: "#58A6FF",
+    // Titles sit on a soft blue rather than on the grey ramp. Against neutral
+    // body text that reads as a heading without spending a second type size,
+    // and it lifts blue toward its intended share of the page.
+    titleInk: "#79C0FF",
+    // Four filled steps, not four dot sizes. Step one has to be clearly
+    // brighter than "empty" or a quiet day reads as no day at all.
+    dataEmpty: "#21262D",
+    data1: "#1E4C8C",
+    data2: "#2E77D0",
+    data3: "#54A0F5",
+    data4: "#8FD0FF",
     dataLow: "#1F3A5F",
     dataMid: "#2C6BC9",
     dataHigh: "#58A6FF",
@@ -82,11 +85,12 @@ export const THEMES = {
     inkDim: "#57606A",
     inkFaint: "#818B98",
     accent: "#0969DA",
+    titleInk: "#0969DA",
     dataEmpty: "#EBEFF3",
-    data1: "#C6DEFA",
-    data2: "#7FB3F0",
-    data3: "#3B82D8",
-    data4: "#0A58B8",
+    data1: "#A8CDF6",
+    data2: "#5B9BE8",
+    data3: "#1F6FEB",
+    data4: "#0A4FA8",
     dataLow: "#BFDBFE",
     dataMid: "#60A5FA",
     dataHigh: "#0969DA",
@@ -204,7 +208,7 @@ export function panel(t, { x, y, w, h, title, meta, fill = true, shadow = true }
 
   out.push(pixelFrame(t, x, y, w, h, t.line))
 
-  if (title) out.push(tab(t, { x: x + S.sm, y, text: title, ink: t.ink }))
+  if (title) out.push(tab(t, { x: x + S.sm, y, text: title, ink: t.titleInk }))
   if (meta) out.push(tab(t, { x: x + w - S.sm, y: y + h - 1, text: meta, align: "end", ink: t.inkFaint }))
 
   // The corner square is the panel's status lamp; motion.mjs breathes it.
@@ -264,6 +268,7 @@ export const deEmoji = (str) =>
     .trim()
 
 export { label, value, body, text, width, labelWidth, valueWidth, bodyWidth, fit, MICRO, BIG, adv, cap, n as num }
+
 
 
 

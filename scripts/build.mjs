@@ -28,12 +28,13 @@ import * as fortune from "./panels/fortune.mjs"
 import * as contact from "./panels/contact.mjs"
 import * as sections from "./panels/sections.mjs"
 import * as work from "./panels/work.mjs"
+import * as about from "./panels/about.mjs"
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const OUT = resolve(ROOT, "assets/generated")
 const CACHE = resolve(ROOT, "scripts/.cache.json")
 
-const PANELS = [hero, rhythm, languages, stars, activity, contributions, fortune]
+const PANELS = [hero, about, rhythm, languages, stars, activity, contributions, fortune]
 const OFFLINE_OK = new Set(["hero"]) // needs no API data
 
 const args = process.argv.slice(2)
@@ -48,7 +49,12 @@ let ctx
 if (flag("offline")) {
   const raw = JSON.parse(await readFile(CACHE, "utf8"))
   ctx = reviveCtx(raw)
-  console.log("· using cached data")
+  // Stale cache is how a heatmap built from 249 contributions got committed on
+  // a day the account actually had 1015. Iterating on layout offline is fine;
+  // shipping from it is not.
+  const ageH = (Date.now() - raw.now.getTime()) / 36e5
+  console.log(`· using cached data (${ageH.toFixed(1)}h old)`)
+  if (ageH > 6) console.warn(`! CACHE IS ${ageH.toFixed(0)}h OLD — rebuild without --offline before committing`)
 } else {
   console.log("· fetching")
   ctx = await collect(cfg)
@@ -130,4 +136,6 @@ function reviveCtx(raw) {
   raw.contributions.level = (n) => (n <= 0 ? 0 : n < levels[1] ? 1 : n < levels[2] ? 2 : n < levels[3] ? 3 : 4)
   return raw
 }
+
+
 

@@ -14,7 +14,7 @@
  */
 
 import { rect, svgDoc, label, body, labelWidth, bodyWidth, W_FULL, W_MOBILE, S , pixelRule, pixelFrame} from "../lib/design.mjs"
-import { styles, draw, slide, keylight, enabled, DUR } from "../lib/motion.mjs"
+import { styles, draw, enabled, DUR } from "../lib/motion.mjs"
 
 export const id = "sections"
 export const responsive = true
@@ -49,7 +49,7 @@ function header(t, { num, title, sub }, W, cfg) {
     x += labelWidth("//", 1) + S.xs
   }
   const name = title.toUpperCase()
-  out.push(label(name, { x, y: BASELINE, tracking: 2, fill: t.ink }))
+  out.push(label(name, { x, y: BASELINE, tracking: 2, fill: t.titleInk }))
   x += labelWidth(name, 2) + S.sm
 
   const rule = pixelRule(x, RULE_Y, Math.max(0, W - x), t.line)
@@ -72,68 +72,6 @@ function header(t, { num, title, sub }, W, cfg) {
   }
 }
 
-/* -------------------------------------------------------------- meta strip */
-
-/** A bordered chip — the same key shape as the contact row. */
-function chip(t, x, y, text) {
-  const w = bodyWidth(text) + S.md
-  const h = 20
-  return {
-    w,
-    svg:
-      rect(x, y, w, h, t.panel) +
-      pixelFrame(t, x, y, w, h, t.line, 1, 2) +
-      body(text, { x: x + S.sm - 4, y: y + 14, fill: t.inkDim }),
-  }
-}
-
-function metaStrip(t, cfg, W) {
-  const out = []
-  const css = []
-  const animate = enabled(cfg, "sections")
-
-  out.push(label("CURRENTLY EXPLORING", { x: 0, y: 16, tracking: 1, fill: t.ink }))
-
-  // Chips wrap to a new row when the next one would overflow, which is what
-  // lets the strip survive a 344px column without a second layout.
-  let x = labelWidth("CURRENTLY EXPLORING", 1) + S.md
-  let row = 0
-  cfg.exploring.forEach((item, i) => {
-    let c = chip(t, x, 2 + row * 26, item)
-    if (x + c.w > W) {
-      row++
-      x = 0
-      c = chip(t, x, 2 + row * 26, item)
-    }
-    // Indicator keys light one after another, like a row of console lamps.
-    const lamp = animate
-      ? `<rect class="k${i}" x="${x + 6}" y="${2 + row * 26 + 8}" width="4" height="4" fill="${t.accent}"/>`
-      : ""
-    if (animate) css.push(keylight(`k${i}`, { index: i, count: cfg.exploring.length, period: 4400 }))
-    out.push(c.svg + lamp)
-    x += c.w + S.xs
-  })
-
-  const ruleY = 40 + row * 26
-  out.push(pixelRule(0, ruleY, W, t.lineSoft))
-
-  const pBaseline = ruleY + 24
-  out.push(label("PRINCIPLES_", { x: 0, y: pBaseline, tracking: 1, fill: t.inkFaint }))
-  const pStart = labelWidth("PRINCIPLES_", 1) + S.md
-  const joined = cfg.principles.join("   ·   ")
-  const avail = W - pStart
-  const lines = bodyWidth(joined) <= avail ? [joined] : wrapAt(joined, avail)
-  lines.forEach((l, i) => out.push(body(l, { x: pStart, y: pBaseline + i * S.sm, fill: t.inkDim })))
-
-  return {
-    w: W,
-    h: pBaseline + (lines.length - 1) * S.sm + 12,
-    body: out.join(""),
-    css: styles(cfg, "sections", css.join("")),
-    title: `Currently exploring: ${cfg.exploring.join(", ")}. ${cfg.principles.join(" ")}`,
-  }
-}
-
 /* ------------------------------------------------------------------ export */
 
 export const build = (t, _ctx, cfg, { mobile = false } = {}) => {
@@ -142,10 +80,11 @@ export const build = (t, _ctx, cfg, { mobile = false } = {}) => {
     const r = header(t, s, W, cfg)
     return { key: `sec-${s.key}`, svg: svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, paintBg: false }) }
   })
-  const m = metaStrip(t, cfg, W)
-  files.push({ key: "about-meta", svg: svgDoc({ w: m.w, h: m.h, theme: t, body: m.body, css: m.css, title: m.title, paintBg: false }) })
   return files
 }
+
+
+
 
 
 

@@ -195,6 +195,50 @@ export const tape = (cls, { step, period = 2600 }) =>
   `@keyframes ${cls}-k{from{transform:translateY(0)}to{transform:translateY(${step}px)}}` +
   `.${cls}{animation:${cls}-k ${period}ms linear infinite}`
 
+/**
+ * A row highlight sliding down a list and resting on each entry — the shared
+ * behaviour of the two list panels, which sit side by side and were reading as
+ * two unrelated gadgets while they each had their own effect.
+ *
+ * The band is a low-opacity accent block behind the row, so it lights the whole
+ * entry rather than pointing at it from the margin.
+ */
+export const rowlight = (cls, { stops, period = 6000 }) => {
+  const n = stops.length
+  const frames = stops
+    .map((y, i) => {
+      const a = Math.round((i / n) * 10000) / 100
+      const hold = Math.round(((i + 0.72) / n) * 10000) / 100
+      const gone = Math.round(((i + 0.88) / n) * 10000) / 100
+      return `${a}%{transform:translateY(${y}px);opacity:0}` +
+        `${Math.round((a + 2) * 100) / 100}%{opacity:0.16}` +
+        `${hold}%{transform:translateY(${y}px);opacity:0.16}` +
+        `${gone}%{transform:translateY(${y}px);opacity:0}`
+    })
+    .join("")
+  return `@keyframes ${cls}-k{${frames}100%{transform:translateY(${stops[0]}px);opacity:0}}` +
+    `.${cls}{animation:${cls}-k ${period}ms linear infinite}`
+}
+
+/**
+ * Pseudo-3D wave for the contribution field.
+ *
+ * Cells are bucketed by (column + row) % PHASES, so every diagonal shares a
+ * phase and the crest travels across the field instead of every cell bobbing
+ * in unison. Eight buckets is enough to read as a wave and cheap enough to
+ * express as eight keyframe sets rather than one per cell.
+ *
+ * Translation only, no scale: the cells sit in shared groups, so scaling would
+ * move them relative to each other instead of growing each in place.
+ */
+export const WAVE_PHASES = 8
+
+export const wave = (cls, { phase, amp = 3, period = 2800, phases = WAVE_PHASES }) => {
+  const delay = Math.round((phase / phases) * period)
+  return `@keyframes ${cls}-k{0%,100%{transform:translateY(0)}50%{transform:translateY(-${amp}px)}}` +
+    `.${cls}{animation:${cls}-k ${period}ms ease-in-out ${delay}ms infinite}`
+}
+
 /** A block travelling along a rule. */
 export const slide = (cls, { distance, period = 7600 }) =>
   `@keyframes ${cls}-k{0%{transform:translateX(0);opacity:0}` +

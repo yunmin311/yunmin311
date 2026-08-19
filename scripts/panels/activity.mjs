@@ -7,7 +7,7 @@
  */
 
 import { panel, svgDoc, label, body, fit, W_HALF, W_MOBILE, S , SHADOW} from "../lib/design.mjs"
-import { styles, tape, enabled } from "../lib/motion.mjs"
+import { styles, rowlight, enabled } from "../lib/motion.mjs"
 
 export const id = "activity"
 export const responsive = true
@@ -41,14 +41,12 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
     out.push(row)
   })
 
-  // This panel's own motion: a tape of marks crawling down the edge, the way
-  // a log advances. The step equals the spacing, so the loop is seamless.
+  // Shared with RECENTLY STARRED — see the note there.
   if (animate && list.length) {
-    const step = 20
-    const marks = []
-    for (let y = 16; y < L.h; y += step) marks.push(`<rect x="6" y="${y}" width="2" height="8" fill="${t.accent}"/>`)
-    out.push(`<g class="tp" opacity="0.5">${marks.join("")}</g>`)
-    css.push(tape("tp", { step, period: 2600 }))
+    out.splice(1, 0,
+      `<g class="rl"><rect x="${S.xs}" y="${L.top - 14}" width="${W - S.xs * 2}" height="30" fill="${t.accent}"/></g>`
+    )
+    css.push(rowlight("rl", { stops: list.map((_, i) => i * L.pitch), period: 6000 }))
   }
 
   if (!list.length) out.push(body("nothing worth reporting", { x: PAD, y: L.top, fill: t.inkFaint }))
@@ -64,5 +62,7 @@ export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, bleed: SHADOW })
 }
+
+
 
 

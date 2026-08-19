@@ -13,7 +13,7 @@
  */
 
 import { rect, panel, svgDoc, label, body, labelWidth, bodyWidth, W_FULL, W_MOBILE, S , SHADOW, pixelRule} from "../lib/design.mjs"
-import { styles, bloom, playhead, enabled, STAGGER, DUR } from "../lib/motion.mjs"
+import { styles, wave, WAVE_PHASES, enabled } from "../lib/motion.mjs"
 
 export const id = "contributions"
 export const responsive = true
@@ -67,35 +67,43 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
   }
 
   // ---- field -------------------------------------------------------------
-  // Grouped by week, then by level inside the week: one group per week is what
-  // lets the reveal sweep across the year without a class on every cell.
   // A day with activity fills its whole cell; a day without one is a small
-  // centred dot. The graph-paper texture from the first draft survives where it
-  // belongs — in the empty half — while every real day reads at full strength.
+  // centred dot. The graph-paper texture survives where it belongs — in the
+  // empty half — while every real day reads at full strength.
+  //
+  // Cells are bucketed by (level, diagonal phase). The phase is what makes the
+  // wave: every cell on the same diagonal rises together, so the crest travels
+  // across the field rather than the whole year bobbing at once. Eight phases
+  // is enough to read as a wave and cheap enough to be eight keyframe sets
+  // instead of one per cell.
   const DOT = 4
+  const buckets = new Map()
   weeks.forEach((week, i) => {
-    const byLevel = {}
     week.forEach((day) => {
       const row = (day.wd + 6) % 7 // GitHub weeks start Sunday; ours start Monday
       const lv = c.level(day.n)
       const size = lv === 0 ? DOT : L.cell
       const off = (L.cell - size) / 2
-      ;(byLevel[lv] ||= []).push(
+      const phase = (i + row) % WAVE_PHASES
+      const key = `${lv}:${phase}`
+      if (!buckets.has(key)) buckets.set(key, [])
+      buckets.get(key).push(
         `<rect x="${L.gridX + i * PITCH + off}" y="${GRID_Y + row * PITCH + off}" width="${size}" height="${size}"/>`
       )
     })
-    const inner = Object.entries(byLevel)
-      .map(([lv, cells]) => `<g fill="${colours[lv]}">${cells.join("")}</g>`)
-      .join("")
-    out.push(animate ? `<g class="w${i}">${inner}</g>` : inner)
-    if (animate) css.push(bloom(`w${i}`, { delay: i * STAGGER.cell, dur: DUR.fast }))
   })
 
-  if (animate) {
-    const span = weeks.length * PITCH - L.gap
-    const tall = 7 * PITCH - L.gap
-    out.push(`<g class="ph"><rect x="${L.gridX}" y="${GRID_Y}" width="2" height="${tall}" fill="${t.accent}"/></g>`)
-    css.push(playhead("ph", { distance: span - 2, period: 9000 }))
+  const seen = new Set()
+  for (const [key, cells] of buckets) {
+    const [lv, phase] = key.split(":").map(Number)
+    const g = `<g fill="${colours[lv]}">${cells.join("")}</g>`
+    if (!animate) { out.push(g); continue }
+    out.push(`<g class="wv${phase}">${g}</g>`)
+    if (!seen.has(phase)) {
+      seen.add(phase)
+      // Quiet days ride lower than loud ones, which is what sells the depth.
+      css.push(wave(`wv${phase}`, { phase, amp: 3, period: 2800 }))
+    }
   }
 
   // ---- legend and readout ------------------------------------------------
@@ -145,6 +153,7 @@ export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, bleed: SHADOW })
 }
+
 
 
 

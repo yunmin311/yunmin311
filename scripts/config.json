@@ -48,6 +48,15 @@
     }
   ],
 
+  "about": {
+    "name": "Qiyu Li",
+    "meta": "creative engineering",
+    "paragraphs": [
+      "I build AI-native tools and creative software around thinking, creating, and working with AI — mostly around human–AI interaction, visual systems, and turning messy ideas into things that actually work.",
+      "Outside the editor you'll usually find me around photography, films, table tennis, and whatever I'm curious about next."
+    ]
+  },
+
   "exploring": ["Human–AI interaction", "Creative software", "Cinematography", "Visual systems"],
 
   "principles": [
@@ -77,10 +86,11 @@
     "limit": 6
   },
 
-  "_motionNote": "Per-component switches so layout stays the author's decision. Every effect is a one-shot entrance and every animated file also carries a prefers-reduced-motion guard. Set `enabled: false` to turn the whole page static.",
+  "_motionNote": "Per-component switches so layout stays the author's decision. Each module has its OWN effect — 01 lights indicator keys, rhythm flickers at its meter ceilings, languages sweeps, the two list panels share a row highlight because they are a matched pair, contributions runs a diagonal wave, work marches a selection marquee. `ambient: false` keeps entrances but stops the never-ending ones; `enabled: false` makes the whole page static. Every animated file also carries a prefers-reduced-motion guard, and no effect may start from opacity 0 — see lib/motion.mjs.",
   "motion": {
     "enabled": true,
     "hero": true,
+    "about": true,
     "rhythm": true,
     "languages": true,
     "stars": true,
@@ -97,9 +107,6 @@
     "days": 120
   },
 
-  "rhythm": {
-    "days": 90
-  },
 
   "_contactNote": "A README cannot run script — GitHub strips it — so copy-to-clipboard on click is not possible on this page. EMAIL uses mailto:, which hands the click to whatever the reader's machine uses for mail without printing the address as text. WECHAT links to a QR stripped of the avatar, display name and city that came with it. WEBSITE stays off until yunmin311.github.io actually serves something; it currently 404s.",
   "contact": [
@@ -132,3 +139,5 @@
     "Two hours of naming things saves two weeks of explaining them."
   ]
 }
+
+
