@@ -1,5 +1,6 @@
 # Local QA only — regenerate with `node scripts/preview.mjs`
 .preview.html
+.components.html
 .playwright-mcp/
 qa*.png
 
