@@ -196,6 +196,20 @@ export function pixelFrame(t, x, y, w, h, colour, b = BORDER, notch = NOTCH) {
   return out.join("")
 }
 
+/**
+ * A caret drawn as stacked blocks — the pointer a text-mode list puts in its
+ * left margin. Built from rects on the 2px grid rather than a path, so it steps
+ * the way everything else on the page steps.
+ *
+ * It marks a row from outside instead of covering it, which is what the earlier
+ * translucent band could not do: rows here are two lines of unequal height, so
+ * a fixed band either clipped the description or overhung the next entry.
+ */
+export function pixelCaret(t, x, y, colour) {
+  const rows = [2, 4, 6, 4, 2] // widths, top to bottom
+  return rows.map((w, i) => rect(x, y + i * U, w, U, colour ?? t.accent)).join("")
+}
+
 /** A rule made of blocks rather than a continuous line. */
 export function pixelRule(x, y, w, colour, { on = 2, off = 2, thick = 2 } = {}) {
   const out = []

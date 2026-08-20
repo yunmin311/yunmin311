@@ -96,6 +96,7 @@
     "stars": true,
     "activity": true,
     "contributions": true,
+    "contributionStyle": "pixel",
     "sections": true,
     "work": true,
     "fortune": true

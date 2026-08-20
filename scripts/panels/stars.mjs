@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 04c — RECENTLY STARRED.
  *
  * Three repositories, no counts. A star is only interesting here as a signal of
@@ -11,8 +11,8 @@
  * look clickable and are not.
  */
 
-import { panel, svgDoc, body, bodyWidth, fit, W_HALF, W_MOBILE, S , SHADOW} from "../lib/design.mjs"
-import { styles, rowlight, enabled } from "../lib/motion.mjs"
+import { panel, svgDoc, body, bodyWidth, fit, W_HALF, W_MOBILE, S , SHADOW, pixelCaret} from "../lib/design.mjs"
+import { styles, cursor, enabled } from "../lib/motion.mjs"
 import { ago } from "../lib/data.mjs"
 
 export const id = "stars"
@@ -49,14 +49,18 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
     out.push(row)
   })
 
-  // Shared with RECENT ACTIVITY. The two list panels sit side by side, so they
-  // behave the same way: a highlight sliding down and resting on each entry.
-  // Two different effects on a matched pair read as two unrelated gadgets.
+  // A cursor stepping down the left margin, shared by both list panels.
+  //
+  // The previous version washed a translucent band over each row, which never
+  // fitted: rows here are two lines of different heights, so a fixed band
+  // either clipped the description or overhung the next entry. A margin cursor
+  // marks the row without having to contain it, which is also how a text-mode
+  // list has always done it.
   if (animate && list.length) {
     out.splice(1, 0,
-      `<g class="rl"><rect x="${S.xs}" y="${L.top - 14}" width="${W - S.xs * 2}" height="34" fill="${t.accent}"/></g>`
+      `<g class="cur">${pixelCaret(t, 4, L.top - 13)}</g>`
     )
-    css.push(rowlight("rl", { stops: list.map((_, i) => i * L.pitch), period: 6000 }))
+    css.push(cursor("cur", { stops: list.map((_, i) => i * L.pitch), period: 6000 }))
   }
 
   if (!list.length) out.push(body("no recent stars", { x: PAD, y: L.top, fill: t.inkFaint }))

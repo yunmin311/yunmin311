@@ -45,6 +45,11 @@ jobs:
       - name: Check the README against what was built
         run: node scripts/check.mjs
 
+      # Parses every generated SVG. A malformed one fails silently in a README —
+      # the slot just stays empty — so it has to be caught by a build.
+      - name: Validate every generated SVG
+        run: node scripts/validate.mjs
+
       - name: Commit if anything moved
         run: |
           if [ -z "$(git status --porcelain assets/generated)" ]; then

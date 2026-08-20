@@ -239,6 +239,31 @@ export const wave = (cls, { phase, amp = 3, period = 2800, phases = WAVE_PHASES 
     `.${cls}{animation:${cls}-k ${period}ms ease-in-out ${delay}ms infinite}`
 }
 
+/**
+ * The same wave, but drawn the way a pixel display would draw it.
+ *
+ * Two differences from `wave`, and both are the point. The cells change SIZE
+ * rather than position, growing and shrinking about their own centres; and the
+ * timing is `step-end`, so each cell snaps between a handful of discrete sizes
+ * instead of easing between them. A grid that has no sub-pixels cannot ease,
+ * and pretending otherwise is what makes an effect look like CSS rather than
+ * like a display.
+ *
+ * All phases share one keyframe set and differ only by delay, which keeps eight
+ * travelling phases at the cost of one animation.
+ */
+export const pixelWave = ({ period = 2400, phases = WAVE_PHASES, steps = [1, 1.35, 1, 0.6, 1, 1.2, 1, 0.8] } = {}) => {
+  const frames = steps
+    .map((s, i) => `${Math.round((i / steps.length) * 10000) / 100}%{transform:scale(${s})}`)
+    .join("")
+  const rules = Array.from({ length: phases }, (_, p) =>
+    `.p${p}{animation:pxw-k ${period}ms step-end ${Math.round((p / phases) * period)}ms infinite}`
+  ).join("")
+  const selector = Array.from({ length: phases }, (_, p) => `.p${p}`).join(",")
+  return `@keyframes pxw-k{${frames}100%{transform:scale(${steps[0]})}}` +
+    `${selector}{transform-box:fill-box;transform-origin:center}${rules}`
+}
+
 /** A block travelling along a rule. */
 export const slide = (cls, { distance, period = 7600 }) =>
   `@keyframes ${cls}-k{0%{transform:translateX(0);opacity:0}` +

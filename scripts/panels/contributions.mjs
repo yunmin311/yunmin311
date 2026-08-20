@@ -13,7 +13,7 @@
  */
 
 import { rect, panel, svgDoc, label, body, labelWidth, bodyWidth, W_FULL, W_MOBILE, S , SHADOW, pixelRule} from "../lib/design.mjs"
-import { styles, wave, WAVE_PHASES, enabled } from "../lib/motion.mjs"
+import { styles, wave, pixelWave, WAVE_PHASES, enabled } from "../lib/motion.mjs"
 
 export const id = "contributions"
 export const responsive = true
@@ -100,18 +100,36 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
     })
   })
 
+  // Two wave styles, switchable at scripts/config.json → motion.contributionStyle.
+  //
+  //   "pixel"  cells snap between discrete SIZES about their own centres
+  //   "wave"   cells glide up and down as a group, smoothly
+  //
+  // The pixel one is the default because a grid with no sub-pixels cannot ease,
+  // and easing is what makes an effect read as CSS rather than as a display.
+  const style = cfg?.motion?.contributionStyle ?? "pixel"
   const seen = new Set()
+
   for (const [key, cells] of buckets) {
     const [lv, phase] = key.split(":").map(Number)
-    const g = `<g fill="${colours[lv]}">${cells.join("")}</g>`
-    if (!animate) { out.push(g); continue }
-    out.push(`<g class="wv${phase}">${g}</g>`)
-    if (!seen.has(phase)) {
-      seen.add(phase)
-      // Quiet days ride lower than loud ones, which is what sells the depth.
-      css.push(wave(`wv${phase}`, { phase, amp: 3, period: 2800 }))
+    if (!animate) {
+      out.push(`<g fill="${colours[lv]}">${cells.join("")}</g>`)
+      continue
+    }
+    if (style === "pixel") {
+      // The class goes on each cell so every one scales about its own centre;
+      // on a group it would scale the spacing between them instead.
+      const tagged = cells.map((c) => c.replace("<rect ", `<rect class="p${phase}" `))
+      out.push(`<g fill="${colours[lv]}">${tagged.join("")}</g>`)
+    } else {
+      out.push(`<g class="wv${phase}"><g fill="${colours[lv]}">${cells.join("")}</g></g>`)
+      if (!seen.has(phase)) {
+        seen.add(phase)
+        css.push(wave(`wv${phase}`, { phase, amp: 3, period: 2800 }))
+      }
     }
   }
+  if (animate && style === "pixel") css.push(pixelWave({ period: 2400 }))
 
   // ---- legend and readout ------------------------------------------------
   const lineY = L.lineY
