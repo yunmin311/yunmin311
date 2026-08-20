@@ -15,9 +15,12 @@ import { dirname, resolve } from "node:path"
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const readme = await readFile(resolve(ROOT, "README.md"), "utf8")
+const gallery = await readFile(resolve(ROOT, "docs/COMPONENTS.md"), "utf8").catch(() => "")
 
 // Only real markup, never the commented-out sections.
-const live = readme.replace(/<!--[\s\S]*?-->/g, "")
+// The component gallery references assets the profile deliberately does not,
+// so both documents count as live references.
+const live = (readme + gallery).replace(/<!--[\s\S]*?-->/g, "").replace(/\.\.\//g, "")
 
 const referenced = new Set()
 for (const m of live.matchAll(/(?:src|srcset)="([^"]+)"/g)) referenced.add(m[1])

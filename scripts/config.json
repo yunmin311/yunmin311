@@ -64,6 +64,16 @@
     "Build the tools I wish already existed."
   ],
 
+  "_componentNote": "Not shown on the profile. These drive the reusable component set — see docs/COMPONENTS.md. Everything is config, so a fork changes these values and never touches the code.",
+  "display": { "text": "PIXEL", "treatment": "hollow", "colour": "ink", "sweep": true },
+  "tiles": [
+    { "label": "SHIPPED", "value": "4 tools", "note": "MIT" },
+    { "label": "OBSERVED", "value": "22 days" },
+    { "label": "PEAK", "value": "143", "note": "Aug 19" },
+    { "label": "STREAK", "value": "15 days" }
+  ],
+  "quote": { "text": "Human judgment stays in the loop. A model can hold the context; it cannot hold the responsibility.", "by": "the point of all of this" },
+
   "hero": {
     "lines": [
       "Building tools for thinking, creating, and working with AI.",

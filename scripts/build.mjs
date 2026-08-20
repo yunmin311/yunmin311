@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Builds every generated SVG in assets/generated/, one file per theme.
  *
  * Two files rather than one file with a prefers-color-scheme block: the README
@@ -30,11 +30,17 @@ import * as sections from "./panels/sections.mjs"
 import * as work from "./panels/work.mjs"
 import * as about from "./panels/about.mjs"
 
+// Reusable components. Built and shown in docs/COMPONENTS.md, deliberately not
+// placed on the profile — they exist so a fork has parts to build with.
+import * as display from "./panels/display.mjs"
+import * as tiles from "./panels/tiles.mjs"
+import * as quote from "./panels/quote.mjs"
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const OUT = resolve(ROOT, "assets/generated")
 const CACHE = resolve(ROOT, "scripts/.cache.json")
 
-const PANELS = [hero, about, rhythm, languages, stars, activity, contributions, fortune]
+const PANELS = [hero, about, rhythm, languages, stars, activity, contributions, fortune, display, tiles, quote]
 const OFFLINE_OK = new Set(["hero"]) // needs no API data
 
 const args = process.argv.slice(2)

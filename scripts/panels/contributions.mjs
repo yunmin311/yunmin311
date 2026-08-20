@@ -117,9 +117,13 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
       continue
     }
     if (style === "pixel") {
+      // Only cells that carry data move. Animating the empty majority turned
+      // the whole grid into a strobe with nothing to rest the eye on, which is
+      // what made the first version uncomfortable rather than alive.
+      //
       // The class goes on each cell so every one scales about its own centre;
       // on a group it would scale the spacing between them instead.
-      const tagged = cells.map((c) => c.replace("<rect ", `<rect class="p${phase}" `))
+      const tagged = lv === 0 ? cells : cells.map((c) => c.replace("<rect ", `<rect class="p${phase}" `))
       out.push(`<g fill="${colours[lv]}">${tagged.join("")}</g>`)
     } else {
       out.push(`<g class="wv${phase}"><g fill="${colours[lv]}">${cells.join("")}</g></g>`)

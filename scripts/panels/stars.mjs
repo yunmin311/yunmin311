@@ -11,7 +11,7 @@
  * look clickable and are not.
  */
 
-import { panel, svgDoc, body, bodyWidth, fit, W_HALF, W_MOBILE, S , SHADOW, pixelCaret} from "../lib/design.mjs"
+import { panel, svgDoc, body, bodyWidth, fit, W_HALF, W_MOBILE, S , SHADOW, listRail} from "../lib/design.mjs"
 import { styles, cursor, enabled } from "../lib/motion.mjs"
 import { ago } from "../lib/data.mjs"
 
@@ -35,32 +35,44 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
     panel(t, { x: 0, y: S.xs, w: W, h: L.h, title: "Recently starred", meta: "all stars →" })
   )
 
+  // Three inks, not five. The repository name carries the section's blue, the
+  // description is the one grey, and everything subordinate drops to faint.
+  // The earlier version stacked ink, inkDim, inkFaint and accent in a single
+  // row, which is why these two panels read as muddy next to the charted ones.
   list.forEach((s, i) => {
     const y = L.top + i * L.pitch
     const [owner, name] = s.name.split("/")
     const when = s.starredAt ? ago(new Date(s.starredAt).getTime()) : ""
     const ownerW = bodyWidth(`${owner}/`)
 
-    const row =
+    out.push(
       body(`${owner}/`, { x: PAD, y, fill: t.inkFaint }) +
-      body(fit(name, INNER - ownerW - 40), { x: PAD + ownerW, y, fill: t.ink }) +
-      body(when, { x: W - PAD, y, fill: i === 0 ? t.accent : t.inkFaint, anchor: "end" }) +
-      (s.description ? body(fit(s.description, INNER), { x: PAD, y: y + S.sm, fill: t.inkDim }) : "")
-    out.push(row)
+        body(fit(name, INNER - ownerW - 40), { x: PAD + ownerW, y, fill: t.titleInk }) +
+        body(when, { x: W - PAD, y, fill: t.inkFaint, anchor: "end" }) +
+        (s.description ? body(fit(s.description, INNER), { x: PAD, y: y + S.sm, fill: t.inkDim }) : "")
+    )
   })
 
-  // A cursor stepping down the left margin, shared by both list panels.
-  //
-  // The previous version washed a translucent band over each row, which never
-  // fitted: rows here are two lines of different heights, so a fixed band
-  // either clipped the description or overhung the next entry. A margin cursor
-  // marks the row without having to contain it, which is also how a text-mode
-  // list has always done it.
-  if (animate && list.length) {
-    out.splice(1, 0,
-      `<g class="cur">${pixelCaret(t, 4, L.top - 13)}</g>`
-    )
-    css.push(cursor("cur", { stops: list.map((_, i) => i * L.pitch), period: 6000 }))
+  // A rail rather than an arrow. The lit segment is exactly one row tall and
+  // sits exactly where the row sits, so there is no "is it pointing at the
+  // right thing" to get wrong, and the unlit track gives the panel the vertical
+  // structure the charted panels get from their axes.
+  if (list.length) {
+    const railTop = L.top - 12
+    const rowH = L.pitch - S.xs
+    const rail = listRail(t, {
+      x: 6,
+      top: railTop,
+      height: (list.length - 1) * L.pitch + rowH,
+      rowHeight: rowH,
+    })
+    out.splice(1, 0, rail.track)
+    if (animate) {
+      out.splice(2, 0, `<g class="cur">${rail.segment}</g>`)
+      css.push(cursor("cur", { stops: list.map((_, i) => i * L.pitch), period: 6000 }))
+    } else {
+      out.splice(2, 0, rail.segment)
+    }
   }
 
   if (!list.length) out.push(body("no recent stars", { x: PAD, y: L.top, fill: t.inkFaint }))

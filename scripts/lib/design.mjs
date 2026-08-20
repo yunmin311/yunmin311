@@ -198,16 +198,33 @@ export function pixelFrame(t, x, y, w, h, colour, b = BORDER, notch = NOTCH) {
 
 /**
  * A caret drawn as stacked blocks — the pointer a text-mode list puts in its
- * left margin. Built from rects on the 2px grid rather than a path, so it steps
- * the way everything else on the page steps.
+ * left margin.
  *
- * It marks a row from outside instead of covering it, which is what the earlier
- * translucent band could not do: rows here are two lines of unequal height, so
- * a fixed band either clipped the description or overhung the next entry.
+ * ARCHIVED, and kept on purpose. It is not used on the profile: a free-floating
+ * arrow has no structural anchor, so "where exactly is it pointing" has no
+ * right answer and every position looked slightly wrong. It stays here because
+ * it is a good primitive for a component that does have an anchor — a single
+ * highlighted item, a menu, a one-line prompt.
  */
 export function pixelCaret(t, x, y, colour) {
   const rows = [2, 4, 6, 4, 2] // widths, top to bottom
   return rows.map((w, i) => rect(x, y + i * U, w, U, colour ?? t.accent)).join("")
+}
+
+/**
+ * A list rail: a continuous track down the left margin with one lit segment.
+ *
+ * This is what replaced the caret. The segment is exactly one row tall and sits
+ * exactly where the row does, so alignment is not a judgement call — it is the
+ * geometry. The unlit track also gives the panel a permanent vertical line of
+ * structure, which is what the two list panels were missing next to the charted
+ * ones.
+ */
+export function listRail(t, { x, top, height, rowHeight }) {
+  return {
+    track: rect(x, top, U, height, t.lineSoft),
+    segment: rect(x, top, U, rowHeight, t.accent),
+  }
 }
 
 /** A rule made of blocks rather than a continuous line. */

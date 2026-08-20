@@ -6,7 +6,7 @@
  * the noise most profiles mistake for evidence of work.
  */
 
-import { panel, svgDoc, label, body, fit, W_HALF, W_MOBILE, S , SHADOW, pixelCaret} from "../lib/design.mjs"
+import { panel, svgDoc, label, body, fit, W_HALF, W_MOBILE, S , SHADOW, listRail} from "../lib/design.mjs"
 import { styles, cursor, enabled } from "../lib/motion.mjs"
 
 export const id = "activity"
@@ -29,30 +29,34 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
     panel(t, { x: 0, y: S.xs, w: W, h: L.h, title: "Recent activity", meta: `last ${cfg.activity.days} days` })
   )
 
+  // Same three inks as RECENTLY STARRED, so the pair reads as one instrument:
+  // the repository name in blue, the verb dim, everything else faint.
   list.forEach((a, i) => {
     const y = L.top + i * L.pitch
-
-
-    const row =
+    out.push(
       label(a.tag, { x: PAD, y, tracking: 1, fill: t.inkDim }) +
-      body(a.ago, { x: W - PAD, y, fill: i === 0 ? t.accent : t.inkFaint, anchor: "end" }) +
-      body(fit(a.repo, INNER - 80), { x: PAD, y: y + S.sm, fill: t.ink }) +
-      (a.detail ? body(a.detail, { x: W - PAD, y: y + S.sm, fill: t.inkFaint, anchor: "end" }) : "")
-    out.push(row)
+        body(a.ago, { x: W - PAD, y, fill: t.inkFaint, anchor: "end" }) +
+        body(fit(a.repo, INNER - 80), { x: PAD, y: y + S.sm, fill: t.titleInk }) +
+        (a.detail ? body(a.detail, { x: W - PAD, y: y + S.sm, fill: t.inkFaint, anchor: "end" }) : "")
+    )
   })
 
-  // A cursor stepping down the left margin, shared by both list panels.
-  //
-  // The previous version washed a translucent band over each row, which never
-  // fitted: rows here are two lines of different heights, so a fixed band
-  // either clipped the description or overhung the next entry. A margin cursor
-  // marks the row without having to contain it, which is also how a text-mode
-  // list has always done it.
-  if (animate && list.length) {
-    out.splice(1, 0,
-      `<g class="cur">${pixelCaret(t, 4, L.top - 13)}</g>`
-    )
-    css.push(cursor("cur", { stops: list.map((_, i) => i * L.pitch), period: 6000 }))
+  // See RECENTLY STARRED: a rail, not an arrow — the lit segment is the row.
+  if (list.length) {
+    const rowH = L.pitch - S.xs
+    const rail = listRail(t, {
+      x: 6,
+      top: L.top - 12,
+      height: (list.length - 1) * L.pitch + rowH,
+      rowHeight: rowH,
+    })
+    out.splice(1, 0, rail.track)
+    if (animate) {
+      out.splice(2, 0, `<g class="cur">${rail.segment}</g>`)
+      css.push(cursor("cur", { stops: list.map((_, i) => i * L.pitch), period: 6000 }))
+    } else {
+      out.splice(2, 0, rail.segment)
+    }
   }
 
   if (!list.length) out.push(body("nothing worth reporting", { x: PAD, y: L.top, fill: t.inkFaint }))
