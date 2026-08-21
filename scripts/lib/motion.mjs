@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Motion.
  *
  * Every effect here is an ENTRANCE, not a loop. An SVG in a README replays its
@@ -260,7 +260,7 @@ export const wave = (cls, { phase, amp = 3, period = 2800, phases = WAVE_PHASES 
  * travelling phases at the cost of one animation.
  */
 export const pixelWave = ({
-  period = 2400,
+  period = 3000,
   phases = WAVE_PHASES,
   // Twelve stops rather than eight, over a shorter period: 200ms a step instead
   // of 450ms. At the slower cadence each hold was long enough to read as a
