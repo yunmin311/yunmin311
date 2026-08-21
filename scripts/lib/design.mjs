@@ -124,9 +124,20 @@ const PALETTE = {
  */
 export const THEME = Object.fromEntries(Object.keys(PALETTE.light).map((k) => [k, `var(--${k})`]))
 
-/** Light as the default, dark as an override. Emitted once per document. */
-export const themeCss = () => {
+/**
+ * Light as the default, dark as an override. Emitted once per document.
+ *
+ * `force` pins a document to one palette regardless of the reader's setting.
+ * Nothing on a real page should use it — a panel that ignores the reader's
+ * theme is the bug this whole arrangement exists to avoid. It is here so the
+ * gallery can show both palettes side by side on one screen, which is
+ * otherwise impossible: a reader in light mode has no way to see the dark
+ * design, and dark is the one these were drawn for.
+ */
+export const themeCss = (force) => {
   const decl = (o) => Object.entries(o).map(([k, v]) => `--${k}:${v}`).join(";")
+  if (force === "dark") return `:root{${decl(PALETTE.dark)}}`
+  if (force === "light") return `:root{${decl(PALETTE.light)}}`
   return `:root{${decl(PALETTE.light)}}@media (prefers-color-scheme:dark){:root{${decl(PALETTE.dark)}}}`
 }
 
@@ -300,7 +311,7 @@ export function readout(t, { x, y, name, val, accent = false }) {
 
 /* --------------------------------------------------------------- documents */
 
-export function svgDoc({ w, h, theme, body: content, defs = "", css = "", title = "", paintBg = true, bleed = 0 }) {
+export function svgDoc({ w, h, theme, body: content, defs = "", css = "", title = "", paintBg = true, bleed = 0, force }) {
   const W = w + bleed
   const H = h + bleed
   const safe = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
@@ -309,7 +320,7 @@ export function svgDoc({ w, h, theme, body: content, defs = "", css = "", title 
     ` shape-rendering="crispEdges" role="img" aria-label="${safe(title)}">`,
     title ? `<title>${safe(title)}</title>` : "",
     defs ? `<defs>${defs}</defs>` : "",
-    `<style>${themeCss()}${fontFace()}${css}</style>`,
+    `<style>${themeCss(force)}${fontFace()}${css}</style>`,
     paintBg ? rect(0, 0, W, H, THEME.page) : "",
     content,
     `</svg>`,

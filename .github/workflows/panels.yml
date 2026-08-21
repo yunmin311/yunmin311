@@ -18,6 +18,9 @@ on:
 
 permissions:
   contents: write
+  # Only so a failed rebuild can say why in a place that sends an email. See
+  # the last step.
+  issues: write
 
 concurrency:
   group: panels
@@ -40,18 +43,28 @@ jobs:
           # because any private scope is needed.
           METRICS_TOKEN: ${{ secrets.METRICS_TOKEN }}
           GH_TOKEN: ${{ github.token }}
-        run: node scripts/build.mjs
+        # Every step's output is teed into build.log so the failure step below
+        # can quote the actual reason back. `pipefail` is what makes tee safe
+        # here: without it the pipeline reports tee's exit code and a failed
+        # build passes.
+        run: |
+          set -o pipefail
+          node scripts/build.mjs 2>&1 | tee -a build.log
 
       # Fails the run if the README points at an asset the build did not
       # produce. A missing phone variant is invisible on a desktop and broken
       # on every phone, so it has to be caught here rather than by a reader.
       - name: Check the README against what was built
-        run: node scripts/check.mjs
+        run: |
+          set -o pipefail
+          node scripts/check.mjs 2>&1 | tee -a build.log
 
       # Parses every generated SVG. A malformed one fails silently in a README —
       # the slot just stays empty — so it has to be caught by a build.
       - name: Validate every generated SVG
-        run: node scripts/validate.mjs
+        run: |
+          set -o pipefail
+          node scripts/validate.mjs 2>&1 | tee -a build.log
 
       - name: Commit if anything moved
         run: |
@@ -71,3 +84,56 @@ jobs:
           # files, so replaying it on top is always the right resolution.
           git pull --rebase origin main
           git push
+
+      # WHY THIS EXISTS.
+      #
+      # The point of keeping every word of this page in scripts/config.json is
+      # that it can be edited in the browser without asking anybody. That only
+      # works if a bad edit says so. A failed run turns up as a red mark on a
+      # tab nobody has open, and the README meanwhile keeps showing the last
+      # good version — which is the right behaviour and also means the mistake
+      # is completely silent.
+      #
+      # So the failure gets written where it will send an email, with the
+      # actual error quoted rather than a link to go and find it. Scheduled
+      # runs are excluded: a rebuild that fails at 05:17 because an API blinked
+      # is not something to be woken up for, and it will pass six hours later.
+      #
+      # One open issue at a time — further failures are comments on it — so a
+      # bad edit left in place for a day does not produce a day of issues.
+      - name: Say what went wrong, where it will be seen
+        if: failure() && github.event_name != 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo "The panel rebuild failed. The README still shows the last good"
+            echo "version, so nothing on the page is broken — but the change that"
+            echo "triggered this run has not been applied."
+            echo
+            echo "Most likely cause: an edit to \`scripts/config.json\`. The two that"
+            echo "actually happen are a missing or extra comma, and text too long for"
+            echo "the space it was given — the build names both."
+            echo
+            echo "Tail of the build:"
+            echo
+            echo '```'
+            tail -n 40 build.log 2>/dev/null || echo "(nothing was captured)"
+            echo '```'
+            echo
+            echo "Full log: $RUN_URL"
+          } > /tmp/body.md
+
+          gh label create build-failure --color B60205 \
+            --description "A panel rebuild failed" 2>/dev/null || true
+
+          existing=$(gh issue list --label build-failure --state open \
+            --json number --jq '.[0].number // empty' 2>/dev/null || true)
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file /tmp/body.md
+          else
+            gh issue create --title "Panel rebuild failed" \
+              --label build-failure --body-file /tmp/body.md
+          fi

@@ -77,8 +77,17 @@ export const grow = (cls, { delay = 0, dur = DUR.normal, origin = "bottom" } = {
 
 /**
  * Pop in place. For heat cells, where sliding would read as noise.
- * Scales from small rather than fading from nothing, so a stalled animation
- * leaves a full-size cell instead of an empty grid.
+ *
+ * Scales from small rather than fading from nothing, so an animation that has
+ * not started yet leaves a SMALL cell rather than no cell — the grid is still
+ * legible as a grid. That is the whole guarantee, and it is weaker than it
+ * sounds: `both` holds the element at `from` until the animation runs, so
+ * whatever `from` looks like is what a stalled render shows.
+ *
+ * Which means this is only safe where the shrunken state still reads as the
+ * same object. It does on a field of heat cells. It does not on anything whose
+ * shape carries the meaning — a dial assembled this way renders as a ring of
+ * dots, which is a different instrument, not a quieter one. See panels/gauge.
  */
 export const bloom = (cls, { delay = 0, dur = DUR.fast, from = 0.4 } = {}) =>
   `@keyframes ${cls}-k{from{transform:scale(${from})}to{transform:none}}` +
@@ -176,19 +185,60 @@ export const flicker = (cls, { delay = 0, period = 2200 } = {}) =>
   `@keyframes ${cls}-k{0%,56%{opacity:1}58%,64%{opacity:0.3}66%,100%{opacity:1}}` +
   `.${cls}{animation:${cls}-k ${period}ms step-end ${delay}ms infinite}`
 
-/** A selection cursor stepping down a list and resting on each row. */
-export const cursor = (cls, { stops, period = 5400 }) => {
+/**
+ * A selection cursor stepping between fixed stops and resting on each one.
+ *
+ * `axis: "X"` walks it across columns instead of down rows — a field cursor
+ * rather than a row cursor. Both step rather than glide: a cursor that eases
+ * between two cells is briefly pointing at neither.
+ */
+export const cursor = (cls, { stops, period = 5400, axis = "Y" }) => {
   const n = stops.length
   const frames = stops
-    .map((y, i) => {
+    .map((v, i) => {
       const a = Math.round((i / n) * 10000) / 100
       const b = Math.round(((i + 0.86) / n) * 10000) / 100
-      return `${a}%,${b}%{transform:translateY(${y}px)}`
+      return `${a}%,${b}%{transform:translate${axis}(${v}px)}`
     })
     .join("")
-  return `@keyframes ${cls}-k{${frames}100%{transform:translateY(${stops[0]}px)}}` +
+  return `@keyframes ${cls}-k{${frames}100%{transform:translate${axis}(${stops[0]}px)}}` +
     `.${cls}{animation:${cls}-k ${period}ms step-end infinite}`
 }
+
+/**
+ * A block hopping one cell at a time along a segmented bar.
+ *
+ * `stream` glides a highlight along a bar; this one lands on cells. Where the
+ * bar is drawn as discrete segments, a highlight that slides through them
+ * crosses cell boundaries and reads as a different, softer object than the bar
+ * it is travelling along. `steps()` keeps it on the same grid as the data.
+ */
+export const march = (cls, { cells, cellW, period = 2600 }) =>
+  `@keyframes ${cls}-k{from{transform:translateX(0)}to{transform:translateX(${cells * cellW}px)}}` +
+  `.${cls}{animation:${cls}-k ${period}ms steps(${Math.max(1, cells)},end) infinite}`
+
+/**
+ * A band drifting down a panel, the way a CRT's refresh crawls up one.
+ *
+ * Held far enough below full opacity that it passes over what is underneath
+ * without repainting it — the same contract every other overlay here signs.
+ */
+export const scanline = (cls, { distance, period = 5200, peak = 0.3 }) =>
+  `@keyframes ${cls}-k{0%{transform:translateY(0);opacity:0}` +
+  `12%{opacity:${peak}}78%{opacity:${peak}}` +
+  `100%{transform:translateY(${distance}px);opacity:0}}` +
+  `.${cls}{animation:${cls}-k ${period}ms linear infinite}`
+
+/**
+ * A strip sliding left by exactly one copy of its content, then snapping back.
+ *
+ * The snap is invisible because the strip carries the same content twice: at
+ * 100% the second copy sits exactly where the first started. Linear and
+ * unbroken — a marquee that eases is a marquee that stutters.
+ */
+export const belt = (cls, { distance, period = 24000 }) =>
+  `@keyframes ${cls}-k{from{transform:translateX(0)}to{transform:translateX(-${distance}px)}}` +
+  `.${cls}{animation:${cls}-k ${period}ms linear infinite}`
 
 /** A tape of marks crawling down an edge, the way a log advances. */
 export const tape = (cls, { step, period = 2600 }) =>

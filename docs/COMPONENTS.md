@@ -68,19 +68,36 @@ Full reasoning, and the measured values behind them, in [DESIGN.md](../DESIGN.md
 These are built on every run and shown below. Nothing on the profile references
 them — they exist so a fork has parts to build with.
 
+Three of twenty. The complete set, with a gallery rendered from invented data
+and the reasoning behind each one, is a separate repository:
+**[yunmin311/pixel-panels](https://github.com/yunmin311/pixel-panels)**. This
+profile carries the eleven panels it actually renders plus the three below; the
+other six — `terminal`, `timeline`, `progress`, `gauge`, `ticker`, `table` —
+live there, because a personal page should not be shipping parts it does not
+use.
+
 ### display — oversized pixel headline
 
 <picture>
-  <img alt="A large hollow pixel headline reading PIXEL" src="../assets/generated/display.svg">
+  <img alt="A large hollow pixel headline with a scan crossing the letterforms" src="../assets/generated/display.svg">
 </picture>
 
 Three treatments: `solid`, `hollow` and `shadow`. Hollow is a stroke on a bitmap
 face, which traces every step in the glyph — that is why it reads as pixel art
 rather than as an outlined font. Sizes are 33 / 44 / 55, picked automatically
-from the text length; anything between those puts glyph edges on fractions.
+from the text length; anything between those puts glyph edges on fractions, and
+a phrase too long for one line at 33 is stacked one word per line rather than
+shrunk off the list.
+
+The scan is masked by the letterforms, so the light only ever exists inside a
+glyph — the word fills in ahead of the head and empties behind it. It advances
+in whole font-pixels, so the leading edge lands on a glyph edge instead of
+halfway through one. An earlier version slid a plain bar across the top of the
+word and looked like exactly that: a rectangle with no relationship to what it
+was crossing.
 
 ```json
-"display": { "text": "PIXEL", "treatment": "hollow", "colour": "ink", "sweep": true }
+"display": { "text": "QIYU LI", "treatment": "hollow", "colour": "ink", "sweep": true, "sweepPeriod": 4600 }
 ```
 
 ### tiles — a row of readout cells
@@ -126,10 +143,15 @@ In `scripts/lib/design.mjs`:
 | `panel` | the three-zone anatomy — top rail, content, bottom rail |
 | `readout` | a label/value pair that stays together |
 
-In `scripts/lib/motion.mjs` — entrance effects (`rise`, `grow`, `fill`, `draw`)
-and ambient ones (`lamp`, `tick`, `stream`, `playhead`, `cursor`, `flicker`,
-`ants`, `wave`, `pixelWave`). Every one is switchable per component and every one
-respects `prefers-reduced-motion`.
+In `scripts/lib/motion.mjs` — entrance effects (`rise`, `grow`, `fill`, `draw`,
+`bloom`) and ambient ones (`lamp`, `tick`, `stream`, `playhead`, `cursor`,
+`flicker`, `ants`, `wave`, `pixelWave`, `march`, `scanline`, `belt`). Every one
+is switchable per component and every one respects `prefers-reduced-motion`.
+
+One caveat that cost a rebuild: an entrance holds its element at the `from`
+state until it runs, so `from` is a state readers actually see. `bloom` rests
+at 40% scale — fine on a heat cell, wrong on anything whose shape carries the
+meaning.
 
 ## Type
 

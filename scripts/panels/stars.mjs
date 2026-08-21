@@ -42,7 +42,11 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
   list.forEach((s, i) => {
     const y = L.top + i * L.pitch
     const [owner, name] = s.name.split("/")
-    const when = s.starredAt ? ago(new Date(s.starredAt).getTime()) : ""
+    // Measured against the context's clock, not the wall clock. On the profile
+    // those are the same thing; in the demo gallery they are not, and letting
+    // `ago` default to Date.now() made every rebuild of the previews produce a
+    // diff — "23H" one afternoon, "1D" the next — from data that had not moved.
+    const when = s.starredAt ? ago(new Date(s.starredAt).getTime(), ctx.now ? new Date(ctx.now).getTime() : undefined) : ""
     const ownerW = bodyWidth(`${owner}/`)
 
     out.push(

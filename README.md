@@ -1,6 +1,10 @@
 <!--
   This page is generated, not hand-maintained.
 
+  TO CHANGE ANY OF THE WORDS ON IT, edit scripts/config.json — in the browser is
+  fine — and commit. The workflow redraws and pushes the images within a minute.
+  Nothing here should ever be edited by hand. Step by step: docs/EDITING.md
+
   Every image under assets/generated/ comes out of `node scripts/build.mjs`.
   Each one exists in two versions — desktop and phone — and <picture> picks
   between them with ONE condition:

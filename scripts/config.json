@@ -81,7 +81,7 @@
   ],
 
   "_componentNote": "Not shown on the profile. These drive the reusable component set — see docs/COMPONENTS.md. Everything is config, so a fork changes these values and never touches the code.",
-  "display": { "text": "PIXEL", "treatment": "hollow", "colour": "ink", "sweep": true },
+  "display": { "text": "QIYU LI", "treatment": "hollow", "colour": "ink", "sweep": true, "sweepPeriod": 4600 },
   "tiles": [
     { "label": "SHIPPED", "value": "4 tools", "note": "MIT" },
     { "label": "OBSERVED", "value": "22 days" },

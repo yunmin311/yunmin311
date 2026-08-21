@@ -7,4 +7,7 @@ qa*.png
 # Fetched API data, kept so layout can be iterated offline
 scripts/.cache.json
 
+# Build transcript, written by the workflow so a failure can be quoted back
+build.log
+
 node_modules/
