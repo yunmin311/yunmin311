@@ -1,9 +1,12 @@
-﻿/**
+/**
  * 03 — SELECTED WORK.
  *
- * Four hand-picked cards, not the four most recently pushed repositories. Each
- * leads with why the thing exists and puts the stack underneath, because the
- * stack is the least interesting true fact about any of them.
+ * Hand-picked cards, not the most recently pushed repositories. Each leads with
+ * why the thing exists and puts the stack underneath, because the stack is the
+ * least interesting true fact about any of them.
+ *
+ * Every card is the same height whatever its copy says, so the grid reads as one
+ * object. That makes the copy budget a hard constraint, enforced below.
  *
  * No stars, forks, issues or language percentages: those are the numbers a
  * profile reaches for when it has nothing to say about the work.
@@ -51,7 +54,18 @@ export function card(t, p, cfg, { mobile = false } = {}) {
 
   out.push(panel(t, { x: 0, y: S.xs, w: W, h: L.h, title: p.name }))
 
-  const lines = wrap(p.why, INNER).slice(0, L.lines)
+  // Every card is the same height, which is what makes a row of them read as one
+  // grid rather than a stack of separate posters. Copy that overruns the budget therefore has to
+  // be cut — but cutting it quietly ships a sentence that stops mid-word, so the
+  // overrun is reported and the fix is to shorten the text in config.json.
+  const all = wrap(p.why, INNER)
+  if (all.length > L.lines) {
+    throw new Error(
+      `work/${p.key}: "why" needs ${all.length} lines on ${mobile ? "mobile" : "desktop"}, budget is ` +
+        `${L.lines}. Shorten it in config.json — the dropped tail was ${JSON.stringify(all.slice(L.lines).join(" "))}.`
+    )
+  }
+  const lines = all.slice(0, L.lines)
   lines.forEach((l, i) => out.push(body(l, { x: PAD, y: L.top + i * LINE_H, fill: t.inkDim })))
 
   // This card's own motion: a selection marquee crawling around it — the marker

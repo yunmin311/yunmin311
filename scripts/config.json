@@ -18,7 +18,7 @@
       "key": "context-distiller",
       "num": "01",
       "name": "Context Distiller",
-      "why": "Choosing what an AI gets to see is the step nobody built a tool for. This is a workspace for picking, grouping and compiling that context into one plain-text message — locally, and never sent on your behalf.",
+      "why": "Choosing what an AI gets to see is the step nobody built a tool for. A workspace for picking, grouping and compiling that context into one plain-text message — locally, never sent for you.",
       "tags": ["TypeScript", "React 19", "WXT", "Manifest V3"],
       "url": "https://github.com/yunmin311/context-distiller"
     },
