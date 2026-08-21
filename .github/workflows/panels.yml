@@ -4,7 +4,10 @@ name: Rebuild panels
 # renders instantly and keeps working if this workflow ever breaks.
 on:
   schedule:
-    - cron: "17 1 * * *" # 09:17 Asia/Shanghai
+    # Every six hours. A README image is a committed file behind an image proxy,
+    # so nothing here is live; this is the practical ceiling before the rebuild
+    # costs more than the freshness is worth.
+    - cron: "17 */6 * * *"
   workflow_dispatch:
   push:
     branches: [main]

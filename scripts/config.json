@@ -12,7 +12,7 @@
     { "key": "08", "num": "08", "title": "Fortune" }
   ],
 
-  "_workNote": "Hand-curated, not sorted by recency. Tech tags were read off each repository's actual manifest and language breakdown, not off its README badges.",
+  "_workNote": "The six pinned repositories, in pin order. Descriptions are written here rather than taken from each repo, because a repo description explains what a thing is and a card has to explain why it exists. Tech tags were read off each repository's actual manifest and language breakdown, not off its README badges.",
   "work": [
     {
       "key": "context-distiller",
@@ -45,6 +45,22 @@
       "why": "Keeping work in sync across machines should not risk it. One click pulls, optionally commits and pushes every folder you chose — fast-forward only, never rewriting history.",
       "tags": ["Rust", "egui", "Git", "Windows"],
       "url": "https://github.com/yunmin311/work-capsule"
+    },
+    {
+      "key": "densegpt",
+      "num": "05",
+      "name": "DenseGPT",
+      "why": "A long answer you cannot scan is a long answer nobody reads. One stylesheet tightens the reading layout and the content width; a companion spec asks the model for answers shaped to fit it.",
+      "tags": ["UserCSS", "Stylus", "Typography", "Prompt spec"],
+      "url": "https://github.com/yunmin311/DenseGPT"
+    },
+    {
+      "key": "pixel-panels",
+      "num": "06",
+      "name": "Pixel Panels",
+      "why": "The components this page is built from, lifted out and documented. One 2px grid, one embedded bitmap face, and the four rules that keep fourteen separate parts reading as a single instrument.",
+      "tags": ["JavaScript", "SVG", "Zero-dependency", "MIT"],
+      "url": "https://github.com/yunmin311/pixel-panels"
     }
   ],
 

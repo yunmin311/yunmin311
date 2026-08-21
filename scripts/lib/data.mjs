@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Everything the panels draw is derived here, so the drawing code stays
  * drawing code.
  *
@@ -17,6 +17,7 @@
 import { events, graphql, starred, languagesOf } from "./gh.mjs"
 import { authoredLines } from "./authored.mjs"
 import { deEmoji, clamp } from "./design.mjs"
+import { ago } from "./format.mjs"
 
 const HOUR = 3600e3
 const DAY = 24 * HOUR
@@ -284,14 +285,7 @@ function activity(evs, cfg) {
 
 const pad = (n) => String(n).padStart(2, "0")
 
-export function ago(ms) {
-  const s = Math.max(0, Date.now() - ms) / 1000
-  if (s < 3600) return `${Math.max(1, Math.floor(s / 60))}M`
-  if (s < 86400) return `${Math.floor(s / 3600)}H`
-  if (s < 86400 * 14) return `${Math.floor(s / 86400)}D`
-  if (s < 86400 * 60) return `${Math.floor(s / (86400 * 7))}W`
-  return `${Math.floor(s / (86400 * 30))}MO`
-}
+export { ago } from "./format.mjs"
 
 export { WEEKDAYS }
 

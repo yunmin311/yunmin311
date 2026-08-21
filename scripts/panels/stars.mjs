@@ -13,7 +13,7 @@
 
 import { panel, svgDoc, body, bodyWidth, fit, W_HALF, W_MOBILE, S , SHADOW, listRail} from "../lib/design.mjs"
 import { styles, cursor, enabled } from "../lib/motion.mjs"
-import { ago } from "../lib/data.mjs"
+import { ago } from "../lib/format.mjs"
 
 export const id = "stars"
 export const responsive = true
