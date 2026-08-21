@@ -107,6 +107,7 @@
     "activity": true,
     "contributions": true,
     "contributionStyle": "pixel",
+    "contributionPeriod": 2400,
     "sections": true,
     "work": true,
     "fortune": true

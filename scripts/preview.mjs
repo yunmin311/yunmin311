@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Writes a local QA page showing every generated asset at 1:1, on both
  * backgrounds and at both widths. Not shipped — it exists so the panels get
  * looked at before they get committed.

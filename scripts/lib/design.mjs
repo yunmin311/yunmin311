@@ -46,9 +46,27 @@ export const S = { tight: 4, xs: 8, sm: 16, md: 24, lg: 32, xl: 48 }
 /** Largest type size allowed inside a container of the given width. */
 export const maxSizeFor = (containerW) => (containerW * 0.06 >= BIG ? BIG : MICRO)
 
-export const THEMES = {
+/**
+ * THEME, and why it is one file instead of two.
+ *
+ * Panels used to be generated once per theme and paired in the README with
+ * <source media="(max-width: 500px) and (prefers-color-scheme: dark)">. That
+ * compound query is the one thing on this page that could plausibly select a
+ * phone layout on a desktop — if anything in the chain keeps only the second
+ * half of it, a dark desktop gets the mobile file — and it doubled the asset
+ * count for nothing.
+ *
+ * Verified instead: a `prefers-color-scheme` block INSIDE an SVG works when the
+ * SVG is loaded through <img>. Measured by rendering a probe to a canvas and
+ * reading the pixels back — #0969DA under light, #58A6FF under dark, from one
+ * file. So the theme moved into the document, every colour became a custom
+ * property, and <picture> is left with a single-condition width query.
+ *
+ * Panels did not change: `t.ink` is now the string "var(--ink)" and
+ * interpolates exactly as a hex literal did.
+ */
+const PALETTE = {
   dark: {
-    name: "dark",
     page: "#0D1117",
     panel: "#161B22",
     line: "#30363D",
@@ -78,7 +96,6 @@ export const THEMES = {
     shadow: "#000000",
   },
   light: {
-    name: "light",
     page: "#FFFFFF",
     panel: "#F6F8FA",
     line: "#D0D7DE",
@@ -98,6 +115,19 @@ export const THEMES = {
     dataHigh: "#0969DA",
     shadow: "#BFC8D2",
   },
+}
+
+/**
+ * What panels receive. Every entry is a custom-property reference, so a panel
+ * writing `fill="${t.ink}"` emits `fill="var(--ink)"` and the document decides
+ * which theme that resolves to.
+ */
+export const THEME = Object.fromEntries(Object.keys(PALETTE.light).map((k) => [k, `var(--${k})`]))
+
+/** Light as the default, dark as an override. Emitted once per document. */
+export const themeCss = () => {
+  const decl = (o) => Object.entries(o).map(([k, v]) => `--${k}:${v}`).join(";")
+  return `:root{${decl(PALETTE.light)}}@media (prefers-color-scheme:dark){:root{${decl(PALETTE.dark)}}}`
 }
 
 /* ------------------------------------------------------------------ shapes */
@@ -279,8 +309,8 @@ export function svgDoc({ w, h, theme, body: content, defs = "", css = "", title 
     ` shape-rendering="crispEdges" role="img" aria-label="${safe(title)}">`,
     title ? `<title>${safe(title)}</title>` : "",
     defs ? `<defs>${defs}</defs>` : "",
-    `<style>${fontFace()}${css}</style>`,
-    paintBg ? rect(0, 0, W, H, theme.page) : "",
+    `<style>${themeCss()}${fontFace()}${css}</style>`,
+    paintBg ? rect(0, 0, W, H, THEME.page) : "",
     content,
     `</svg>`,
   ].join("")

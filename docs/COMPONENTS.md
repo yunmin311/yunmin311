@@ -28,7 +28,7 @@ export const build = (t, ctx, cfg, v) => {
 ```
 
 Register it in the `PANELS` array in `scripts/build.mjs` and it starts producing
-`<id>-dark.svg`, `<id>-light.svg` and the two phone variants. There is no other
+`<id>.svg` and `<id>-m.svg`. There is no other
 wiring.
 
 **Four rules the shared layer enforces.** They are the difference between a set
@@ -71,8 +71,7 @@ them — they exist so a fork has parts to build with.
 ### display — oversized pixel headline
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../assets/generated/display-dark.svg">
-  <img alt="A large hollow pixel headline reading PIXEL" src="../assets/generated/display-light.svg">
+  <img alt="A large hollow pixel headline reading PIXEL" src="../assets/generated/display.svg">
 </picture>
 
 Three treatments: `solid`, `hollow` and `shadow`. Hollow is a stroke on a bitmap
@@ -87,8 +86,7 @@ from the text length; anything between those puts glyph edges on fractions.
 ### tiles — a row of readout cells
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../assets/generated/tiles-dark.svg">
-  <img alt="Four framed readout tiles: shipped, observed, peak, streak" src="../assets/generated/tiles-light.svg">
+  <img alt="Four framed readout tiles: shipped, observed, peak, streak" src="../assets/generated/tiles.svg">
 </picture>
 
 Separate framed boxes rather than one divided panel, so the row survives
@@ -101,8 +99,7 @@ wrapping onto a phone. Each tile's lamp takes its turn.
 ### quote — a framed statement
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../assets/generated/quote-dark.svg">
-  <img alt="A framed quotation with a blue pixel spine" src="../assets/generated/quote-light.svg">
+  <img alt="A framed quotation with a blue pixel spine" src="../assets/generated/quote.svg">
 </picture>
 
 The blue spine sits *inside* the frame. A coloured stripe down the outside edge

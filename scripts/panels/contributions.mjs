@@ -133,7 +133,7 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
       }
     }
   }
-  if (animate && style === "pixel") css.push(pixelWave({ period: 2400 }))
+  if (animate && style === "pixel") css.push(pixelWave({ period: cfg?.motion?.contributionPeriod ?? 2400 }))
 
   // ---- legend and readout ------------------------------------------------
   const lineY = L.lineY

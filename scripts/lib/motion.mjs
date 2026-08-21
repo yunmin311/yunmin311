@@ -259,7 +259,15 @@ export const wave = (cls, { phase, amp = 3, period = 2800, phases = WAVE_PHASES 
  * All phases share one keyframe set and differ only by delay, which keeps eight
  * travelling phases at the cost of one animation.
  */
-export const pixelWave = ({ period = 3600, phases = WAVE_PHASES, steps = [1, 1.08, 1, 0.94, 1, 1.04, 1, 0.97] } = {}) => {
+export const pixelWave = ({
+  period = 2400,
+  phases = WAVE_PHASES,
+  // Twelve stops rather than eight, over a shorter period: 200ms a step instead
+  // of 450ms. At the slower cadence each hold was long enough to read as a
+  // stutter — the eye had time to notice a cell had stopped. Denser stops keep
+  // the hard-edged snap and lose the lag.
+  steps = [1, 1.05, 1.08, 1.05, 1, 0.95, 0.92, 0.95, 1, 1.03, 1.01, 0.97],
+} = {}) => {
   const frames = steps
     .map((s, i) => `${Math.round((i / steps.length) * 10000) / 100}%{transform:scale(${s})}`)
     .join("")

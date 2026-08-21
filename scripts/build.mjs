@@ -1,9 +1,9 @@
 /**
  * Builds every generated SVG in assets/generated/, one file per theme.
  *
- * Two files rather than one file with a prefers-color-scheme block: the README
- * pairs them with <picture>/<source media="(prefers-color-scheme: dark)">,
- * which is the only dark-mode path GitHub documents and guarantees.
+ * One file per LAYOUT, not per theme. Both palettes ship inside every document
+ * as custom properties behind a prefers-color-scheme block, which leaves
+ * <picture> with a single-condition width query and halves the asset count.
  *
  *   node scripts/build.mjs                    fetch and build everything
  *   node scripts/build.mjs --only=hero,stars  build a subset
@@ -15,7 +15,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
 import { dirname, resolve } from "node:path"
 
-import { THEMES } from "./lib/design.mjs"
+import { THEME } from "./lib/design.mjs"
 import { collect } from "./lib/data.mjs"
 
 import * as hero from "./panels/hero.mjs"
@@ -86,13 +86,11 @@ for (const panel of PANELS) {
   if (only && !only.has(panel.id)) continue
   for (const variant of VARIANTS) {
     if (variant.mobile && !panel.responsive) continue
-    for (const theme of Object.values(THEMES)) {
-      const svg = panel.build(theme, ctx, cfg, variant)
-      await writeFile(resolve(OUT, `${panel.id}${variant.key}-${theme.name}.svg`), svg, "utf8")
-      written++
-      if (theme.name === "dark" && !variant.mobile) {
-        console.log(`  ${panel.id.padEnd(15)} ${String(svg.length).padStart(7)} B  ${describe(panel.id, ctx)}`)
-      }
+    const svg = panel.build(THEME, ctx, cfg, variant)
+    await writeFile(resolve(OUT, `${panel.id}${variant.key}.svg`), svg, "utf8")
+    written++
+    if (!variant.mobile) {
+      console.log(`  ${panel.id.padEnd(15)} ${String(svg.length).padStart(7)} B  ${describe(panel.id, ctx)}`)
     }
   }
 }
@@ -103,13 +101,11 @@ for (const mod of [sections, work, contact]) {
   let n = 0
   for (const variant of VARIANTS) {
     if (variant.mobile && !mod.responsive) continue
-    for (const theme of Object.values(THEMES)) {
-      for (const f of mod.build(theme, ctx, cfg, variant)) {
-        const base = mod.id === "contact" ? `btn-${f.key}` : f.key
-        await writeFile(resolve(OUT, `${base}${variant.key}-${theme.name}.svg`), f.svg, "utf8")
-        written++
-        n++
-      }
+    for (const f of mod.build(THEME, ctx, cfg, variant)) {
+      const base = mod.id === "contact" ? `btn-${f.key}` : f.key
+      await writeFile(resolve(OUT, `${base}${variant.key}.svg`), f.svg, "utf8")
+      written++
+      n++
     }
   }
   console.log(`  ${mod.id.padEnd(15)}          ${n} file(s)`)
