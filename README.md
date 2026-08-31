@@ -52,17 +52,16 @@
   <img title="Qiyu Li — creative engineering" alt="Qiyu Li. I build AI-native tools and creative software around thinking, creating, and working with AI — mostly around human–AI interaction, visual systems, and turning messy ideas into things that actually work. Outside the editor you'll usually find me around photography, films, table tennis, and whatever I'm curious about next. Currently exploring: human–AI interaction, creative software, cinematography, visual systems. Principles: human judgment stays in the loop; build the tools I wish already existed." src="assets/generated/about.svg">
 </picture>
 
-<!-- ═══ 02 // THROUGH MY LENS ════════════════════════════════════════════ -->
-
+<!-- 02 // THROUGH MY LENS — HIDDEN 2026-08-31 · test placeholder, not rendered. To restore: `git show d93f515:README.md` or revert this hunk.
 <picture>
   <source media="(max-width: 500px)" srcset="assets/generated/sec-02-m.svg">
   <img alt="02 // Through my lens — frames, light, places, and things that made me stop for a second." title="02 // Through my lens" src="assets/generated/sec-02.svg">
 </picture>
-
 <picture>
   <source media="(max-width: 500px)" srcset="assets/generated/photoband-m.svg">
   <img alt="Through my lens — a band of frames, each at its own ratio, never cropped." title="Through my lens" src="assets/generated/photoband.svg">
 </picture>
+-->
 
 <!-- ═══ 03 // SELECTED WORK ══════════════════════════════════════════════ -->
 
