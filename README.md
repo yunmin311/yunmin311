@@ -52,11 +52,17 @@
   <img title="Qiyu Li — creative engineering" alt="Qiyu Li. I build AI-native tools and creative software around thinking, creating, and working with AI — mostly around human–AI interaction, visual systems, and turning messy ideas into things that actually work. Outside the editor you'll usually find me around photography, films, table tennis, and whatever I'm curious about next. Currently exploring: human–AI interaction, creative software, cinematography, visual systems. Principles: human judgment stays in the loop; build the tools I wish already existed." src="assets/generated/about.svg">
 </picture>
 
-<!-- ═══ 02 // THROUGH MY LENS ════════════════════════════════════════════
-     Hidden until the real photographs are in assets/photography/. The section
-     is deliberately absent rather than showing a placeholder or a "coming
-     soon" card. sec-02 is already generated and waiting.
-     ═══════════════════════════════════════════════════════════════════════ -->
+<!-- ═══ 02 // THROUGH MY LENS ════════════════════════════════════════════ -->
+
+<picture>
+  <source media="(max-width: 500px)" srcset="assets/generated/sec-02-m.svg">
+  <img alt="02 // Through my lens — frames, light, places, and things that made me stop for a second." title="02 // Through my lens" src="assets/generated/sec-02.svg">
+</picture>
+
+<picture>
+  <source media="(max-width: 500px)" srcset="assets/generated/photoband-m.svg">
+  <img alt="Through my lens — a band of frames, each at its own ratio, never cropped." title="Through my lens" src="assets/generated/photoband.svg">
+</picture>
 
 <!-- ═══ 03 // SELECTED WORK ══════════════════════════════════════════════ -->
 

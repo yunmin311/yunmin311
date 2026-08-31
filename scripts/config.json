@@ -90,6 +90,21 @@
   ],
   "quote": { "text": "Human judgment stays in the loop. A model can hold the context; it cannot hold the responsibility.", "by": "the point of all of this" },
 
+  "_photobandNote": "Photographs must live in assets/photography/. Keep native aspect ratios; the band scales, never crops. Titles and exposure lines are plain ASCII because the embedded bitmap face has a limited subset.",
+  "photoband": {
+    "photos": [
+      { "file": "assets/photography/01-lowveld.jpg",     "w": 1000, "h": 666,  "ratio": "3:2",    "title": "Lowveld View",   "exp": "f/8 · 1/250s · ISO100 · 24mm" },
+      { "file": "assets/photography/02-gurudongmar.jpg", "w": 1000, "h": 666,  "ratio": "3:2",    "title": "Gurudongmar",    "exp": "f/11 · 1/320s · ISO64 · 16mm" },
+      { "file": "assets/photography/03-oval.jpg",        "w": 667,  "h": 1000, "ratio": "2:3",    "title": "Oval Miniature", "exp": "f/2.8 · 1/125s · ISO200 · 85mm" },
+      { "file": "assets/photography/04-selfportrait.jpg","w": 655,  "h": 1000, "ratio": "2:3",    "title": "Self-Portrait",  "exp": "f/4 · 1/60s · ISO400 · 50mm" },
+      { "file": "assets/photography/05-arch.jpg",        "w": 1000, "h": 548,  "ratio": "16:9",   "title": "Landscape Arch", "exp": "f/9 · 1/250s · ISO100 · 18mm" },
+      { "file": "assets/photography/06-night.jpg",       "w": 533,  "h": 1000, "ratio": "9:16",   "title": "Night Sky",      "exp": "f/1.8 · 15s · ISO3200 · 14mm" },
+      { "file": "assets/photography/07-coastline.jpg",   "w": 1000, "h": 426,  "ratio": "2.35:1", "title": "Coastline",      "exp": "f/9 · 1/200s · ISO100 · 21mm" },
+      { "file": "assets/photography/08-stilllife.jpg",   "w": 1000, "h": 763,  "ratio": "4:3",    "title": "Still Life",     "exp": "f/4 · 1/200s · ISO100 · 60mm" },
+      { "file": "assets/photography/09-window.jpg",      "w": 723,  "h": 1000, "ratio": "4:3",    "title": "Window Light",   "exp": "f/2 · 1/160s · ISO200 · 35mm" }
+    ]
+  },
+
   "hero": {
     "lines": [
       "Building tools for thinking, creating, and working with AI.",

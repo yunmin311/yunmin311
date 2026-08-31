@@ -29,6 +29,7 @@ import * as contact from "./panels/contact.mjs"
 import * as sections from "./panels/sections.mjs"
 import * as work from "./panels/work.mjs"
 import * as about from "./panels/about.mjs"
+import * as photoband from "./panels/photoband.mjs"
 
 // Reusable components. Built and shown in docs/COMPONENTS.md, deliberately not
 // placed on the profile — they exist so a fork has parts to build with.
@@ -40,7 +41,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const OUT = resolve(ROOT, "assets/generated")
 const CACHE = resolve(ROOT, "scripts/.cache.json")
 
-const PANELS = [hero, about, rhythm, languages, stars, activity, contributions, fortune, display, tiles, quote]
+const PANELS = [hero, about, rhythm, languages, stars, activity, contributions, fortune, photoband, display, tiles, quote]
 const OFFLINE_OK = new Set(["hero"]) // needs no API data
 
 const args = process.argv.slice(2)
