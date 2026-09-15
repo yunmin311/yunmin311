@@ -9,15 +9,32 @@
  *   what broke lowlighter/metrics' habits and activity plugins, but the event
  *   `created_at` timestamps survived — and timestamps are all a rhythm chart
  *   ever needed.
- * - Language share is measured across a hand-picked list of repositories
- *   rather than everything owned. One repository of built HTML is enough to
- *   report "86% HTML", which is true and useless.
+ * - Language share is measured across the declared project pool rather than
+ *   everything owned. One repository of built HTML is enough to report
+ *   "86% HTML", which is true and useless.
+ *
+ * WHAT IS DYNAMIC AND WHAT IS CURATED. Read this before assuming a panel is
+ * broken because its numbers did not move:
+ *
+ *   dynamic (recomputed every run)   rhythm · contributions · stars · activity
+ *                                    · language chart numbers · SELECTED WORK's
+ *                                    member set and order
+ *   curated (only changes when       every word on a card (name/why/tags/url),
+ *   config.json changes)             the section headings, the hero, the
+ *                                    fortune pool, the contact row
+ *
+ * The failure mode this distinction guards against: card content is 100%
+ * curated, so a healthy rebuild reproduces the card images byte-for-byte and
+ * the workflow commits nothing. That is CORRECT — but it used to be
+ * indistinguishable from "the rule itself is frozen", which is what actually
+ * went wrong. See check.mjs, which now detects the frozen-rule case.
  */
 
-import { events, graphql, starred, languagesOf } from "./gh.mjs"
+import { events, graphql, starred, languagesOf, repoOf } from "./gh.mjs"
 import { authoredLines } from "./authored.mjs"
 import { deEmoji, clamp } from "./design.mjs"
 import { ago } from "./format.mjs"
+import { normalise, languageRepos, select, staleness } from "./projects.mjs"
 
 const HOUR = 3600e3
 const DAY = 24 * HOUR
@@ -28,20 +45,32 @@ export async function collect(cfg) {
   const offsetH = 8 // Asia/Shanghai, no DST
   const now = new Date()
 
+  // The declared pool is the single source of truth for both panels; the scope
+  // below is DERIVED from it, never typed out a second time.
+  const projects = normalise(cfg)
+  const scopeRepos = languageRepos(projects)
+
   const [raw, cal, stars, langs] = await Promise.all([
     events(login, 3),
     calendar(login),
     starred(login, 3),
-    languages(cfg),
+    languages(cfg, scopeRepos),
   ])
 
   const evs = raw
     .filter((e) => e.actor?.login?.toLowerCase() === login.toLowerCase())
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
+  // Recency + volume per repository, straight out of the clones the language
+  // chart already needs. A project whose clone failed simply has no signal and
+  // is treated as "age unknown", never as "fresh" — see score() in projects.mjs.
+  const signal = langs.perRepo || {}
+  const picked = select(projects, signal, cfg, now, cfg.__pinnedProjects ?? null)
+
   return {
     now,
     login,
+    projects,
     rhythm: rhythm(evs, offsetH),
     contributions: contributions(cal),
     stars: stars.map((s) => ({
@@ -52,6 +81,7 @@ export async function collect(cfg) {
     })),
     languages: langs,
     activity: activity(evs, cfg),
+    work: { picked, signal, staleness: staleness(projects, signal, picked, now) },
   }
 }
 
@@ -150,6 +180,39 @@ function contributions(cal) {
 /* --------------------------------------------------------------- languages */
 
 /**
+ * How the language chart counts, and one place that decides it.
+ *
+ * Note what is NOT here any more: the repository list. Scope comes from
+ * `cfg.projects` via lib/projects.mjs. What remains is only the METHOD —
+ * identities to match, languages to drop, and the byte fallback switch. Keeping
+ * these together means "what is counted" and "how it is counted" are separate
+ * concerns that cannot silently diverge.
+ *
+ * `identities` is matched case-insensitively against each commit's author email
+ * and name. Extend it when a new machine commits under a different address —
+ * otherwise those commits vanish from the chart without any error, which is the
+ * quietest way this panel can be wrong.
+ */
+const LANGUAGE_DEFAULTS = {
+  limit: 6,
+  identities: ["liqiyu311@gmail.com", "yunmin311"],
+  // Generated and vendored output. The chart claims "lines I wrote"; markup and
+  // lockfile churn is not writing, and one built repo can dominate the total.
+  exclude: ["JSON", "SVG", "HTML", "TOML", "Batchfile", "VBScript", "Makefile", "Dockerfile"],
+  method: "authored-lines",
+}
+
+function languageOptions(cfg) {
+  const o = cfg.languageScopeOptions ?? {}
+  return {
+    limit: o.limit ?? LANGUAGE_DEFAULTS.limit,
+    identities: o.identities ?? LANGUAGE_DEFAULTS.identities,
+    exclude: o.exclude ?? LANGUAGE_DEFAULTS.exclude,
+    method: o.method ?? LANGUAGE_DEFAULTS.method,
+  }
+}
+
+/**
  * In-depth first, bytes as a fallback.
  *
  * The in-depth pass clones each repository and counts lines this author added
@@ -157,13 +220,17 @@ function contributions(cal) {
  * repository language bytes — and says so on the panel, because the two
  * measure genuinely different things and the reader is entitled to know which
  * one they are looking at.
+ *
+ * The scope is PASSED IN rather than read from config. It used to be
+ * `cfg.languageScope.repos`, a second hand-kept list that could disagree with
+ * the cards about what the work is; it is now derived from `cfg.projects` by
+ * lib/projects.mjs, so there is exactly one list in the repository.
  */
-async function languages(cfg) {
-  const scope = cfg.languageScope
-  const { repos, limit, exclude = [] } = scope
+async function languages(cfg, repos) {
+  const { limit, exclude = [], identities } = languageOptions(cfg)
 
-  if (scope.method === "authored-lines") {
-    const r = await authoredLines(repos, scope.identities, { skipLanguages: exclude })
+  if (languageOptions(cfg).method !== "bytes") {
+    const r = await authoredLines(repos, identities, { skipLanguages: exclude })
     if (r) {
       const top = r.ranked.slice(0, limit).map((l) => ({
         name: l.name, pct: l.pct, amount: `${fmtLines(l.lines)} lines`,
@@ -172,6 +239,7 @@ async function languages(cfg) {
       return {
         top,
         repoCount: r.repos.length,
+        scopeCount: repos.length,
         caption: "LINES I WROTE, ACROSS SELECTED WORK",
         summary: `${fmtLines(r.totalLines)} lines`,
         // Says "3 of 4" when a clone failed, so a partial reading never passes
@@ -182,16 +250,18 @@ async function languages(cfg) {
           `Generated and vendored files excluded.`,
         method: "authored-lines",
         partial,
+        // Recency for SELECTED WORK's ordering rides along on this walk.
+        perRepo: r.perRepo,
       }
     }
     console.warn("! in-depth analysis unavailable, falling back to repository language bytes")
   }
 
-  return languageBytes(cfg)
+  return languageBytes(cfg, repos)
 }
 
-async function languageBytes(cfg) {
-  const { repos, limit, exclude = [] } = cfg.languageScope
+async function languageBytes(cfg, repos) {
+  const { limit, exclude = [] } = languageOptions(cfg)
   const skip = new Set(exclude)
   const totals = new Map()
   let sum = 0
@@ -219,14 +289,31 @@ async function languageBytes(cfg) {
 
   const top = ranked.slice(0, limit).map((l) => ({ name: l.name, pct: l.pct, amount: fmtBytes(l.bytes) }))
 
+  // The byte fallback carries no commit history, so SELECTED WORK gets its
+  // recency from the repository's own `pushed_at`. Weaker than a real clone —
+  // it counts a bot push as activity — but the alternative is ordering on
+  // nothing at all. `volume` stays zero, which is why the fallback is announced
+  // on the panel rather than passed off as the real reading.
+  const perRepo = {}
+  for (const full of counted) {
+    try {
+      const repo = await repoOf(full)
+      perRepo[full] = { lastCommitAt: repo.pushed_at ?? null, commits: null, lines: 0 }
+    } catch {
+      perRepo[full] = { lastCommitAt: null, commits: null, lines: 0 }
+    }
+  }
+
   return {
     top,
     repoCount: counted.length,
+    scopeCount: repos.length,
     caption: "SOURCE BYTES ACROSS SELECTED WORK",
     summary: fmtBytes(sum),
     note: `Repository language bytes across ${counted.length} selected repositories. Built and vendored output excluded.`,
     method: "bytes",
     partial: counted.length < repos.length,
+    perRepo,
   }
 }
 

@@ -36,6 +36,13 @@ jobs:
         with:
           node-version: "22"
 
+      # Cleared before the build so the staleness marker read by the failure
+      # step below can only ever reflect THIS run. A leftover file from a
+      # previous attempt would otherwise let a scheduled run keep opening an
+      # issue about a condition that had already been fixed.
+      - name: Clear the staleness marker
+        run: rm -f stale-selected-work
+
       - name: Build
         env:
           # Public data only. The token exists because the contribution
@@ -66,9 +73,24 @@ jobs:
           set -o pipefail
           node scripts/validate.mjs 2>&1 | tee -a build.log
 
+      # The tests for SELECTED WORK's selection rule and LANGUAGE SIGNAL's
+      # scope. They run on every rebuild rather than only when scripts/ changed,
+      # because what they guard against is not a broken edit — it is the rule
+      # quietly no longer matching reality, which no amount of looking at a
+      # green page would reveal.
+      - name: Test the selection and scope rules
+        run: |
+          set -o pipefail
+          node scripts/test-projects.mjs 2>&1 | tee -a build.log
+
       - name: Commit if anything moved
         run: |
-          if [ -z "$(git status --porcelain assets/generated)" ]; then
+          # README.md is in this list as well as the images: SELECTED WORK's
+          # cast changes between runs, and a generated card that is not linked
+          # from the page is a card nobody sees. The links are rewritten by the
+          # build between SELECTED_WORK_START/END, so the file is generated in
+          # the same sense the SVGs are.
+          if [ -z "$(git status --porcelain assets/generated README.md)" ]; then
             echo "no change"
             exit 0
           fi
@@ -77,7 +99,7 @@ jobs:
           # profile displays.
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/generated
+          git add assets/generated README.md
           git commit -m "Rebuild panels"
           # A hand push landing between checkout and here would otherwise be
           # rejected as non-fast-forward; this run only ever touches generated
@@ -99,10 +121,24 @@ jobs:
       # runs are excluded: a rebuild that fails at 05:17 because an API blinked
       # is not something to be woken up for, and it will pass six hours later.
       #
+      # EXCEPT when the failure is the SELECTED WORK staleness gate. That is
+      # the one failure that does NOT heal on its own: it means the selection
+      # rule no longer matches what is actually being worked on, and the whole
+      # reason the gate exists is that this used to be completely silent — the
+      # page stayed green while the cards went months out of date. A scheduled
+      # run is exactly how it would be discovered, so a scheduled run has to be
+      # allowed to say so.
+      #
+      # HOW THE EXCEPTION IS DETECTED. The gate writes a marker file rather than
+      # a message, so the check is a file test and not a grep of a log that any
+      # unrelated error could accidentally match. The marker is removed at the
+      # start of the run so a stale one from a previous attempt cannot keep
+      # re-opening the issue.
+      #
       # One open issue at a time — further failures are comments on it — so a
       # bad edit left in place for a day does not produce a day of issues.
       - name: Say what went wrong, where it will be seen
-        if: failure() && github.event_name != 'schedule'
+        if: failure() && (github.event_name != 'schedule' || hashFiles('stale-selected-work') != '')
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -115,6 +151,12 @@ jobs:
             echo "Most likely cause: an edit to \`scripts/config.json\`. The two that"
             echo "actually happen are a missing or extra comma, and text too long for"
             echo "the space it was given — the build names both."
+            echo
+            echo "If the log below says \`SELECTED WORK has gone stale\`, the card"
+            echo "selection rule has drifted from what is actually being worked on."
+            echo "That one is not caused by a bad edit and does not fix itself: add the"
+            echo "missing project to \`config.json -> projects\`, or lower the"
+            echo "\`hysteresis\` of the card that is holding the slot."
             echo
             echo "Tail of the build:"
             echo

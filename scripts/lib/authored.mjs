@@ -13,6 +13,13 @@
  *
  * It is deliberately additions-only. Counting additions minus deletions makes
  * a refactor that removes more than it adds read as negative work.
+ *
+ * ONE PASS, TWO ANSWERS. The same walk also records, per repository, when this
+ * author last committed and how many lines they wrote there. Recency is what
+ * the SELECTED WORK ordering runs on, and getting it from the clone that is
+ * already happening beats a second round of API calls — and beats the events
+ * feed, which only reaches back ~90 days and is therefore exactly wrong for
+ * "how recently did I work on this".
  */
 
 import { execFile } from "node:child_process"
@@ -67,6 +74,9 @@ export async function authoredLines(repos, identities, { skipLanguages = [] } = 
   const who = identities.map((s) => s.toLowerCase())
   const totals = new Map()
   const counted = []
+  // Keyed by repo, so SELECTED WORK can order on real recency without a second
+  // network pass. `null` for a repo that cloned but had no commits by us.
+  const perRepo = new Map()
   let commits = 0
   let workdir
 
@@ -106,7 +116,9 @@ export async function authoredLines(repos, identities, { skipLanguages = [] } = 
     try {
       ;({ stdout } = await run(
         "git",
-        ["-C", dir, "log", "--no-merges", "--numstat", "--pretty=tformat:\x01%H\x02%ae\x02%an"],
+        // %ct is the committer date as a unix timestamp. It is here so the same
+        // walk yields recency for SELECTED WORK as well as lines for the chart.
+        ["-C", dir, "log", "--no-merges", "--numstat", "--pretty=tformat:\x01%H\x02%ae\x02%an\x02%ct"],
         { maxBuffer: 256 * 1024 * 1024, timeout: 120_000 }
       ))
     } catch (err) {
@@ -116,12 +128,22 @@ export async function authoredLines(repos, identities, { skipLanguages = [] } = 
 
     counted.push(full)
     let mine = false
+    let repoCommits = 0
+    let repoLines = 0
+    let lastCommitAt = null
     for (const line of stdout.split("\n")) {
       if (line.startsWith("\x01")) {
-        const [, email = "", name = ""] = line.slice(1).split("\x02")
+        const [, email = "", name = "", at = ""] = line.slice(1).split("\x02")
         const hay = `${email} ${name}`.toLowerCase()
         mine = who.some((w) => hay.includes(w))
-        if (mine) commits++
+        if (mine) {
+          commits++
+          repoCommits++
+          const secs = Number(at)
+          // Commits arrive newest-first, but take the max rather than the first
+          // so a stray out-of-order line cannot understate freshness.
+          if (Number.isFinite(secs) && (lastCommitAt === null || secs > lastCommitAt)) lastCommitAt = secs
+        }
         continue
       }
       if (!mine || !line.trim()) continue
@@ -131,7 +153,13 @@ export async function authoredLines(repos, identities, { skipLanguages = [] } = 
       const lang = language(resolvePath(rest.join("\t")))
       if (!lang || skip.has(lang)) continue
       totals.set(lang, (totals.get(lang) || 0) + added)
+      repoLines += added
     }
+    perRepo.set(full, {
+      commits: repoCommits,
+      lines: repoLines,
+      lastCommitAt: lastCommitAt === null ? null : new Date(lastCommitAt * 1000).toISOString(),
+    })
   }
 
   await rm(workdir, { recursive: true, force: true }).catch(() => {})
@@ -143,7 +171,7 @@ export async function authoredLines(repos, identities, { skipLanguages = [] } = 
     .map(([name, lines]) => ({ name, lines, pct: (lines / sum) * 100 }))
     .sort((a, b) => b.lines - a.lines)
 
-  return { ranked, totalLines: sum, commits, repos: counted }
+  return { ranked, totalLines: sum, commits, repos: counted, perRepo }
 }
 
 
