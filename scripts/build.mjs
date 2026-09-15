@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url"
 import { dirname, resolve } from "node:path"
 
 import { THEME } from "./lib/design.mjs"
-import { collect } from "./lib/data.mjs"
+import { collect, languageBytes } from "./lib/sources.mjs"
 
 import * as hero from "./panels/hero.mjs"
 import * as rhythm from "./panels/rhythm.mjs"
@@ -106,6 +106,22 @@ const VARIANTS = [
   { key: "-m", mobile: true },
 ]
 
+/**
+ * THE `method: "bytes"` ESCAPE HATCH, and why it is here rather than in the
+ * collection pass.
+ *
+ * The in-depth reading is lines this author wrote; the byte reading is
+ * languages on disk, unqualified. They are different claims, so a run does not
+ * slide from one to the other on its own — a network incident must not quietly
+ * replace the better measurement with the worse one. Asking for `bytes` in
+ * config is a deliberate choice, and it is resolved here, AFTER selection, so
+ * it still counts exactly the displayed set.
+ */
+if ((cfg.languageScopeOptions?.method ?? "authored-lines") === "bytes" && ctx?.languages && ctx.work?.scopeRepos?.length) {
+  console.log("· method=bytes in config: reading languages from the API instead of the authored analysis")
+  ctx.languages = await languageBytes(cfg, ctx.work.scopeRepos)
+}
+
 let written = 0
 for (const panel of PANELS) {
   if (only && !only.has(panel.id)) continue
@@ -164,7 +180,23 @@ if (ctx?.work?.picked?.length) {
     !sameAs(before.signal, signal) ||
     !sameAs(before.scopeRepos, scopeRepos)
 
-  if (moved) {
+  // THE HOLD IS REPORTED, NOT WRITTEN.
+  //
+  // A run that could not measure every candidate keeps the previous membership
+  // (see lib/projects.mjs). It must NOT rewrite the state file in that case,
+  // and not because the content would differ — it is precisely so that the
+  // `generated` stamp keeps pointing at the last run whose evidence was
+  // COMPLETE. `check.mjs` judges staleness from these readings, and a page
+  // held on incomplete evidence has nothing new to say about itself. Leaving
+  // the file untouched is also what makes a hold produce no commit: the
+  // workflow sees a clean tree and stops, six hours later, on its own.
+  if (ctx.work.held) {
+    console.warn(
+      `! SELECTED WORK held at the previous membership: ${ctx.work.holdReason}. ` +
+        `${ctx.work.unmeasured.length ? `unmeasured: ${ctx.work.unmeasured.join(" ")}. ` : ""}` +
+        `The state file was left alone so the last complete reading stays on record.`
+    )
+  } else if (moved) {
     const next = {
       keys,
       slots: cfg.workSlots ?? 6,
@@ -181,11 +213,23 @@ if (ctx?.work?.picked?.length) {
     console.log(`  selected-work   keys=${keys.join(",")} (unchanged)`)
   }
 
+  // Per-project state, so the log distinguishes the three readings rather than
+  // printing "age unknown" for a project that failed to clone AND for one that
+  // genuinely has no commits by this author. Those call for different actions.
   for (const p of ctx.work.picked) {
-    const d = p._days == null ? "age unknown" : `${Math.round(p._days)}d ago`
-    console.log(`    ${p.tier.padEnd(9)} ${p.key.padEnd(24)} ${d.padEnd(12)} score ${p._score.toFixed(3)}`)
+    const d =
+      p._state === "unknown" ? "UNMEASURED"
+      : p._state === "stale" ? "no commits by me"
+      : `${Math.round(p._days)}d ago`
+    console.log(`    ${p.tier.padEnd(9)} ${p.key.padEnd(24)} ${d.padEnd(17)} score ${p._score.toFixed(3)}`)
   }
   console.log(`  language scope  ${(ctx.work.scopeRepos ?? []).join(" ")}`)
+  if (ctx.languages?.partial) {
+    console.warn(
+      `! LANGUAGE SIGNAL could not measure ${ctx.languages.missingKeys.join(", ")} — ` +
+        `the panel says ${ctx.languages.repoCount} of ${ctx.languages.scopeCount} repos.`
+    )
+  }
 
   // The gate itself lives in check.mjs and runs as its own step. Reporting it
   // here as well means the build log says why before the check fails, which is
@@ -196,6 +240,33 @@ if (ctx?.work?.picked?.length) {
       `! SELECTED WORK is lagging: freshest unshown project is ${st.bestOutsideDays}d old vs ` +
         `${st.worstInsideDays}d for the stalest shown one (${st.lagDays}d gap, tolerance ` +
         `${cfg.stalenessToleranceDays ?? 45}d).`
+    )
+  } else if (!st.comparable) {
+    console.log(`  staleness       not checked this run (not enough measured readings${st.unmeasured ? `, ${st.unmeasured} unmeasured` : ""})`)
+  }
+
+  // ---- THE CLONE PROOF, IN THE LOG RATHER THAN IN A COMMENT ---------------
+  //
+  // "At most one clone per repository per build" is a property of the whole
+  // run, so it is checked here, at the end, from a count that `sources.mjs`
+  // keeps per repository. A repeat is served from the first snapshot and
+  // reported the moment it happens; this line is the summary that fails the
+  // build if it ever did.
+  const cloneProof = ctx.analysis
+  if (cloneProof) {
+    if (cloneProof.repeats > 0) {
+      console.error(`! authored analysis was requested twice for ${cloneProof.repeats} repo(s) — the single-pass rule is broken`)
+      process.exitCode = 1
+    }
+    // `cloneCounts` is a Map, which JSON cannot carry, so an --offline cache
+    // round-trip arrives as `{}`. The proof is only meaningful on a run that
+    // actually collected, so a cache reports what the cache knows and says so
+    // rather than printing `undefined repo(s)`.
+    const requested = cloneProof.cloneCounts instanceof Map ? cloneProof.cloneCounts.size : null
+    console.log(
+      `  clone proof     ${requested == null ? "not measured (cache)" : `${requested} repo(s) requested`}, ` +
+        `${cloneProof.repeats} repeat request(s), limit ${cloneProof.cloneLimit} clone(s)/repo  ` +
+        `[${cloneProof.reposMeasured} measured, ${cloneProof.reposFailed} failed]`
     )
   }
 
@@ -232,6 +303,12 @@ async function rewriteReadmeCards(picked) {
     return
   }
 
+  // Attribute values are quoted, so only these three characters can break out.
+  // Declared here rather than at module scope: as a `const` further down the
+  // file it was in its temporal dead zone when this ran, and the call only
+  // happened to be reached for the first time on an --offline build.
+  const escapeAttr = (s) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;")
+
   const lines = picked.map((p) => {
     const alt = `${p.name} — ${p.why.replace(/\s+/g, " ")} ${p.tags.join(", ")}.`
     return (
@@ -255,9 +332,6 @@ async function rewriteReadmeCards(picked) {
   // linked is a card nobody sees.
   console.log(`  readme          SELECTED_WORK rewritten (${lines.length} cards)`)
 }
-
-/** Attribute values are quoted, so only these three can break out. */
-const escapeAttr = (s) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;")
 
 /* ----------------------------------------------------------------- helpers */
 
@@ -287,6 +361,9 @@ function reviveCtx(raw) {
   // has no `work` at all. Falling back to the unguarded selection keeps
   // --offline usable for layout work instead of crashing on a missing key.
   if (!raw.work) raw.work = { picked: [], signal: {}, staleness: { stale: false } }
+  // A cache written before the single-pass change has no clone proof in it. The
+  // log step is skipped rather than reported as a failure the run never earned.
+  if (!raw.analysis) raw.analysis = null
   return raw
 }
 

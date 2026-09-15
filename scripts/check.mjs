@@ -120,6 +120,13 @@ if (orphans.length) console.log(orphans.map((o) => `  · ${o.split("/").pop()}`)
  * It reads the activity readings the build recorded, so it works on a checkout
  * with no network. Without that record — a docs-only change, a first clone —
  * it is skipped rather than guessed at.
+ *
+ * IT ONLY JUDGES MEASURED READINGS. A run that could not collect everything
+ * holds the previous membership (see lib/projects.mjs) and leaves the state
+ * file alone, so the readings here are always the last run whose evidence was
+ * complete. An unmeasured project inside them is dropped from BOTH sides of the
+ * comparison rather than counted as infinitely old — a gate that fails on a
+ * five-second network error is a gate that gets ignored.
  */
 if (state?.signal) {
   const cfg = JSON.parse(await readFile(resolve(ROOT, "scripts/config.json"), "utf8"))
@@ -127,14 +134,20 @@ if (state?.signal) {
   const shown = new Set(state.keys)
   const now = Date.now()
   const DAY = 86400e3
-  const ageOf = (p) => {
-    const at = state.signal?.[p.repo]?.lastCommitAt
-    const ms = at ? Date.parse(at) : NaN
+
+  // `outcome: "ok"` is the marker of a real measurement. A snapshot without one
+  // is either a failure recorded by this build or an older state file written
+  // before outcomes existed — both mean "no evidence", never "old".
+  const measuredAge = (p) => {
+    const snap = state.signal?.[p.repo]
+    if (snap?.outcome !== "ok" || !snap.lastCommitAt) return null
+    const ms = Date.parse(snap.lastCommitAt)
     return Number.isFinite(ms) ? (now - ms) / DAY : null
   }
 
-  const outside = pool.filter((p) => !shown.has(p.key)).map(ageOf).filter((d) => d != null)
-  const inside = pool.filter((p) => shown.has(p.key)).map(ageOf).filter((d) => d != null)
+  const outside = pool.filter((p) => !shown.has(p.key)).map(measuredAge).filter((d) => d != null)
+  const inside = pool.filter((p) => shown.has(p.key)).map(measuredAge).filter((d) => d != null)
+  const unmeasured = pool.filter((p) => state.signal?.[p.repo] && measuredAge(p) == null).length
 
   if (outside.length && inside.length) {
     const bestOutside = Math.min(...outside)
@@ -143,7 +156,8 @@ if (state?.signal) {
     const tolerance = cfg.stalenessToleranceDays ?? 45
     console.log(
       `selected work: freshest unshown ${bestOutside.toFixed(0)}d · ` +
-        `stalest shown ${worstInside.toFixed(0)}d · lag ${lag.toFixed(0)}d (tolerance ${tolerance}d)`
+        `stalest shown ${worstInside.toFixed(0)}d · lag ${lag.toFixed(0)}d (tolerance ${tolerance}d)` +
+        (unmeasured ? `   [${unmeasured} unmeasured, excluded from the comparison]` : "")
     )
     if (lag > tolerance) {
       problems.push(
@@ -153,6 +167,11 @@ if (state?.signal) {
           `coreLeadDays / lower hysteresisDays.`
       )
     }
+  } else {
+    console.log(
+      `selected work: not enough measured readings to compare ` +
+        `(${outside.length} unshown, ${inside.length} shown${unmeasured ? `, ${unmeasured} unmeasured` : ""}) — skipped`
+    )
   }
 } else if (state?.keys) {
   console.log("selected work: no activity readings recorded, staleness not checked")

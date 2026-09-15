@@ -20,7 +20,9 @@ import { readFile } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
 import { dirname, resolve } from "node:path"
 
-import { normalise, languageRepos, select, score, staleness } from "./lib/projects.mjs"
+import { normalise, languageRepos, select, score, staleness, signalState, recencyOf } from "./lib/projects.mjs"
+import { signalsFrom, unknown } from "./lib/sources.mjs"
+import { aggregateLanguages } from "./lib/authored.mjs"
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const cfg = JSON.parse(await readFile(resolve(ROOT, "scripts/config.json"), "utf8"))
@@ -150,11 +152,11 @@ t("the scope is the DISPLAYED set, not the whole pool", () => {
     { ...base.projects[0], key: "hidden", languages: "count" },
   ] })
   const s = {
-    "yunmin311/hot":    { lastCommitAt: daysAgo(1),  lines: 9000 },
-    "yunmin311/warm":   { lastCommitAt: daysAgo(20), lines: 5000 },
-    "yunmin311/hidden": { lastCommitAt: daysAgo(90), lines: 100 },
+    "yunmin311/hot":    { outcome: "ok", lastCommitAt: daysAgo(1),  lines: 9000 },
+    "yunmin311/warm":   { outcome: "ok", lastCommitAt: daysAgo(20), lines: 5000 },
+    "yunmin311/hidden": { outcome: "ok", lastCommitAt: daysAgo(90), lines: 100 },
   }
-  const displayed = select(pool, s, { ...cfg, workSlots: 2 }, NOW, null)
+  const { picked: displayed } = select(pool, s, { ...cfg, workSlots: 2 }, NOW, null)
   const scope = languageRepos(displayed)
   assert.deepEqual(scope.sort(), ["yunmin311/hot", "yunmin311/warm"])
   assert.ok(!scope.includes("yunmin311/hidden"), `hidden leaked into ${scope}`)
@@ -165,7 +167,7 @@ t("a displayed project declared n/a is not counted", () => {
     { ...base.projects[0], key: "code", languages: "count" },
     { ...base.projects[0], key: "css",  languages: "n/a" },
   ] })
-  const displayed = select(pool, {}, { ...cfg, workSlots: 2 }, NOW, null)
+  const { picked: displayed } = select(pool, {}, { ...cfg, workSlots: 2 }, NOW, null)
   assert.deepEqual(languageRepos(displayed), ["yunmin311/code"])
 })
 
@@ -173,7 +175,7 @@ t("the shipped scope matches the shipped cards' pool", () => {
   // If this ever fails, the two panels have started to disagree about what the
   // work is — which is the exact regression this module prevents.
   const p = normalise(cfg)
-  const displayed = select(p, {}, cfg, NOW, null)
+  const { picked: displayed } = select(p, {}, cfg, NOW, null)
   const counted = languageRepos(displayed)
   for (const repo of counted) {
     assert.ok(
@@ -251,10 +253,10 @@ const pool = normalise({ projects: [
   { ...base.projects[0], key: "mid" },
 ] })
 const sig = {
-  "yunmin311/core1": { lastCommitAt: daysAgo(300), lines: 100 },
-  "yunmin311/new":   { lastCommitAt: daysAgo(1),   lines: 5000 },
-  "yunmin311/old":   { lastCommitAt: daysAgo(250), lines: 100 },
-  "yunmin311/mid":   { lastCommitAt: daysAgo(30),  lines: 900 },
+  "yunmin311/core1": { outcome: "ok", lastCommitAt: daysAgo(300), lines: 100 },
+  "yunmin311/new":   { outcome: "ok", lastCommitAt: daysAgo(1),   lines: 5000 },
+  "yunmin311/old":   { outcome: "ok", lastCommitAt: daysAgo(250), lines: 100 },
+  "yunmin311/mid":   { outcome: "ok", lastCommitAt: daysAgo(30),  lines: 900 },
 }
 // Slots are cut to two for the fixture; hysteresis is switched off so these
 // tests can isolate ordering from stability, which has its own cases below.
@@ -273,7 +275,7 @@ t("core leads a CLOSE comparison", () => {
     "yunmin311/core1": { lastCommitAt: daysAgo(50), lines: 30000 },
     "yunmin311/peer":  { lastCommitAt: daysAgo(10), lines: 30000 },
   }
-  const picked = select(p, s, { ...cfg, workSlots: 1, hysteresisDays: 0, coreLeadDays: 45 }, NOW, null)
+  const picked = select(p, s, { ...cfg, workSlots: 1, hysteresisDays: 0, coreLeadDays: 45 }, NOW, null).picked
   assert.deepEqual(picked.map((x) => x.key), ["core1"], `expected core to lead, got ${picked.map((x) => x.key)}`)
 })
 
@@ -287,10 +289,10 @@ t("core CAN retire when something decisively more active arrives", () => {
     { ...base.projects[0], key: "hot-new" },
   ] })
   const s = {
-    "yunmin311/cold-core": { lastCommitAt: daysAgo(400), lines: 100 },
-    "yunmin311/hot-new":   { lastCommitAt: daysAgo(1),   lines: 60000 },
+    "yunmin311/cold-core": { outcome: "ok", lastCommitAt: daysAgo(400), lines: 100 },
+    "yunmin311/hot-new":   { outcome: "ok", lastCommitAt: daysAgo(1),   lines: 60000 },
   }
-  const picked = select(p, s, { ...cfg, workSlots: 1 }, NOW, null).map((x) => x.key)
+  const picked = select(p, s, { ...cfg, workSlots: 1 }, NOW, null).picked.map((x) => x.key)
   assert.deepEqual(picked, ["hot-new"], `expected the active project to win, got ${picked}`)
 })
 
@@ -302,31 +304,37 @@ t("pinned does NOT retire, however cold", () => {
     { ...base.projects[0], key: "hot" },
   ] })
   const s = {
-    "yunmin311/kept": { lastCommitAt: daysAgo(900), lines: 10 },
-    "yunmin311/hot":  { lastCommitAt: daysAgo(1),   lines: 90000 },
+    "yunmin311/kept": { outcome: "ok", lastCommitAt: daysAgo(900), lines: 10 },
+    "yunmin311/hot":  { outcome: "ok", lastCommitAt: daysAgo(1),   lines: 90000 },
   }
-  const picked = select(p, s, { ...cfg, workSlots: 1, pinned: ["kept"] }, NOW, null).map((x) => x.key)
+  const picked = select(p, s, { ...cfg, workSlots: 1, pinned: ["kept"] }, NOW, null).picked.map((x) => x.key)
   assert.deepEqual(picked, ["kept"], `expected the pinned project to hold, got ${picked}`)
 })
 
 t("candidates fill the remaining slots", () => {
-  const picked = select(pool, sig, small, NOW, null)
+  const picked = select(pool, sig, small, NOW, null).picked
   assert.equal(picked.length, 2)
 })
 
 t("output is capped at workSlots", () => {
-  const picked = select(pool, sig, { ...cfg, workSlots: 3 }, NOW, null)
+  const picked = select(pool, sig, { ...cfg, workSlots: 3 }, NOW, null).picked
   assert.equal(picked.length, 3)
 })
 
-t("most recent ranks first among equals", () => {
-  const picked = select(pool, sig, { ...cfg, workSlots: 4 }, NOW, null).map((p) => p.key)
+t("cards are ordered by score, not by config order", () => {
+  // The grid must not reorder itself whenever config.json is edited, and
+  // recency alone is not the ranking authority — `new` is one day old AND has
+  // five times the volume, so it leads on both terms rather than on one.
+  const picked = select(pool, sig, { ...cfg, workSlots: 4 }, NOW, null).picked.map((p) => p.key)
   assert.equal(picked[0], "new", `got ${picked}`)
+  // The order is stable across runs, which is the property that matters.
+  const again = select(pool, sig, { ...cfg, workSlots: 4 }, NOW, null).picked.map((p) => p.key)
+  assert.deepEqual(picked, again)
 })
 
 t("no activity signal at all still yields a full, deterministic page", () => {
-  const a = select(normalise(cfg), {}, cfg, NOW, null)
-  const b = select(normalise(cfg), {}, cfg, NOW, null)
+  const a = select(normalise(cfg), {}, cfg, NOW, null).picked
+  const b = select(normalise(cfg), {}, cfg, NOW, null).picked
   assert.equal(a.length, cfg.workSlots)
   assert.deepEqual(a.map((p) => p.key), b.map((p) => p.key), "must be deterministic")
 })
@@ -338,10 +346,10 @@ t("a challenger with no lead does not displace an incumbent", () => {
   ] })
   // cha is only barely newer; the guard should hold the seat.
   const s = {
-    "yunmin311/inc": { lastCommitAt: daysAgo(20), lines: 1000 },
-    "yunmin311/cha": { lastCommitAt: daysAgo(18), lines: 1000 },
+    "yunmin311/inc": { outcome: "ok", lastCommitAt: daysAgo(20), lines: 1000 },
+    "yunmin311/cha": { outcome: "ok", lastCommitAt: daysAgo(18), lines: 1000 },
   }
-  const picked = select(p, s, { ...cfg, workSlots: 1, hysteresisDays: 60 }, NOW, ["inc"]).map((x) => x.key)
+  const picked = select(p, s, { ...cfg, workSlots: 1, hysteresisDays: 60 }, NOW, ["inc"]).picked.map((x) => x.key)
   assert.deepEqual(picked, ["inc"], `expected inc to hold, got ${picked}`)
 })
 
@@ -351,30 +359,43 @@ t("a decisively more active challenger does displace it", () => {
     { ...base.projects[0], key: "cha" },
   ] })
   const s = {
-    "yunmin311/inc": { lastCommitAt: daysAgo(120), lines: 1000 },
-    "yunmin311/cha": { lastCommitAt: daysAgo(1),   lines: 1000 },
+    "yunmin311/inc": { outcome: "ok", lastCommitAt: daysAgo(120), lines: 1000 },
+    "yunmin311/cha": { outcome: "ok", lastCommitAt: daysAgo(1),   lines: 1000 },
   }
-  const picked = select(p, s, { ...cfg, workSlots: 1, hysteresisDays: 14 }, NOW, ["inc"]).map((x) => x.key)
+  const picked = select(p, s, { ...cfg, workSlots: 1, hysteresisDays: 14 }, NOW, ["inc"]).picked.map((x) => x.key)
   assert.deepEqual(picked, ["cha"], `expected cha to take over, got ${picked}`)
 })
 
 t("hysteresis never keeps a project that is no longer eligible", () => {
-  // An incumbent that drops to tier-excluded… is not a thing; but an incumbent
-  // whose key is removed from config must simply not be selected.
+  // An incumbent whose key has been REMOVED from config does not retain a
+  // seat — that is an author's decision, not a collection failure, so it is
+  // filtered out of the hold rather than protected by it.
+  //
+  // `only` here is unmeasured, so the run holds and its previous membership is
+  // `["deleted-project"]`. That key no longer exists, so the held set is empty
+  // — which is correct, and is the distinction this case pins down: `held`
+  // protects the CAST, it does not invent seats.
   const gone = normalise({ projects: [{ ...base.projects[0], key: "only" }] })
-  const picked = select(gone, {}, { ...cfg, workSlots: 2 }, NOW, ["deleted-project"])
-  assert.deepEqual(picked.map((p) => p.key), ["only"])
+  const r = select(gone, {}, { ...cfg, workSlots: 2 }, NOW, ["deleted-project"])
+  assert.deepEqual(r.picked.map((p) => p.key), [], `got ${r.picked.map((p) => p.key)}`)
+
+  // And with a real reading for `only`, the same previous state seats it — so
+  // the empty result above is the missing key at work, not the hold refusing
+  // to seat anything.
+  const measured = select(gone, { "yunmin311/only": { outcome: "ok", lastCommitAt: daysAgo(3) } }, { ...cfg, workSlots: 2 }, NOW, ["deleted-project"])
+  assert.deepEqual(measured.picked.map((p) => p.key), ["only"])
+  assert.equal(measured.held, false)
 })
 
 t("selection is stable across identical runs", () => {
-  const a = select(normalise(cfg), sig, cfg, NOW, null).map((p) => p.key)
-  const b = select(normalise(cfg), sig, cfg, NOW, null).map((p) => p.key)
+  const a = select(normalise(cfg), sig, cfg, NOW, null).picked.map((p) => p.key)
+  const b = select(normalise(cfg), sig, cfg, NOW, null).picked.map((p) => p.key)
   assert.deepEqual(a, b)
 })
 
 t("pinned membership is honoured when the signal is unchanged", () => {
-  const first = select(normalise(cfg), sig, cfg, NOW, null).map((p) => p.key)
-  const second = select(normalise(cfg), sig, cfg, NOW, first).map((p) => p.key)
+  const first = select(normalise(cfg), sig, cfg, NOW, null).picked.map((p) => p.key)
+  const second = select(normalise(cfg), sig, cfg, NOW, first).picked.map((p) => p.key)
   assert.deepEqual(second, first, "an unchanged signal must not reshuffle the page")
 })
 
@@ -388,8 +409,8 @@ t("fresh selection is not flagged stale", () => {
     { ...base.projects[0], key: "hidden" },
   ] })
   const s = {
-    "yunmin311/shown": { lastCommitAt: daysAgo(2) },
-    "yunmin311/hidden": { lastCommitAt: daysAgo(40) },
+    "yunmin311/shown": { outcome: "ok", lastCommitAt: daysAgo(2) },
+    "yunmin311/hidden": { outcome: "ok", lastCommitAt: daysAgo(40) },
   }
   const shown = [p[0]]
   assert.equal(staleness(p, s, shown, NOW).stale, false)
@@ -401,8 +422,8 @@ t("a much more active unshown project IS flagged", () => {
     { ...base.projects[0], key: "hidden" },
   ] })
   const s = {
-    "yunmin311/shown": { lastCommitAt: daysAgo(200) },
-    "yunmin311/hidden": { lastCommitAt: daysAgo(1) },
+    "yunmin311/shown": { outcome: "ok", lastCommitAt: daysAgo(200) },
+    "yunmin311/hidden": { outcome: "ok", lastCommitAt: daysAgo(1) },
   }
   const r = staleness(p, s, [p[0]], NOW)
   assert.equal(r.stale, true, JSON.stringify(r))
@@ -422,12 +443,239 @@ t("missing activity does not manufacture a stale flag", () => {
   assert.equal(staleness(p, {}, [p[0]], NOW).stale, false)
 })
 
+/* ------------------------------------------------------- the signal contract */
+
+console.log("\nsignalState — fresh / stale / unknown are three things")
+
+t("a successful measurement with a date is fresh", () => {
+  assert.equal(signalState({ outcome: "ok", lastCommitAt: daysAgo(3) }), "fresh")
+})
+
+t("a successful measurement of ZERO commits is stale, not unknown", () => {
+  // The repository cloned, its whole history was read, and none of it is mine.
+  // That is real evidence and it is entitled to lose a card. Collapsing it into
+  // "unknown" would make it permanently un-retirable.
+  assert.equal(signalState({ outcome: "ok", lastCommitAt: null, commits: 0 }), "stale")
+})
+
+t("a failed collection is unknown, never stale", () => {
+  // THE BUG. A five-second clone failure used to arrive as `lastCommitAt: null`
+  // and score the same floor a genuinely abandoned project gets.
+  assert.equal(signalState({ outcome: "failed", lastCommitAt: null, reason: "clone failed" }), "unknown")
+})
+
+t("a repository that was never requested is unknown", () => {
+  assert.equal(signalState(undefined), "unknown")
+})
+
+t("an unknown age is not infinite", () => {
+  // `Infinity` here would make every staleness comparison read as "not stale"
+  // on a run whose evidence was incomplete.
+  assert.equal(recencyOf("yunmin311/a", { "yunmin311/a": { outcome: "failed" } }, NOW), null)
+})
+
+/* ---------------------------------------------------------- fail-closed rule */
+
+console.log("\nselect — a collection failure cannot change the cast")
+
+// The previously displayed set, healthy. Every case below starts from this.
+const INCUMBENTS = ["inc1", "inc2"]
+const ROSTER = [
+  { key: "inc1" },
+  { key: "inc2" },
+  { key: "challenger" },
+  { key: "unrelated" },
+]
+const roster = normalise({
+  projects: [
+    ...ROSTER.map((r) => ({ ...base.projects[0], key: r.key })),
+    // One extra, so `workSlots: 2` leaves the challenger genuinely outside.
+    { ...base.projects[0], key: "spare" },
+  ],
+})
+const held = (next, slots = 2) =>
+  select(roster, next, { ...cfg, workSlots: slots }, NOW, INCUMBENTS)
+
+/** A healthy reading everyone in the fixture starts from. */
+const healthy = {
+  "yunmin311/inc1": { outcome: "ok", lastCommitAt: daysAgo(10), lines: 5000 },
+  "yunmin311/inc2": { outcome: "ok", lastCommitAt: daysAgo(12), lines: 4000 },
+  "yunmin311/challenger": { outcome: "ok", lastCommitAt: daysAgo(400), lines: 100 },
+  "yunmin311/unrelated": { outcome: "ok", lastCommitAt: daysAgo(300), lines: 100 },
+  "yunmin311/spare": { outcome: "ok", lastCommitAt: daysAgo(350), lines: 100 },
+}
+
+t("an INCUMBENT that fails to clone keeps its seat", () => {
+  // THE BLOCKER, in one case. inc1 is being built every day; a transient clone
+  // failure must not read as "inc1 has gone quiet" and hand its card to
+  // somebody else for six hours. The CAST is what must not move — the order
+  // inside it is recomputed from whatever readings exist, and it legitimately
+  // changes, because the two incumbents' ages are still known while the
+  // challengers' are not.
+  const r = held({ ...healthy, "yunmin311/inc1": { outcome: "failed", reason: "clone failed" } })
+  assert.deepEqual([...r.picked.map((p) => p.key)].sort(), [...INCUMBENTS].sort(), JSON.stringify(r.picked.map((p) => p.key)))
+  assert.equal(r.picked.find((p) => p.key === "inc1")._state, "unknown", "the held project must be marked unmeasured")
+  assert.equal(r.held, true, "the run must report that it held")
+})
+
+t("a CHALLENGER that fails to clone cannot take a seat", () => {
+  // Same rule, other direction: an unmeasured challenger has no score to argue
+  // with, so it may not displace a measured incumbent.
+  const r = held({ ...healthy, "yunmin311/challenger": { outcome: "failed", reason: "clone failed" } })
+  assert.deepEqual(r.picked.map((p) => p.key), INCUMBENTS)
+})
+
+t("an UNRELATED candidate failing does not perturb a healthy ordering", () => {
+  // The run cannot know where the missing project belonged in the ranking, so
+  // it declines to reorder — even though nobody was going to display it.
+  const r = held({ ...healthy, "yunmin311/unrelated": { outcome: "failed", reason: "clone failed" } })
+  assert.deepEqual(r.picked.map((p) => p.key), INCUMBENTS)
+  assert.equal(r.held, true)
+  assert.ok(r.unmeasured.includes("unrelated"), `unmeasured was ${r.unmeasured}`)
+})
+
+t("all signals healthy + a decisive challenger = normal replacement", () => {
+  // The fail-closed rule must not become a freeze. When the evidence IS
+  // complete, two projects being built today take the cards from two that are
+  // not — the guard only ever asks a challenger to lead by `hysteresisDays`.
+  // Nine days is not enough, which is the guard doing its job, so this fixture
+  // gives the challengers a decisive lead rather than a marginal one.
+  const r = held({
+    ...healthy,
+    "yunmin311/inc1": { outcome: "ok", lastCommitAt: daysAgo(400), lines: 100 },
+    "yunmin311/inc2": { outcome: "ok", lastCommitAt: daysAgo(420), lines: 100 },
+    "yunmin311/challenger": { outcome: "ok", lastCommitAt: daysAgo(1), lines: 60000 },
+    "yunmin311/spare": { outcome: "ok", lastCommitAt: daysAgo(1), lines: 50000 },
+  })
+  assert.deepEqual([...r.picked.map((p) => p.key)].sort(), ["challenger", "spare"], `got ${r.picked.map((p) => p.key)}`)
+  assert.equal(r.held, false, "a complete run must not report a hold")
+})
+
+t("a complete run is a no-op when nothing has really changed", () => {
+  // The fail-closed rule must not only permit replacement — it must also permit
+  // the ordinary case, where the incumbents are still the strongest thing in
+  // the pool and simply stay. A rule that held OR replaced on every run would
+  // make the state file churn and the page flicker.
+  const r = held(healthy)
+  assert.deepEqual(r.picked.map((p) => p.key), INCUMBENTS, `got ${r.picked.map((p) => p.key)}`)
+  assert.equal(r.held, false)
+})
+
+t("a first build has nothing to protect and seats on what it has", () => {
+  // `prev` is null: there is no membership to hold, so an incomplete run is
+  // allowed to produce one — held must not be true, or the build would refuse
+  // to write the very state file the next run needs.
+  const r = select(roster, { ...healthy, "yunmin311/inc1": { outcome: "failed" } }, { ...cfg, workSlots: 2 }, NOW, null)
+  assert.equal(r.held, false)
+  assert.equal(r.picked.length, 2)
+})
+
+t("a genuinely inactive incumbent still loses the seat", () => {
+  // The mirror of fail-closed: `stale` is real evidence, so it must still be
+  // able to retire even though `unknown` cannot.
+  const r = held({
+    ...healthy,
+    "yunmin311/inc1": { outcome: "ok", lastCommitAt: null, commits: 0, lines: 0 },
+    "yunmin311/inc2": { outcome: "ok", lastCommitAt: null, commits: 0, lines: 0 },
+    "yunmin311/challenger": { outcome: "ok", lastCommitAt: daysAgo(1), lines: 60000 },
+  })
+  assert.ok(r.picked.some((p) => p.key === "challenger"), `challenger should be seated, got ${r.picked.map((p) => p.key)}`)
+  assert.equal(r.held, false)
+})
+
+t("the hold is reported, not silent", () => {
+  const r = held({ ...healthy, "yunmin311/inc2": { outcome: "failed", reason: "clone failed: timeout" } })
+  assert.equal(r.held, true)
+  assert.match(String(r.reason), /could not be measured/)
+  assert.deepEqual(r.unmeasured, ["inc2"])
+})
+t("every result row says which of the three readings it carries", () => {
+  const r = held({ ...healthy, "yunmin311/inc1": { outcome: "failed" } })
+  for (const p of r.picked) {
+    assert.ok(["fresh", "stale", "unknown"].includes(p._state), `${p.key} has _state=${p._state}`)
+  }
+  assert.equal(r.picked.find((p) => p.key === "inc1")._state, "unknown")
+  assert.equal(r.picked.find((p) => p.key === "inc2")._state, "fresh")
+})
+
+/* --------------------------------------------------- one snapshot, used twice */
+
+console.log("\nsingle-pass — the two panels read one measurement")
+
+// Snapshots in the shape lib/authored.mjs returns: one per requested repo,
+// carrying outcome, recency, lines AND per-language totals together.
+const snapshot = (repo, { days = 1, lines = 1000, langs = { TypeScript: 1000 } } = {}) => ({
+  repo,
+  outcome: "ok",
+  reason: null,
+  commits: 5,
+  lines,
+  languages: langs,
+  lastCommitAt: days == null ? null : daysAgo(days),
+})
+const failedSnap = (repo) => unknown(repo, "clone failed: transient")
+
+t("signalsFrom keeps the outcome, so unknown survives the crossing", () => {
+  const signal = signalsFrom([snapshot("yunmin311/a"), failedSnap("yunmin311/b")])
+  assert.equal(signalState(signal["yunmin311/a"]), "fresh")
+  assert.equal(signalState(signal["yunmin311/b"]), "unknown", "a failure must not arrive as a reading")
+})
+
+t("Selection and Language Signal are derived from the SAME snapshots", () => {
+  // THE PROPERTY. Reproduce the pipeline's shape without a network: one set of
+  // snapshots feeds the rule; the rule's choice picks a subset OF THOSE, and
+  // the chart folds that subset. Nothing here can re-measure anything, which is
+  // the point — if a second collection were reintroduced, this test would need
+  // a second snapshot set to pass and would no longer compile against one.
+  const pool = normalise({ projects: [
+    { ...base.projects[0], key: "hot", languages: "count" },
+    { ...base.projects[0], key: "warm", languages: "count" },
+    { ...base.projects[0], key: "cold", languages: "count" },
+  ] })
+  const snapshots = [
+    snapshot("yunmin311/hot", { days: 1, langs: { TypeScript: 9000, CSS: 1000 } }),
+    snapshot("yunmin311/warm", { days: 5, langs: { Rust: 3000 } }),
+    snapshot("yunmin311/cold", { days: 400, langs: { Python: 50000 } }),
+  ]
+  const byRepo = new Map(snapshots.map((s) => [s.repo, s]))
+  const signal = signalsFrom(snapshots)
+
+  const { picked } = select(pool, signal, { ...cfg, workSlots: 2 }, NOW, null)
+  const scope = languageRepos(picked)
+  const stats = aggregateLanguages(scope.map((repo) => byRepo.get(repo)))
+
+  // The chart covers exactly the displayed set…
+  assert.deepEqual(scope.sort(), ["yunmin311/hot", "yunmin311/warm"])
+  assert.equal(stats.snapshots.length, scope.length)
+  // …and the numbers come from those snapshots: cold's 50k Python lines are
+  // NOT in the total, which is what "the scope is the displayed set" means.
+  assert.equal(stats.ranked.find((l) => l.name === "Python"), undefined, "an unshown project's lines leaked in")
+  assert.equal(stats.totalLines, 9000 + 1000 + 3000)
+  assert.equal(stats.ranked[0].name, "TypeScript")
+})
+
+t("aggregateLanguages folds a partial set and reports it as partial", () => {
+  const stats = aggregateLanguages([
+    snapshot("yunmin311/a", { langs: { TypeScript: 100 } }),
+    failedSnap("yunmin311/b"),
+  ])
+  assert.equal(stats.okCount, 1)
+  assert.equal(stats.failedCount, 1, "a partial reading must be able to say it is partial")
+  assert.equal(stats.totalLines, 100, "a failed repo contributes nothing, not a guess")
+})
+
+t("an empty scope is zero, not a crash", () => {
+  const stats = aggregateLanguages([])
+  assert.deepEqual(stats.ranked, [])
+  assert.equal(stats.totalLines, 0)
+})
+
 /* -------------------------------------------------------------- the shipped */
 
 console.log("\nthe shipped configuration")
 
 t("every selected project has non-empty card copy", () => {
-  for (const p of select(normalise(cfg), {}, cfg, NOW, null)) {
+  for (const p of select(normalise(cfg), {}, cfg, NOW, null).picked) {
     assert.ok(p.why.length > 40, `${p.key} why is too short`)
     assert.ok(p.tags.length > 0, `${p.key} has no tags`)
     assert.match(p.url, /^https:\/\/github\.com\//, `${p.key} url: ${p.url}`)

@@ -18,48 +18,84 @@
   ],
   "signal": {
     "yunmin311/context-distiller": {
+      "repo": "yunmin311/context-distiller",
+      "outcome": "ok",
+      "reason": null,
       "commits": 82,
       "lines": 13050,
+      "languages": {},
       "lastCommitAt": "2026-08-26T10:05:22.000Z"
     },
     "yunmin311/governance-framework": {
+      "repo": "yunmin311/governance-framework",
+      "outcome": "ok",
+      "reason": null,
       "commits": 47,
       "lines": 5381,
+      "languages": {},
       "lastCommitAt": "2026-08-21T02:17:21.000Z"
     },
     "yunmin311/yunmin-workbench": {
+      "repo": "yunmin311/yunmin-workbench",
+      "outcome": "ok",
+      "reason": null,
       "commits": 141,
       "lines": 66521,
+      "languages": {},
       "lastCommitAt": "2026-09-13T11:22:41.000Z"
     },
     "yunmin311/dsh-universal-palette": {
+      "repo": "yunmin311/dsh-universal-palette",
+      "outcome": "ok",
+      "reason": null,
       "commits": 30,
       "lines": 17999,
+      "languages": {},
       "lastCommitAt": "2026-09-14T04:44:08.000Z"
     },
     "yunmin311/window-annotator": {
+      "repo": "yunmin311/window-annotator",
+      "outcome": "ok",
+      "reason": null,
       "commits": 29,
       "lines": 6002,
+      "languages": {},
       "lastCommitAt": "2026-09-08T14:00:43.000Z"
     },
     "yunmin311/zheng-tally-obsidian": {
+      "repo": "yunmin311/zheng-tally-obsidian",
+      "outcome": "ok",
+      "reason": null,
       "commits": 8,
       "lines": 4039,
+      "languages": {},
       "lastCommitAt": "2026-09-15T05:11:12.000Z"
     },
     "yunmin311/work-capsule": {
+      "repo": "yunmin311/work-capsule",
+      "outcome": "ok",
+      "reason": null,
       "commits": 42,
       "lines": 13069,
+      "languages": {},
       "lastCommitAt": "2026-09-13T04:14:26.000Z"
     },
     "yunmin311/pixel-panels": {
+      "repo": "yunmin311/pixel-panels",
+      "outcome": "ok",
+      "reason": null,
       "commits": 4,
       "lines": 4266,
+      "languages": {},
       "lastCommitAt": "2026-08-21T08:42:31.000Z"
     },
     "yunmin311/DenseGPT": {
+      "repo": "yunmin311/DenseGPT",
+      "outcome": "ok",
+      "reason": null,
       "commits": 29,
       "lines": 3619,
+      "languages": {},
       "lastCommitAt": "2026-08-21T08:20:14.000Z"
     }
   },

@@ -5,12 +5,20 @@
  * information, and six unrelated colours only make it harder to read.
  *
  * WHAT IS COUNTED. Lines added by this author, in commits this author wrote,
- * across exactly the four repositories shown in SELECTED WORK — not bytes on
- * disk. Bytes count vendored files, generated output, and whatever a
- * collaborator or a scaffolding tool contributed; an unqualified language
- * chart on a GitHub profile is usually measuring somebody else's boilerplate.
- * The method and the scope are printed on the panel so the claim can be
- * checked.
+ * across the repositories shown in SELECTED WORK — not bytes on disk. Bytes
+ * count vendored files, generated output, and whatever a collaborator or a
+ * scaffolding tool contributed; an unqualified language chart on a GitHub
+ * profile is usually measuring somebody else's boilerplate. The method and the
+ * scope are printed on the panel so the claim can be checked.
+ *
+ * AND THE SCOPE IS ONE MEASUREMENT, NOT TWO. The numbers here are a fold over
+ * the repository snapshots SELECTED WORK's rule already took — see
+ * lib/sources.mjs. Nothing on this panel clones anything, so the chart cannot
+ * describe a set of repositories that differs from the grid above it.
+ *
+ * A repository that could not be measured contributes nothing AND is declared
+ * in the note, because quietly re-normalising percentages around a hole is the
+ * way this panel fails without anybody noticing.
  */
 
 import { rect, panel, svgDoc, label, body, W_FULL, W_MOBILE, S , SHADOW, pixelRule} from "../lib/design.mjs"
@@ -126,9 +134,19 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
 
   // ---- method ------------------------------------------------------------
   out.push(pixelRule(S.sm, L.rule, innerW, t.lineSoft))
+
+  // A reading taken from fewer repositories than the grid above shows says so
+  // in place, on the panel. The alternative — printing a total as though it
+  // covered everything — is the quiet way this chart can be wrong: a project
+  // that could not be measured would simply contribute nothing, and the
+  // percentages would re-normalise around the hole without anyone noticing.
+  const note = Lang.partial
+    ? `${Lang.note} Measured ${Lang.repoCount} of ${Lang.scopeCount} — the rest could not be read this run.`
+    : Lang.note
+
   // Wrapped at both widths rather than trusting it to fit: the note grows when a
   // repository fails to clone, and the desktop version was being cut mid-word.
-  wrap(Lang.note, innerW)
+  wrap(note, innerW)
     .slice(0, mobile ? 3 : 2)
     .forEach((l, i) => out.push(body(l, { x: S.sm, y: L.note + i * S.sm, fill: t.inkFaint })))
 

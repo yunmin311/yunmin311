@@ -24,12 +24,21 @@
  * chart counts it. There is no second list, and no way for the two panels to
  * disagree about what the work is.
  *
- * THE ONE RULE, IN FOUR LINES:
+ * THE ONE RULE, IN FIVE LINES:
  *
+ *   snapshots  = authoredSnapshots(pool)          ONE clone per repo, per build
  *   scope      = select(projects, ...)            what is on the page
  *   ordering   = recency(0.6) + volume(0.4)       how the cards are placed
  *   stability  = hysteresis, in days              what it takes to displace
  *   permanence = `pinned: []` in config           what never moves, by hand
+ *
+ * FAIL-CLOSED SELECTION. A showcase is a curated thing, and an external
+ * collection failure is not evidence about the work. So the rule holds the
+ * previous membership whenever this run cannot fully justify a change: if any
+ * project went unmeasured, or a currently displayed one did, the cast is frozen
+ * and only the ordering is recomputed. `select()` reports this as `held`, and
+ * `_state` on each result distinguishes a project that is genuinely inactive
+ * from one that simply could not be measured. See `signalState`.
  *
  * Ordering combines two signals that fail in opposite directions, so that a
  * single number cannot carry the decision:
@@ -154,13 +163,42 @@ export const languageRepos = (displayed) =>
   displayed.filter((p) => p.languages === "count").map((p) => p.repo)
 
 /**
- * Activity is measured per repository, so the same repo appearing twice would
- * be counted twice. Keys are unique (enforced above) but two projects could
- * still point at one repository; that is the author's call, not an error.
+ * What do we actually know about one repository this run?
+ *
+ * THREE STATES, and collapsing any two of them is a bug. The earlier version
+ * had two, because "we could not measure it" and "it has not been touched" both
+ * arrived as `lastCommitAt: null` and both scored the same floor. A five-second
+ * clone failure could therefore read as "abandoned" and drop a project off the
+ * profile for six hours.
+ *
+ *   "fresh"    measured, and the reading is recent enough to act on.
+ *   "stale"    measured, and the reading genuinely says this is not active.
+ *              Real evidence. Entitled to lose a card.
+ *   "unknown"  NOT measured. Carries no information about activity at all and
+ *              must never be scored as though it did. The only permitted
+ *              consequence is that this run lacks the evidence to change
+ *              SELECTED WORK's membership.
+ *
+ * @param snapshot a snapshot from lib/authored.mjs, or undefined if the repo
+ *                 was never requested at all
+ */
+export function signalState(snapshot) {
+  if (!snapshot || snapshot.outcome !== "ok") return "unknown"
+  // A successful walk that found no commit by this author is real evidence:
+  // the repository cloned, its whole history was read, and none of it is ours.
+  return snapshot.lastCommitAt ? "fresh" : "stale"
+}
+
+/**
+ * Days since this author's last commit, or null when the age is not knowable.
+ *
+ * Returns null for an unmeasured repository rather than Infinity, because
+ * "unknown" is not "infinitely old" — see `signalState`.
  */
 export function recencyOf(repo, activity, now) {
-  const hit = activity?.[repo]
-  const last = hit?.lastCommitAt ? new Date(hit.lastCommitAt).getTime() : NaN
+  const snap = activity?.[repo]
+  if (signalState(snap) !== "fresh") return null
+  const last = new Date(snap.lastCommitAt).getTime()
   if (!Number.isFinite(last)) return null
   return Math.max(0, (now - last) / DAY)
 }
@@ -233,8 +271,10 @@ export function select(projects, activity, cfg, now, prev = null) {
   const hysteresisDays = cfg.hysteresisDays ?? DEFAULT_HYSTERESIS_DAYS
 
   const rows = projects.map((p) => {
+    const state = signalState(activity?.[p.repo])
     const days = recencyOf(p.repo, activity, now)
-    return { p, days, s: score(p, days, activity?.[p.repo]?.lines ?? 0) }
+    const lines = state === "unknown" ? 0 : activity?.[p.repo]?.lines ?? 0
+    return { p, state, days, s: score(p, days, lines) }
   })
 
   // Ranking. Pinned first, then the core lead, then the score itself.
@@ -264,7 +304,59 @@ export function select(projects, activity, cfg, now, prev = null) {
   const openSlots = Math.max(0, slots - fixed.length)
 
   const seatable = rows.filter((r) => !pinnedKeys.has(r.p.key)).sort(byRank)
-  const incumbents = prev?.length ? seatable.filter((r) => prev.includes(r.p.key)) : []
+  const incumbentSet = prev?.length ? new Set(prev) : null
+  const incumbents = incumbentSet ? seatable.filter((r) => incumbentSet.has(r.p.key)) : []
+
+  // ---- the fail-closed decision, BEFORE any seat is assigned ----------------
+  //
+  // Membership changes only when this run can actually justify them. Two
+  // conditions, both required:
+  //
+  //   1. every SEATABLE project was measured. One unmeasured project means the
+  //      ordering cannot be trusted, because the missing project might belong
+  //      anywhere in it. This is why a collection failure is disqualifying even
+  //      when it happens to a project nobody was going to display: the run no
+  //      longer knows what it does not know.
+  //
+  //   2. every PREVIOUSLY DISPLAYED project is present and measured. An
+  //      incumbent we cannot see is an incumbent we cannot compare against, and
+  //      dropping it on no evidence is exactly the behaviour being removed.
+  //
+  // With no previous run there is nothing to protect, so a first build seats on
+  // whatever it has and does not need to clear this bar.
+  const unmeasured = seatable.filter((r) => r.state === "unknown")
+  const missingIncumbents = incumbents.filter((r) => r.state === "unknown")
+  const canChangeMembership = !incumbentSet || (unmeasured.length === 0 && missingIncumbents.length === 0)
+
+  if (incumbentSet && !canChangeMembership) {
+    // Hold the line: the previous membership, filtered to projects that still
+    // exist in the pool (a key removed from config is an author's decision and
+    // is NOT a collection failure). Ordering is still recomputed from whatever
+    // readings are available, so the page stays coherent; only the CAST is
+    // frozen.
+    //
+    // Note what is deliberately NOT done here: an incumbent that failed this
+    // round keeps the membership it earned last round. It is not scored as
+    // inactive, not re-scored at the floor, and not replaced by whoever
+    // happened to clone successfully.
+    const held = rows.filter((r) => incumbentSet.has(r.p.key))
+    return {
+      picked: held
+        .slice(0, slots)
+        .sort(byScore)
+        .map((r) => ({ ...r.p, _days: r.days, _score: r.s.score, _state: r.state })),
+      held: true,
+      reason: unmeasured.length
+        ? `${unmeasured.length} project(s) could not be measured`
+        : `${missingIncumbents.length} displayed project(s) could not be measured`,
+      // A project can be missing for both reasons at once, so the two lists are
+      // unioned rather than concatenated — the report is a set of affected
+      // projects, and naming the same one twice reads as two failures.
+      unmeasured: [...new Set([...unmeasured, ...missingIncumbents].map((r) => r.p.key))],
+    }
+  }
+
+  // ---- normal path: the evidence is complete --------------------------------
 
   // ONE MERGED PASS, STRONGEST FIRST. Seating incumbents and challengers in two
   // separate passes is the bug this replaced: the challenger pass filled every
@@ -281,6 +373,11 @@ export function select(projects, activity, cfg, now, prev = null) {
     // simply holding a seat the moment its turn arrives.
     if (!incumbents.length || incumbents.includes(cand)) { seated.push(cand); continue }
 
+    // An unmeasured challenger has no score to argue with, so it cannot
+    // displace anyone — but this only arises on a first build, since an
+    // unmeasured project anywhere else already held the membership above.
+    if (cand.state === "unknown") continue
+
     // A challenger must clear every unseated incumbent by the guard margin.
     // Both sides are composite score units, and the margin is expressed in
     // days divided by the same window the score uses — so "14 days fresher" is
@@ -292,13 +389,18 @@ export function select(projects, activity, cfg, now, prev = null) {
     if (!blocked) seated.push(cand)
   }
 
-  return [...fixed, ...seated]
-    .slice(0, slots)
-    // Cards are placed by score, so the grid does not reorder itself every time
-    // somebody edits a weight. This ordering is what the reader sees and what
-    // the build log prints.
-    .sort(byScore)
-    .map((r) => ({ ...r.p, _days: r.days, _score: r.s.score }))
+  return {
+    picked: [...fixed, ...seated]
+      .slice(0, slots)
+      // Cards are placed by score, so the grid does not reorder itself every time
+      // somebody edits a weight. This ordering is what the reader sees and what
+      // the build log prints.
+      .sort(byScore)
+      .map((r) => ({ ...r.p, _days: r.days, _score: r.s.score, _state: r.state })),
+    held: false,
+    reason: null,
+    unmeasured: [],
+  }
 }
 
 /* ----------------------------------------------------------------- gate */
@@ -316,22 +418,44 @@ export function select(projects, activity, cfg, now, prev = null) {
  * displayed one: if something materially more active has been left out for
  * longer than the tolerance, the ordering rule has gone stale — either the
  * pool needs entries, or the scoring needs revisiting.
+ *
+ * IT COMPARES ONLY WHAT WAS ACTUALLY MEASURED. This gate drives the build red,
+ * so it is the one place where misreading "unknown" is expensive in the other
+ * direction: treating an unmeasured project as "not stale" would report the
+ * page as healthy on a run whose evidence was incomplete, and treating it as
+ * "infinitely old" would fail a build for a five-second network error. Neither
+ * is true, so unmeasured projects are dropped from BOTH sides of the
+ * comparison and `measured` reports the count it kept. A run with too few
+ * readings to compare returns `stale: false` and `comparable: false`,
+ * explicitly, rather than a number that looks like a verdict.
  */
 export function staleness(projects, activity, displayed, now, toleranceDays = 30) {
   const shown = new Set(displayed.map((p) => p.key))
-  const days = (p) => recencyOf(p.repo, activity, now) ?? Infinity
+  const state = (p) => signalState(activity?.[p.repo])
 
-  const outside = projects.filter((p) => !shown.has(p.key)).map(days).sort((a, b) => a - b)
-  const inside = displayed.map(days).sort((a, b) => b - a)
-  if (!outside.length || !inside.length) return { stale: false }
+  const outside = projects.filter((p) => !shown.has(p.key))
+  const inside = displayed
 
-  const bestOutside = outside[0]
-  const worstInside = inside[0]
+  const measured = (ps) => ps.filter((p) => state(p) === "fresh").map((p) => recencyOf(p.repo, activity, now))
+  const outDays = measured(outside)
+  const inDays = measured(inside)
+
+  const unmeasured = [...outside, ...inside].filter((p) => state(p) === "unknown").length
+  const notComparable = { stale: false, comparable: false, unmeasured }
+
+  // Nothing outside to compare against is not a problem — it is a pool that is
+  // entirely on the page. Nothing INSIDE means the page is empty.
+  if (!outDays.length || !inDays.length) return notComparable
+
+  const bestOutside = Math.min(...outDays)
+  const worstInside = Math.max(...inDays)
   const lag = worstInside - bestOutside
   return {
-    stale: Number.isFinite(bestOutside) && lag > toleranceDays,
-    lagDays: Number.isFinite(lag) ? Math.round(lag) : null,
-    bestOutsideDays: Number.isFinite(bestOutside) ? Math.round(bestOutside) : null,
-    worstInsideDays: Number.isFinite(worstInside) ? Math.round(worstInside) : null,
+    stale: lag > toleranceDays,
+    comparable: true,
+    lagDays: Math.round(lag),
+    bestOutsideDays: Math.round(bestOutside),
+    worstInsideDays: Math.round(worstInside),
+    unmeasured,
   }
 }
