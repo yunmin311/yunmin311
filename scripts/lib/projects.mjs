@@ -18,8 +18,18 @@
  * nobody can trust. So there is ONE declared pool (`config.json -> projects`)
  * and one deterministic rule that turns it into what gets shown:
  *
- *   tier: "core"       always displayed; the work that defines the page.
- *   tier: "candidate"  eligible, competes for the remaining slots.
+ *   languageRepos(select(projects, signal, cfg, now, prev))
+ *
+ * Everything downstream reads that one call. The cards draw it; the language
+ * chart counts it. There is no second list, and no way for the two panels to
+ * disagree about what the work is.
+ *
+ * THE ONE RULE, IN FOUR LINES:
+ *
+ *   scope      = select(projects, ...)            what is on the page
+ *   ordering   = recency(0.6) + volume(0.4)       how the cards are placed
+ *   stability  = hysteresis, in days              what it takes to displace
+ *   permanence = `pinned: []` in config           what never moves, by hand
  *
  * Ordering combines two signals that fail in opposite directions, so that a
  * single number cannot carry the decision:
@@ -31,12 +41,25 @@
  * buries a young project. Linear recency rather than a step function, so the
  * order drifts instead of snapping.
  *
+ * ALL THE NUMBERS ARE POLICY, NOT FINDINGS. The weights, the window, the core
+ * lead and the per-project `hysteresis` values are chosen to be reasonable and
+ * to be easy to change — they were not fitted to anything. Each one lives in
+ * config.json and is annotated there. If the page does not behave the way you
+ * want, edit the number rather than the code.
+ *
  * Deliberately NOT used: stars, forks, watchers. Those measure an audience, not
  * work, and on a page that carries no other vanity metrics they would be the
  * only ones — see the note at the top of panels/work.mjs.
  */
 
 const DAY = 86400e3
+
+/* ------------------------------------------------------------------ policy */
+/*
+ * Defaults only. Every one of these is overridable from config.json, and the
+ * shipped config sets them explicitly so that the page's behaviour is visible
+ * in one file rather than split between a config and a constant nobody reads.
+ */
 
 /** How far back recency is measured before a project stops contributing. */
 const RECENCY_WINDOW_DAYS = 180
@@ -47,6 +70,11 @@ const RECENCY_FLOOR = 0.05
 /** Weight of recency vs volume in the composite score. */
 const W_RECENCY = 0.6
 const W_VOLUME = 0.4
+
+/** Used when config omits the value. Kept equal to the shipped config. */
+const DEFAULT_SLOTS = 6
+const DEFAULT_CORE_LEAD_DAYS = 45
+const DEFAULT_HYSTERESIS_DAYS = 14
 
 /**
  * Normalise the declared pool.
@@ -95,27 +123,35 @@ export function normalise(cfg) {
       languages: lang,
       // A floor, not a bonus: it lifts a project that recency would bury
       // (a review-heavy or documentation-heavy one) without letting it
-      // outrank something being actively built.
+      // outrank something being actively built. A core project does NOT get
+      // this by default — see the core-lead note in `select` for why core
+      // importance is expressed in recency days instead. No project in the
+      // shipped config sets it.
       weight: Number.isFinite(p.weight) ? Math.max(0, p.weight) : 0,
-      // Days a challenger must lead the incumbent before displacing it. See
-      // `select` for why the guard is needed at all.
-      hysteresis: Number.isFinite(p.hysteresis) ? Math.max(0, p.hysteresis) : 0,
     }
   })
 }
 
-/** The single derived list both panels read. */
-export const displayable = (projects) => projects
-
 /**
  * Repositories the language chart counts.
  *
- * Derived from the same pool as the cards, so the two panels cannot disagree
- * about what the work is. Only `count` projects are eligible; `exclude` and
- * `n/a` are dropped HERE, once, rather than in a second list kept in sync by
- * hand.
+ * THE SCOPE IS THE DISPLAYED SET, not the declared pool. LANGUAGE SIGNAL sits
+ * directly under SELECTED WORK and is read as a caption on it, so "the language
+ * mix of the work above" is the only reading that matches what a reader sees.
+ * Counting the whole pool would attribute lines to a chart standing next to a
+ * grid that does not contain the project those lines came from.
+ *
+ * The caller passes the cards the rule actually chose:
+ *
+ *   languageRepos(select(projects, signal, cfg, now, pinned))
+ *
+ * Only `count` projects contribute. The other two states are dropped HERE,
+ * once, rather than in a second list kept in sync by hand:
+ *   `exclude`  real code, but generated or vendored, so it distorts the mix
+ *   `n/a`      nothing comparable to count at all (a stylesheet collection)
  */
-export const languageRepos = (projects) => projects.filter((p) => p.languages === "count").map((p) => p.repo)
+export const languageRepos = (displayed) =>
+  displayed.filter((p) => p.languages === "count").map((p) => p.repo)
 
 /**
  * Activity is measured per repository, so the same repo appearing twice would
@@ -132,6 +168,11 @@ export function recencyOf(repo, activity, now) {
 /**
  * Score one project. Pure, so the tests can pin the curve down exactly.
  *
+ * This measures the WORK and nothing else — no importance, no tier, no
+ * pinning. Core's preference is applied in `select` as a separate ranking
+ * term, so that a reader looking at `_score` in the build log is looking at
+ * one number with one meaning.
+ *
  * @param p       a normalised project
  * @param days    days since the author's last commit, or null if unknown
  * @param lines   lines the author wrote, or 0
@@ -143,6 +184,11 @@ export function score(p, days, lines = 0) {
     days == null ? RECENCY_FLOOR : Math.max(RECENCY_FLOOR, 1 - days / RECENCY_WINDOW_DAYS)
   const volume = lines > 0 ? Math.log10(lines + 1) / 5 : 0 // 100k lines ~= 1.0
   const composite = W_RECENCY * recency + W_VOLUME * volume
+  // `weight` is an explicit per-project floor; it is the escape hatch for a
+  // project whose value recency cannot see. No project in the shipped config
+  // sets it — `tier: "core"` does the same job in a unit the reader can
+  // reason about ("days"), and having two mechanisms for one intent invited
+  // them to disagree.
   return { recency, volume, composite, score: Math.max(composite, p.weight) }
 }
 
@@ -151,81 +197,107 @@ export function score(p, days, lines = 0) {
  *
  * @param projects  normalised pool
  * @param activity  { "owner/repo": { lastCommitAt, commits, lines } }
- * @param cfg       full config (for workSlots)
+ * @param cfg       full config (for workSlots, and `pinned` when given)
  * @param now       Date
- * @param pinned    keys to keep in place (previous build); see below
+ * @param prev      keys displayed by the PREVIOUS build, or null on a first run
  *
- * HYSTERESIS. `pinned` is the set of candidates displayed by the previous
- * build, read from the committed `assets/generated/selected-work.json`. A
- * challenger has to lead an incumbent by the incumbent's `hysteresis` days of
- * recency before it takes the slot. Without it a single commit on a side
- * project reshuffles the portfolio for a day and reshuffles it back, which
- * reads as noise rather than as a decision.
+ * CORE IS A PREFERENCE, NOT A PERMANENT SEAT.
  *
- * The guard only ever holds a project that is still eligible and still close;
- * a genuinely abandoned incumbent loses the slot as soon as the gap opens.
+ * An earlier draft seated every `tier: "core"` project unconditionally, which
+ * meant a core project last touched years ago would hold a card forever and a
+ * project being built every day could never take it. That conflates "important"
+ * with "fixed". The three states are now separate and each one is somebody's
+ * explicit decision:
+ *
+ *   tier: "core"       strongly preferred. Leads its comparison by the margin
+ *                      in `coreLeadDays`, then competes for the remaining
+ *                      slots on merit. Retires like anything else once that
+ *                      margin is exhausted.
+ *   pinned: ["key"]    genuinely permanent. Never retires. This is the one
+ *                      mechanism for "this stays on the page no matter what",
+ *                      and it is deliberately a hand-edit in config, not a
+ *                      side effect of being important.
+ *   tier: "candidate"  no preference beyond the stability guard.
+ *
+ * THE STABILITY GUARD (`hysteresis`) is applied the same way to everything,
+ * core included: a challenger must lead an incumbent by the incumbent's own
+ * margin, in days of recency, before it takes the seat. It is what stops one
+ * commit on a side project reshuffling the portfolio for a day and reshuffling
+ * it back. It only ever holds a project that is still close; a genuinely
+ * abandoned incumbent loses the seat as soon as the gap opens.
  */
-export function select(projects, activity, cfg, now, pinned = null) {
-  const slots = cfg.workSlots ?? 6
+export function select(projects, activity, cfg, now, prev = null) {
+  const slots = cfg.workSlots ?? DEFAULT_SLOTS
+  const pinnedKeys = new Set(cfg.pinned ?? [])
+  const coreLeadDays = cfg.coreLeadDays ?? DEFAULT_CORE_LEAD_DAYS
+  const hysteresisDays = cfg.hysteresisDays ?? DEFAULT_HYSTERESIS_DAYS
+
   const rows = projects.map((p) => {
     const days = recencyOf(p.repo, activity, now)
     return { p, days, s: score(p, days, activity?.[p.repo]?.lines ?? 0) }
   })
 
+  // Ranking. Pinned first, then the core lead, then the score itself.
+  //
+  // The core lead is expressed as a RANK KEY rather than as a bonus added to
+  // `score`, so that no amount of declared importance can lift a project past
+  // the recency window — a core project a year cold still ends up behind one
+  // being written today, it simply has to be beaten by the full window first.
+  // `_score` stays a pure reading of the work and is what the console prints.
+  const rankLed = new Map()
+  const rank = (r) => {
+    const lead = r.p.tier === "core" ? coreLeadDays / RECENCY_WINDOW_DAYS : 0
+    const key = r.s.composite + lead
+    rankLed.set(r.p.key, key)
+    return key
+  }
+  for (const r of rows) rank(r)
+
   const byScore = (a, b) => b.s.score - a.s.score || a.p.key.localeCompare(b.p.key)
+  const byRank = (a, b) =>
+    (pinnedKeys.has(b.p.key) ? 1 : 0) - (pinnedKeys.has(a.p.key) ? 1 : 0) ||
+    rankLed.get(b.p.key) - rankLed.get(a.p.key) ||
+    a.p.key.localeCompare(b.p.key)
 
-  const core = rows.filter((r) => r.p.tier === "core").sort(byScore)
-  const rest = rows.filter((r) => r.p.tier !== "core").sort(byScore)
+  // Seats that are not up for discussion.
+  const fixed = rows.filter((r) => pinnedKeys.has(r.p.key)).sort(byRank)
+  const openSlots = Math.max(0, slots - fixed.length)
 
-  // Core always shows. If config declares more core projects than there are
-  // slots the extra ones are dropped by score rather than silently shrinking
-  // the page, because the layout is a fixed six-card grid.
-  const chosen = [...core]
+  const seatable = rows.filter((r) => !pinnedKeys.has(r.p.key)).sort(byRank)
+  const incumbents = prev?.length ? seatable.filter((r) => prev.includes(r.p.key)) : []
 
-  // Slots left once core has taken its place. Core is not subject to the
-  // guard: it is pinned by declaration, not by history.
-  const openSlots = Math.max(0, slots - chosen.length)
+  // ONE MERGED PASS, STRONGEST FIRST. Seating incumbents and challengers in two
+  // separate passes is the bug this replaced: the challenger pass filled every
+  // slot before the incumbent pass ran, so a stale incumbent kept its seat
+  // forever while a decisively more active project waited outside. Here each
+  // seat is decided once, on merit, with the guard applied at the moment of
+  // decision.
+  const seated = []
+  for (const cand of seatable) {
+    if (seated.length >= openSlots) break
 
-  if (pinned && pinned.length && openSlots > 0) {
-    const incumbents = rest.filter((r) => pinned.includes(r.p.key))
-    const challengers = rest.filter((r) => !pinned.includes(r.p.key))
+    // An incumbent that the guard would protect keeps its seat when it comes
+    // up. It is not given a pass ahead of the stronger candidates — it is
+    // simply holding a seat the moment its turn arrives.
+    if (!incumbents.length || incumbents.includes(cand)) { seated.push(cand); continue }
 
-    // The guard is expressed in days of recency, so it is directly comparable
-    // to the gap the reader can see: "this challenger must be N days fresher
-    // than what it would replace." Converted to score units because that is
-    // what the ordering runs on.
-    const guardOf = (inc) => (inc.p.hysteresis / RECENCY_WINDOW_DAYS) * W_RECENCY
-
-    // SEAT THE STRONGEST FIRST, from one merged list. Seating challengers and
-    // incumbents in two separate passes is the bug this replaced: the
-    // incumbent pass only ran after the challenger pass had already filled
-    // every slot, so a stale incumbent silently kept its place forever while a
-    // decisively more active project waited outside. Merging means each seat is
-    // decided once, on merit, with the guard applied at the moment of decision.
-    const seated = []
-    const seatable = [...rest].sort(byScore)
-
-    for (const cand of seatable) {
-      if (seated.length >= openSlots) break
-      const isIncumbent = pinned.includes(cand.p.key)
-      if (isIncumbent) { seated.push(cand); continue }
-
-      // A challenger must clear every incumbent that would otherwise hold a
-      // seat, by that incumbent's own guard margin.
-      const blocked = incumbents.some(
-        (inc) => !seated.includes(inc) && inc.p.hysteresis > 0 && cand.s.score <= inc.s.score + guardOf(inc)
-      )
-      if (!blocked) seated.push(cand)
-    }
-
-    chosen.push(...seated)
-  } else if (openSlots > 0) {
-    chosen.push(...rest.slice(0, openSlots))
+    // A challenger must clear every unseated incumbent by the guard margin.
+    // Both sides are composite score units, and the margin is expressed in
+    // days divided by the same window the score uses — so "14 days fresher" is
+    // one number in config rather than a conversion the reader has to do.
+    const margin = hysteresisDays / RECENCY_WINDOW_DAYS
+    const blocked = incumbents.some(
+      (inc) => !seated.includes(inc) && cand.s.composite <= inc.s.composite + margin
+    )
+    if (!blocked) seated.push(cand)
   }
 
-  return chosen
+  return [...fixed, ...seated]
     .slice(0, slots)
-    .sort((a, b) => b.s.score - a.s.score || a.p.key.localeCompare(b.p.key))
+    // Cards are placed by score, so the grid does not reorder itself every time
+    // somebody edits a weight. This ordering is what the reader sees and what
+    // the build log prints.
+    .sort(byScore)
     .map((r) => ({ ...r.p, _days: r.days, _score: r.s.score }))
 }
 

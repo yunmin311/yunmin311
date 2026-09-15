@@ -9,15 +9,18 @@
  *   what broke lowlighter/metrics' habits and activity plugins, but the event
  *   `created_at` timestamps survived — and timestamps are all a rhythm chart
  *   ever needed.
- * - Language share is measured across the declared project pool rather than
- *   everything owned. One repository of built HTML is enough to report
- *   "86% HTML", which is true and useless.
+ * - Language share is measured across the projects SELECTED WORK is currently
+ *   showing, not across everything owned. One repository of built HTML is
+ *   enough to report "86% HTML", which is true and useless — and counting the
+ *   whole declared pool would put numbers on the page that belong to projects
+ *   the reader cannot see.
  *
  * WHAT IS DYNAMIC AND WHAT IS CURATED. Read this before assuming a panel is
  * broken because its numbers did not move:
  *
  *   dynamic (recomputed every run)   rhythm · contributions · stars · activity
- *                                    · language chart numbers · SELECTED WORK's
+ *                                    · the language chart's numbers AND the set
+ *                                    of projects it counts · SELECTED WORK's
  *                                    member set and order
  *   curated (only changes when       every word on a card (name/why/tags/url),
  *   config.json changes)             the section headings, the hero, the
@@ -30,7 +33,7 @@
  * went wrong. See check.mjs, which now detects the frozen-rule case.
  */
 
-import { events, graphql, starred, languagesOf, repoOf } from "./gh.mjs"
+import { events, graphql, starred, languagesOf } from "./gh.mjs"
 import { authoredLines } from "./authored.mjs"
 import { deEmoji, clamp } from "./design.mjs"
 import { ago } from "./format.mjs"
@@ -45,10 +48,27 @@ export async function collect(cfg) {
   const offsetH = 8 // Asia/Shanghai, no DST
   const now = new Date()
 
-  // The declared pool is the single source of truth for both panels; the scope
-  // below is DERIVED from it, never typed out a second time.
+  // The declared pool is the single source of truth for both panels.
   const projects = normalise(cfg)
-  const scopeRepos = languageRepos(projects)
+
+  // SCOPE IS THE DISPLAYED SET. Two passes are unavoidable here and the reason
+  // is worth stating, because it looks like waste:
+  //
+  //   1. which cards are shown  needs recency, which only comes from the clones
+  //   2. the language mix       is counted over whatever pass 1 chose
+  //
+  // The second pass re-clones. That is the price of LANGUAGE SIGNAL meaning
+  // "the work above it" rather than "everything I have ever declared" — and the
+  // alternative, counting the whole pool, would put numbers on the page that
+  // belong to projects the reader cannot see. The clones are cached by git in
+  // the same run, and this happens twice a day.
+  const poolRepos = projects.map((p) => p.repo)
+  const first = await authoredLines(poolRepos, languageOptions(cfg).identities, {
+    skipLanguages: languageOptions(cfg).exclude,
+  })
+  const signal = first?.perRepo ? Object.fromEntries(first.perRepo) : {}
+  const picked = select(projects, signal, cfg, now, cfg.__pickedProjects ?? null)
+  const scopeRepos = languageRepos(picked)
 
   const [raw, cal, stars, langs] = await Promise.all([
     events(login, 3),
@@ -60,12 +80,6 @@ export async function collect(cfg) {
   const evs = raw
     .filter((e) => e.actor?.login?.toLowerCase() === login.toLowerCase())
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-
-  // Recency + volume per repository, straight out of the clones the language
-  // chart already needs. A project whose clone failed simply has no signal and
-  // is treated as "age unknown", never as "fresh" — see score() in projects.mjs.
-  const signal = langs.perRepo || {}
-  const picked = select(projects, signal, cfg, now, cfg.__pinnedProjects ?? null)
 
   return {
     now,
@@ -81,7 +95,12 @@ export async function collect(cfg) {
     })),
     languages: langs,
     activity: activity(evs, cfg),
-    work: { picked, signal, staleness: staleness(projects, signal, picked, now) },
+    work: {
+      picked,
+      signal,
+      scopeRepos,
+      staleness: staleness(projects, signal, picked, now, cfg.stalenessToleranceDays),
+    },
   }
 }
 
@@ -223,11 +242,12 @@ function languageOptions(cfg) {
  *
  * The scope is PASSED IN rather than read from config. It used to be
  * `cfg.languageScope.repos`, a second hand-kept list that could disagree with
- * the cards about what the work is; it is now derived from `cfg.projects` by
- * lib/projects.mjs, so there is exactly one list in the repository.
+ * the cards about what the work is; it is now derived from the cards the
+ * selection rule actually chose — see collect() above.
  */
 async function languages(cfg, repos) {
   const { limit, exclude = [], identities } = languageOptions(cfg)
+  const countedLabel = "THE SELECTED WORK ABOVE"
 
   if (languageOptions(cfg).method !== "bytes") {
     const r = await authoredLines(repos, identities, { skipLanguages: exclude })
@@ -240,7 +260,7 @@ async function languages(cfg, repos) {
         top,
         repoCount: r.repos.length,
         scopeCount: repos.length,
-        caption: "LINES I WROTE, ACROSS SELECTED WORK",
+        caption: `LINES I WROTE, ACROSS ${countedLabel}`,
         summary: `${fmtLines(r.totalLines)} lines`,
         // Says "3 of 4" when a clone failed, so a partial reading never passes
         // itself off as a complete one.
@@ -250,8 +270,6 @@ async function languages(cfg, repos) {
           `Generated and vendored files excluded.`,
         method: "authored-lines",
         partial,
-        // Recency for SELECTED WORK's ordering rides along on this walk.
-        perRepo: r.perRepo,
       }
     }
     console.warn("! in-depth analysis unavailable, falling back to repository language bytes")
@@ -289,31 +307,15 @@ async function languageBytes(cfg, repos) {
 
   const top = ranked.slice(0, limit).map((l) => ({ name: l.name, pct: l.pct, amount: fmtBytes(l.bytes) }))
 
-  // The byte fallback carries no commit history, so SELECTED WORK gets its
-  // recency from the repository's own `pushed_at`. Weaker than a real clone —
-  // it counts a bot push as activity — but the alternative is ordering on
-  // nothing at all. `volume` stays zero, which is why the fallback is announced
-  // on the panel rather than passed off as the real reading.
-  const perRepo = {}
-  for (const full of counted) {
-    try {
-      const repo = await repoOf(full)
-      perRepo[full] = { lastCommitAt: repo.pushed_at ?? null, commits: null, lines: 0 }
-    } catch {
-      perRepo[full] = { lastCommitAt: null, commits: null, lines: 0 }
-    }
-  }
-
   return {
     top,
     repoCount: counted.length,
     scopeCount: repos.length,
-    caption: "SOURCE BYTES ACROSS SELECTED WORK",
+    caption: "SOURCE BYTES ACROSS THE SELECTED WORK ABOVE",
     summary: fmtBytes(sum),
     note: `Repository language bytes across ${counted.length} selected repositories. Built and vendored output excluded.`,
     method: "bytes",
     partial: counted.length < repos.length,
-    perRepo,
   }
 }
 

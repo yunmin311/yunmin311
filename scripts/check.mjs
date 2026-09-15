@@ -38,23 +38,24 @@ const problems = []
 
 const generated = (await readdir(resolve(ROOT, "assets/generated"))).map((f) => `assets/generated/${f}`)
 
-/* ------------------------------------------------- cards point at real files */
-
-// SELECTED WORK's cast changes between runs, so membership is checked against
-// what the build recorded rather than against config. A project that stopped
-// being selected leaves an orphaned file — harmless — but a selected project
-// with NO file is a broken image, and that is what this catches.
+// What the last build chose, and the activity readings behind it. Read here
+// rather than recomputed: this file must be able to run on a checkout with no
+// network, which is exactly the situation a reviewer is in.
 const STATE = resolve(ROOT, "assets/generated/selected-work.json")
 let state = null
 try { state = JSON.parse(await readFile(STATE, "utf8")) } catch {}
 
-const cardKeys = new Set()
-for (const f of generated) {
-  const m = /^work-(.+)\.svg$/.exec(f.split("/").pop())
-  if (m && !f.endsWith("-m.svg")) cardKeys.add(m[1])
-}
+/* ------------------------------------------------- cards point at real files */
+
+// SELECTED WORK's cast changes between runs, so membership is checked against
+// what the build recorded rather than against config. Each recorded project
+// must have BOTH variants on disk: a missing desktop card is invisible, a
+// missing phone card is broken on every phone.
 for (const key of state?.keys ?? []) {
-  if (!cardKeys.has(key)) problems.push(`selected project \`${key}\` has no generated card`)
+  for (const suffix of [".svg", "-m.svg"]) {
+    const f = `assets/generated/work-${key}${suffix}`
+    if (!generated.includes(f)) problems.push(`selected project \`${key}\` has no generated card (${f})`)
+  }
 }
 
 /* ------------------------------------------- every card is reachable, and back */
@@ -67,18 +68,26 @@ for (const path of [...referenced].sort()) {
   }
 }
 
-/* ------------------------------------- the language scope still covers the pool */
+/* ------------------------------------- the language scope covers what is shown */
 
-// A project declared `count` that produces no reading is the quiet failure
-// mode: the chart keeps drawing, one language lighter, and nothing says so.
+// LANGUAGE SIGNAL counts the projects the cards are showing. If a project is
+// displayed, declared `count`, and produces no reading, the chart keeps drawing
+// one language lighter and nothing says so — which is the quiet failure this
+// catches. It compares against the SELECTION rule rather than the whole pool,
+// because a `count` project that is simply not on the page is not a problem.
 try {
   const cfg = JSON.parse(await readFile(resolve(ROOT, "scripts/config.json"), "utf8"))
-  const scope = languageRepos(normalise(cfg))
-  const listed = (cfg.projects ?? []).filter((p) => (p.languages ?? "count") === "count")
-  if (scope.length !== listed.length) {
-    problems.push(`language scope dropped ${listed.length - scope.length} project(s) declared 'count'`)
+  const projects = normalise(cfg)
+  const shown = new Set(state?.keys ?? projects.map((p) => p.key))
+  const displayed = projects.filter((p) => shown.has(p.key))
+  const expected = displayed.filter((p) => p.languages === "count").map((p) => p.repo)
+  const counted = new Set((state?.scopeRepos ?? expected).map(String))
+
+  for (const repo of expected) {
+    if (!counted.has(repo)) problems.push(`\`${repo}\` is displayed and declared 'count' but was not counted`)
   }
-  if (!scope.length) problems.push("language scope is empty — the chart would have nothing to draw")
+  const declared = projects.filter((p) => p.languages === "count")
+  if (!declared.length) problems.push("no project is declared 'count' — the chart would have nothing to draw")
 } catch (err) {
   problems.push(`config.json could not be normalised: ${err.message}`)
 }
@@ -102,17 +111,16 @@ if (orphans.length) console.log(orphans.map((o) => `  · ${o.split("/").pop()}`)
  * page whose cards had not changed in weeks, because the gates only ever
  * inspected the output.
  *
- * This one inspects the RULE. It compares the most active project that is
- * displayed against the most active one that is not: if something materially
- * busier has been left outside for longer than the tolerance, the model has
+ * This one inspects the RULE. It compares the freshest project that is NOT
+ * displayed against the stalest one that is: if something materially more
+ * active has been left outside for longer than the tolerance, the model has
  * drifted from reality and the run fails loudly instead of the page going
  * quietly old.
  *
- * It needs recent activity, which only a build can supply, so it reads the
- * build's own reading of the pool. Absent that — a docs-only change, a fresh
- * checkout — it is skipped rather than guessed at.
+ * It reads the activity readings the build recorded, so it works on a checkout
+ * with no network. Without that record — a docs-only change, a first clone —
+ * it is skipped rather than guessed at.
  */
-const READING = resolve(ROOT, "assets/generated/selected-work.json")
 if (state?.signal) {
   const cfg = JSON.parse(await readFile(resolve(ROOT, "scripts/config.json"), "utf8"))
   const pool = normalise(cfg)
@@ -132,21 +140,22 @@ if (state?.signal) {
     const bestOutside = Math.min(...outside)
     const worstInside = Math.max(...inside)
     const lag = worstInside - bestOutside
-    const TOLERANCE_DAYS = 45
+    const tolerance = cfg.stalenessToleranceDays ?? 45
     console.log(
       `selected work: freshest unshown ${bestOutside.toFixed(0)}d · ` +
-        `stalest shown ${worstInside.toFixed(0)}d · lag ${lag.toFixed(0)}d (tolerance ${TOLERANCE_DAYS}d)`
+        `stalest shown ${worstInside.toFixed(0)}d · lag ${lag.toFixed(0)}d (tolerance ${tolerance}d)`
     )
-    if (lag > TOLERANCE_DAYS) {
+    if (lag > tolerance) {
       problems.push(
         `SELECTED WORK has gone stale: a project ${bestOutside.toFixed(0)}d old is not displayed, ` +
-          `while a displayed one is ${worstInside.toFixed(0)}d old (${lag.toFixed(0)}d behind). ` +
-          `Either add missing projects to config.projects, or lower the incumbent's hysteresis.`
+          `while a displayed one is ${worstInside.toFixed(0)}d old (${lag.toFixed(0)}d behind, ` +
+          `tolerance ${tolerance}d). Either add the missing project to config.projects, or raise ` +
+          `coreLeadDays / lower hysteresisDays.`
       )
     }
   }
 } else if (state?.keys) {
-  console.log("selected work: no activity signal recorded, staleness not checked")
+  console.log("selected work: no activity readings recorded, staleness not checked")
 }
 
 if (problems.length) {

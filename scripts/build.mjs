@@ -45,14 +45,15 @@ const CACHE = resolve(ROOT, "scripts/.cache.json")
  * HYSTERESIS STATE.
  *
  * SELECTED WORK's ordering has a stability guard (see lib/projects.mjs): a
- * challenger must lead an incumbent for several days before it takes the slot.
- * That guard needs to know what the previous run displayed, and the only
+ * challenger must lead an incumbent by `hysteresisDays` before it takes the
+ * seat. That guard needs to know what the previous run displayed, and the only
  * durable, inspectable place to keep it is a committed file next to the images
  * it describes — a workflow cache would be invisible and would silently reset.
  *
- * It is written ONLY when the membership actually changes, so a stable page
- * does not produce a pointless commit every six hours. `check.mjs` reads it
- * back and fails the run if it and the images ever disagree.
+ * It records the membership AND the activity readings that produced it, so a
+ * checkout with no network can still be checked by `check.mjs`. It is written
+ * ONLY when the membership actually changes, so a stable page does not produce
+ * a pointless commit every six hours.
  */
 const STATE = resolve(OUT, "selected-work.json")
 
@@ -68,10 +69,11 @@ const cfg = JSON.parse(await readFile(resolve(ROOT, "scripts/config.json"), "utf
 await mkdir(OUT, { recursive: true })
 
 // Feed the previous membership in before collect() runs, so the ordering rule
-// can apply its guard. Absent on a first build, which is the unguarded path.
+// can apply its stability guard. Absent on a first build, which is the
+// unguarded path.
 try {
   const prev = JSON.parse(await readFile(STATE, "utf8"))
-  if (Array.isArray(prev?.keys)) cfg.__pinnedProjects = prev.keys
+  if (Array.isArray(prev?.keys)) cfg.__pickedProjects = prev.keys
 } catch { /* no state yet — first build, or the file was removed on purpose */ }
 
 let ctx
@@ -138,17 +140,43 @@ console.log(`\n${written} file(s) -> assets/generated/`)
 
 /* ---------------------------------------------------- selected work state */
 
-// Written only when the membership changes. A member reordering within the same
-// six would otherwise churn the file every run, and the workflow commits the
-// whole directory when anything in it moved.
+// The membership, plus the activity readings behind it. The readings are here
+// rather than in a separate file because they are what `check.mjs` needs to
+// judge staleness on a checkout that has no network and cannot re-measure —
+// and because a state file that records only WHAT was chosen, with no trace of
+// WHY, cannot be audited six weeks later.
 if (ctx?.work?.picked?.length) {
   const keys = ctx.work.picked.map((p) => p.key)
-  const next = { keys, slots: cfg.workSlots ?? 6, updated: ctx.now.toISOString() }
+  const signal = ctx.work.signal ?? {}
+  const scopeRepos = ctx.work.scopeRepos ?? []
+
+  // Read what the last run left BEFORE deciding whether to write. Comparing on
+  // content is what keeps a stable page from producing a commit every six
+  // hours — `generated` is included in the comparison, so it is carried over
+  // verbatim when nothing moved and only advances when something did.
   let before = null
   try { before = JSON.parse(await readFile(STATE, "utf8")) } catch {}
-  if (!before || JSON.stringify(before.keys) !== JSON.stringify(keys)) {
+
+  const sameAs = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+  const moved =
+    !before ||
+    !sameAs(before.keys, keys) ||
+    !sameAs(before.signal, signal) ||
+    !sameAs(before.scopeRepos, scopeRepos)
+
+  if (moved) {
+    const next = {
+      keys,
+      slots: cfg.workSlots ?? 6,
+      scopeRepos,
+      // The readings are kept because `check.mjs` judges staleness from them on
+      // a checkout with no network. A file that recorded only WHAT was chosen,
+      // with no trace of WHY, could not be audited six weeks later.
+      signal,
+      generated: ctx.now.toISOString(),
+    }
     await writeFile(STATE, JSON.stringify(next, null, 2) + "\n", "utf8")
-    console.log(`  selected-work   keys=${keys.join(",")} (changed)`)
+    console.log(`  selected-work   keys=${keys.join(",")}${before ? " (changed)" : " (first build)"}`)
   } else {
     console.log(`  selected-work   keys=${keys.join(",")} (unchanged)`)
   }
@@ -157,19 +185,17 @@ if (ctx?.work?.picked?.length) {
     const d = p._days == null ? "age unknown" : `${Math.round(p._days)}d ago`
     console.log(`    ${p.tier.padEnd(9)} ${p.key.padEnd(24)} ${d.padEnd(12)} score ${p._score.toFixed(3)}`)
   }
+  console.log(`  language scope  ${(ctx.work.scopeRepos ?? []).join(" ")}`)
+
+  // The gate itself lives in check.mjs and runs as its own step. Reporting it
+  // here as well means the build log says why before the check fails, which is
+  // the difference between "the build is red" and "the rule has drifted".
   const st = ctx.work.staleness
   if (st.stale) {
-    // The marker is what lets a SCHEDULED run open a failure issue. Every other
-    // failure is excluded from that on purpose — an API blip at 05:17 is not
-    // worth an email and heals itself. This one does not heal: it means the
-    // selection rule has drifted from reality, which is precisely the condition
-    // that used to go unnoticed for weeks. A file is used rather than a phrase
-    // in the log so the workflow's test cannot be tripped by an unrelated error
-    // that happens to contain the same words.
-    await writeFile(resolve(ROOT, "stale-selected-work"), `${new Date().toISOString()}\n`, "utf8")
     console.warn(
-      `! SELECTED WORK is lagging: best unshown project is ${st.bestOutsideDays}d old vs ` +
-        `${st.worstInsideDays}d for the stalest shown one (${st.lagDays}d gap).`
+      `! SELECTED WORK is lagging: freshest unshown project is ${st.bestOutsideDays}d old vs ` +
+        `${st.worstInsideDays}d for the stalest shown one (${st.lagDays}d gap, tolerance ` +
+        `${cfg.stalenessToleranceDays ?? 45}d).`
     )
   }
 

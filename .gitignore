@@ -10,10 +10,4 @@ scripts/.cache.json
 # Build transcript, written by the workflow so a failure can be quoted back
 build.log
 
-# Written by the build when SELECTED WORK's selection rule has drifted from
-# reality. It exists only so a SCHEDULED run can open a failure issue — every
-# other failure is deliberately silent on schedule, because those heal. Never
-# committed: it describes one run, not the repository.
-stale-selected-work
-
 node_modules/

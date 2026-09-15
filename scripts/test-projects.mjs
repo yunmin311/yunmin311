@@ -70,6 +70,33 @@ t("workSlots fits the card grid", () => {
   assert.equal(cfg.workSlots, 6)
 })
 
+t("every policy number is in config, not hard-coded", () => {
+  // The numbers are policy, so they belong where they can be changed without
+  // reading any code. A missing one silently falls back to a constant nobody
+  // sees, which is how a page ends up behaving in a way its config denies.
+  for (const field of ["coreLeadDays", "hysteresisDays", "stalenessToleranceDays"]) {
+    assert.ok(Number.isFinite(cfg[field]), `config.${field} must be a number`)
+    assert.ok(cfg[field] >= 0, `config.${field} must not be negative`)
+  }
+  assert.ok(Array.isArray(cfg.pinned), "config.pinned must be an array")
+})
+
+t("pinned names only real projects", () => {
+  const keys = new Set(normalise(cfg).map((p) => p.key))
+  for (const k of cfg.pinned ?? []) {
+    assert.ok(keys.has(k), `pinned key \`${k}\` is not a project`)
+  }
+})
+
+t("hysteria values are not packaged as settled", () => {
+  // Guards against the values being quietly re-introduced per project, which
+  // is how the earlier 10/14/21 gradient came to look like a finding.
+  for (const p of cfg.projects) {
+    assert.equal(p.hysteresis, undefined, `${p.key} should not carry its own hysteresis`)
+    assert.equal(p.weight, undefined, `${p.key} should not carry its own weight`)
+  }
+})
+
 /* --------------------------------------------------------------- validation */
 
 console.log("\nnormalise — rejects bad input by name")
@@ -105,8 +132,6 @@ t("defaults are applied", () => {
   const [p] = normalise(base)
   assert.equal(p.tier, "candidate")
   assert.equal(p.languages, "count")
-  assert.equal(p.weight, 0)
-  assert.equal(p.hysteresis, 0)
   assert.equal(p.repo, "yunmin311/a", "repo defaults to the login/key slug")
 })
 
@@ -114,35 +139,49 @@ t("defaults are applied", () => {
 
 console.log("\nlanguageRepos — derived, not typed twice")
 
-t("only `count` projects are counted", () => {
-  const p = normalise({ projects: [
-    { ...base.projects[0], key: "a", languages: "count" },
-    { ...base.projects[0], key: "b", languages: "exclude" },
-    { ...base.projects[0], key: "c", languages: "n/a" },
+t("the scope is the DISPLAYED set, not the whole pool", () => {
+  // THE SEMANTIC THIS GUARDS. LANGUAGE SIGNAL sits under SELECTED WORK and is
+  // read as a caption on it, so it must count the cards that are actually on
+  // the page. Counting the pool would attribute lines to projects the reader
+  // cannot see.
+  const pool = normalise({ projects: [
+    { ...base.projects[0], key: "hot",    languages: "count" },
+    { ...base.projects[0], key: "warm",   languages: "count" },
+    { ...base.projects[0], key: "hidden", languages: "count" },
   ] })
-  assert.deepEqual(languageRepos(p), ["yunmin311/a"])
+  const s = {
+    "yunmin311/hot":    { lastCommitAt: daysAgo(1),  lines: 9000 },
+    "yunmin311/warm":   { lastCommitAt: daysAgo(20), lines: 5000 },
+    "yunmin311/hidden": { lastCommitAt: daysAgo(90), lines: 100 },
+  }
+  const displayed = select(pool, s, { ...cfg, workSlots: 2 }, NOW, null)
+  const scope = languageRepos(displayed)
+  assert.deepEqual(scope.sort(), ["yunmin311/hot", "yunmin311/warm"])
+  assert.ok(!scope.includes("yunmin311/hidden"), `hidden leaked into ${scope}`)
 })
 
-t("excluded projects are still displayable", () => {
-  // DenseGPT must be able to appear as a card without supplying line counts.
-  const p = normalise({ projects: [base.projects[0], { ...base.projects[0], key: "b", languages: "n/a" }] })
-  assert.equal(p.length, 2)
-  assert.equal(languageRepos(p).length, 1)
+t("a displayed project declared n/a is not counted", () => {
+  const pool = normalise({ projects: [
+    { ...base.projects[0], key: "code", languages: "count" },
+    { ...base.projects[0], key: "css",  languages: "n/a" },
+  ] })
+  const displayed = select(pool, {}, { ...cfg, workSlots: 2 }, NOW, null)
+  assert.deepEqual(languageRepos(displayed), ["yunmin311/code"])
 })
 
 t("the shipped scope matches the shipped cards' pool", () => {
   // If this ever fails, the two panels have started to disagree about what the
   // work is — which is the exact regression this module prevents.
   const p = normalise(cfg)
-  const counted = languageRepos(p)
-  const displayed = select(p, {}, cfg, NOW, null).map((x) => x.repo)
+  const displayed = select(p, {}, cfg, NOW, null)
+  const counted = languageRepos(displayed)
   for (const repo of counted) {
     assert.ok(
-      p.some((x) => x.repo === repo),
-      `${repo} is counted but not in the pool`
+      displayed.some((x) => x.repo === repo),
+      `${repo} is counted but not displayed`
     )
   }
-  assert.ok(counted.length >= 4, `scope collapsed to ${counted.length} repos`)
+  assert.equal(counted.length, displayed.filter((x) => x.languages === "count").length)
   assert.ok(displayed.length > 0)
 })
 
@@ -207,9 +246,9 @@ console.log("\nselect — membership and stability")
 
 const pool = normalise({ projects: [
   { ...base.projects[0], key: "core1", tier: "core" },
-  { ...base.projects[0], key: "new",   hysteresis: 0 },
-  { ...base.projects[0], key: "old",   hysteresis: 0 },
-  { ...base.projects[0], key: "mid",   hysteresis: 0 },
+  { ...base.projects[0], key: "new" },
+  { ...base.projects[0], key: "old" },
+  { ...base.projects[0], key: "mid" },
 ] })
 const sig = {
   "yunmin311/core1": { lastCommitAt: daysAgo(300), lines: 100 },
@@ -217,11 +256,57 @@ const sig = {
   "yunmin311/old":   { lastCommitAt: daysAgo(250), lines: 100 },
   "yunmin311/mid":   { lastCommitAt: daysAgo(30),  lines: 900 },
 }
-const small = { ...cfg, workSlots: 2 }
+// Slots are cut to two for the fixture; hysteresis is switched off so these
+// tests can isolate ordering from stability, which has its own cases below.
+const small = { ...cfg, workSlots: 2, hysteresisDays: 0 }
 
-t("core is always displayed", () => {
-  const picked = select(pool, sig, small, NOW, null).map((p) => p.key)
-  assert.ok(picked.includes("core1"), `core1 missing from ${picked}`)
+t("core leads a CLOSE comparison", () => {
+  // What the lead is actually for: two projects being worked on at the same
+  // time, where the only difference is that one of them is core. core1 is 40
+  // days behind but has more lines written; without the lead it would lose, and
+  // with it, it wins.
+  const p = normalise({ projects: [
+    { ...base.projects[0], key: "core1", tier: "core" },
+    { ...base.projects[0], key: "peer" },
+  ] })
+  const s = {
+    "yunmin311/core1": { lastCommitAt: daysAgo(50), lines: 30000 },
+    "yunmin311/peer":  { lastCommitAt: daysAgo(10), lines: 30000 },
+  }
+  const picked = select(p, s, { ...cfg, workSlots: 1, hysteresisDays: 0, coreLeadDays: 45 }, NOW, null)
+  assert.deepEqual(picked.map((x) => x.key), ["core1"], `expected core to lead, got ${picked.map((x) => x.key)}`)
+})
+
+t("core CAN retire when something decisively more active arrives", () => {
+  // THE POINT OF THE CHANGE. A core project must be able to lose its card, or
+  // "important" silently becomes "permanently fixed" and nothing new can ever
+  // displace it. Here core1 is 300 days cold and the challenger is one day old
+  // with more lines: the lead is not enough to hold.
+  const p = normalise({ projects: [
+    { ...base.projects[0], key: "cold-core", tier: "core" },
+    { ...base.projects[0], key: "hot-new" },
+  ] })
+  const s = {
+    "yunmin311/cold-core": { lastCommitAt: daysAgo(400), lines: 100 },
+    "yunmin311/hot-new":   { lastCommitAt: daysAgo(1),   lines: 60000 },
+  }
+  const picked = select(p, s, { ...cfg, workSlots: 1 }, NOW, null).map((x) => x.key)
+  assert.deepEqual(picked, ["hot-new"], `expected the active project to win, got ${picked}`)
+})
+
+t("pinned does NOT retire, however cold", () => {
+  // The one thing that IS permanent, and it is a hand-edit in config rather
+  // than a side effect of being important.
+  const p = normalise({ projects: [
+    { ...base.projects[0], key: "kept", tier: "candidate" },
+    { ...base.projects[0], key: "hot" },
+  ] })
+  const s = {
+    "yunmin311/kept": { lastCommitAt: daysAgo(900), lines: 10 },
+    "yunmin311/hot":  { lastCommitAt: daysAgo(1),   lines: 90000 },
+  }
+  const picked = select(p, s, { ...cfg, workSlots: 1, pinned: ["kept"] }, NOW, null).map((x) => x.key)
+  assert.deepEqual(picked, ["kept"], `expected the pinned project to hold, got ${picked}`)
 })
 
 t("candidates fill the remaining slots", () => {
@@ -247,29 +332,29 @@ t("no activity signal at all still yields a full, deterministic page", () => {
 })
 
 t("a challenger with no lead does not displace an incumbent", () => {
-  const hyst = normalise({ projects: [
-    { ...base.projects[0], key: "inc", hysteresis: 60 },
-    { ...base.projects[0], key: "cha", hysteresis: 0 },
+  const p = normalise({ projects: [
+    { ...base.projects[0], key: "inc" },
+    { ...base.projects[0], key: "cha" },
   ] })
-  // cha is only barely newer; inc's guard should hold the slot.
+  // cha is only barely newer; the guard should hold the seat.
   const s = {
     "yunmin311/inc": { lastCommitAt: daysAgo(20), lines: 1000 },
     "yunmin311/cha": { lastCommitAt: daysAgo(18), lines: 1000 },
   }
-  const picked = select(hyst, s, { ...cfg, workSlots: 1 }, NOW, ["inc"]).map((p) => p.key)
+  const picked = select(p, s, { ...cfg, workSlots: 1, hysteresisDays: 60 }, NOW, ["inc"]).map((x) => x.key)
   assert.deepEqual(picked, ["inc"], `expected inc to hold, got ${picked}`)
 })
 
 t("a decisively more active challenger does displace it", () => {
-  const hyst = normalise({ projects: [
-    { ...base.projects[0], key: "inc", hysteresis: 14 },
-    { ...base.projects[0], key: "cha", hysteresis: 0 },
+  const p = normalise({ projects: [
+    { ...base.projects[0], key: "inc" },
+    { ...base.projects[0], key: "cha" },
   ] })
   const s = {
     "yunmin311/inc": { lastCommitAt: daysAgo(120), lines: 1000 },
-    "yunmin311/cha": { lastCommitAt: daysAgo(1), lines: 1000 },
+    "yunmin311/cha": { lastCommitAt: daysAgo(1),   lines: 1000 },
   }
-  const picked = select(hyst, s, { ...cfg, workSlots: 1 }, NOW, ["inc"]).map((p) => p.key)
+  const picked = select(p, s, { ...cfg, workSlots: 1, hysteresisDays: 14 }, NOW, ["inc"]).map((x) => x.key)
   assert.deepEqual(picked, ["cha"], `expected cha to take over, got ${picked}`)
 })
 

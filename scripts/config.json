@@ -253,7 +253,7 @@
     "Most 'AI problems' are unclear-input problems wearing a costume.",
     "Two hours of naming things saves two weeks of explaining them."
   ],
-  "_projectsNote": "THE SINGLE SOURCE OF TRUTH for both SELECTED WORK and LANGUAGE SIGNAL. There is no second repository list anywhere: the cards and the language chart are both derived from this array by scripts/lib/projects.mjs, so they cannot drift apart. tier 'core' is always displayed; 'candidate' competes for the remaining slots of workSlots. Order is decided by recency (days since my last commit, weight 0.6, linear over 180 days) plus volume (log10 of lines I wrote, weight 0.4) — see score() in projects.mjs. Deliberately NOT stars, forks or raw commit counts. `weight` is a FLOOR, not a bonus: it lifts a project that recency would bury without letting it outrank something being actively built. `hysteresis` is the number of days a challenger must lead an incumbent before it takes the slot, so one small commit does not reshuffle the portfolio. languages: 'count' = included in LANGUAGE SIGNAL, 'exclude' = real code but distorting (generated or vendored), 'n/a' = nothing comparable to count. Excluded projects must be declared HERE and not dropped into a second list. Dyanmic vs curated: the CARDS' order and the CHART's numbers are dynamic; every word on a card is curated and only changes when this file changes.",
+  "_projectsNote": "THE SINGLE SOURCE OF TRUTH for both SELECTED WORK and LANGUAGE SIGNAL. There is no second repository list anywhere: the cards and the language chart are both derived from this array by scripts/lib/projects.mjs. LANGUAGE SIGNAL counts exactly the projects currently SHOWN as cards, so the chart is always a caption on the grid above it — never on projects the reader cannot see. THE RULE, IN THREE STATES: tier 'core' = strongly preferred, leads a comparison by coreLeadDays, then competes on merit like everything else and RETAINS THE ABILITY TO RETIRE; tier 'candidate' = no preference beyond the stability guard; `pinned` (top level) = genuinely permanent, never retires — the ONLY way to say 'always on the page', and a deliberate hand-edit rather than a side effect of being important. ORDERING: recency (days since my last commit, weight 0.6, linear over 180 days) plus volume (log10 of lines I wrote, weight 0.4). Deliberately NOT stars, forks or raw commit counts. languages: 'count' = contributes to LANGUAGE SIGNAL, 'exclude' = real code but distorting (generated or vendored), 'n/a' = nothing comparable to count; a project unsuitable for language stats must be declared HERE, never dropped into a second list. DYNAMIC: the cards' member set and order, and the chart's numbers AND its scope. CURATED, changing only when this file changes: every word on a card.",
   "projects": [
     {
       "key": "context-distiller",
@@ -268,8 +268,7 @@
       "url": "https://github.com/yunmin311/context-distiller",
       "repo": "yunmin311/context-distiller",
       "tier": "core",
-      "languages": "count",
-      "weight": 0.62
+      "languages": "count"
     },
     {
       "key": "governance-framework",
@@ -284,8 +283,7 @@
       "url": "https://github.com/yunmin311/governance-framework",
       "repo": "yunmin311/governance-framework",
       "tier": "core",
-      "languages": "count",
-      "weight": 0.6
+      "languages": "count"
     },
     {
       "key": "yunmin-workbench",
@@ -300,8 +298,7 @@
       "url": "https://github.com/yunmin311/yunmin-workbench",
       "repo": "yunmin311/yunmin-workbench",
       "tier": "candidate",
-      "languages": "count",
-      "hysteresis": 14
+      "languages": "count"
     },
     {
       "key": "dsh-universal-palette",
@@ -315,8 +312,7 @@
       "url": "https://github.com/yunmin311/dsh-universal-palette",
       "repo": "yunmin311/dsh-universal-palette",
       "tier": "candidate",
-      "languages": "count",
-      "hysteresis": 14
+      "languages": "count"
     },
     {
       "key": "window-annotator",
@@ -331,8 +327,7 @@
       "url": "https://github.com/yunmin311/window-annotator",
       "repo": "yunmin311/window-annotator",
       "tier": "candidate",
-      "languages": "count",
-      "hysteresis": 10
+      "languages": "count"
     },
     {
       "key": "zheng-tally-obsidian",
@@ -346,8 +341,7 @@
       "url": "https://github.com/yunmin311/zheng-tally-obsidian",
       "repo": "yunmin311/zheng-tally-obsidian",
       "tier": "candidate",
-      "languages": "count",
-      "hysteresis": 10
+      "languages": "count"
     },
     {
       "key": "work-capsule",
@@ -362,8 +356,7 @@
       "url": "https://github.com/yunmin311/work-capsule",
       "repo": "yunmin311/work-capsule",
       "tier": "candidate",
-      "languages": "count",
-      "hysteresis": 21
+      "languages": "count"
     },
     {
       "key": "pixel-panels",
@@ -378,8 +371,7 @@
       "url": "https://github.com/yunmin311/pixel-panels",
       "repo": "yunmin311/pixel-panels",
       "tier": "candidate",
-      "languages": "count",
-      "hysteresis": 21
+      "languages": "count"
     },
     {
       "key": "densegpt",
@@ -394,11 +386,15 @@
       "url": "https://github.com/yunmin311/DenseGPT",
       "repo": "yunmin311/DenseGPT",
       "tier": "candidate",
-      "languages": "n/a",
-      "hysteresis": 21
+      "languages": "n/a"
     }
   ],
   "workSlots": 6,
+  "coreLeadDays": 45,
+  "hysteresisDays": 14,
+  "stalenessToleranceDays": 45,
+  "pinned": [],
+  "_policyNote": "EVERY NUMBER HERE IS INITIAL POLICY, NOT AN EMPIRICAL RESULT. They were chosen to be reasonable, deterministic and easy to change — nothing was fitted to anything and none of them should be treated as settled. THE FOUR KNOBS, and what to turn: `hysteresisDays` is how many days fresher a challenger must be before it takes a card from what is already there — raise it if cards flicker in and out, lower it if a card you expect to see cannot get in. `coreLeadDays` is the head start `tier: 'core'` gets — raise it if a core project drops off, lower it if one is overstaying. `stalenessToleranceDays` is when the page admits the rule has drifted and fails the build — it affects reporting only, never what is displayed. `pinned` is not a number: it is the list of keys that never retire.",
   "_languageScopeNote": "HOW the language chart counts — not WHICH repositories. Scope is derived from `projects` above by lib/projects.mjs, so there is no repository list to keep in sync here. `identities` is matched case-insensitively against each commit's author email AND name; add an entry when a new machine commits under a different address, or those commits disappear from the chart with no error at all — the quietest way this panel can be wrong. `exclude` drops generated and vendored languages from the line count: the chart claims 'lines I wrote', and markup or lockfile churn is not writing. `method` is 'authored-lines' (clone each repo, count my insertions) and degrades to 'bytes' automatically if cloning fails; the panel prints which one is in force, because the two measure different things.",
   "languageScopeOptions": {
     "method": "authored-lines",
