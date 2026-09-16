@@ -1,7 +1,7 @@
 /**
  * WHERE SELECTED WORK AND LANGUAGE SIGNAL GET THEIR NUMBERS.
  *
- * THE FLOW, AND THERE IS ONLY ONE OF IT:
+ * TWO PANELS, TWO QUESTIONS, TWO SOURCES — and one collection each.
  *
  *   GraphQL -> the profile's PINNED repositories        lib/gh.mjs
  *                |
@@ -10,38 +10,42 @@
  *                |       primary language and topics)
  *                |
  *                +-> SELECTED WORK cards                panels/work.mjs
+ *
+ *   GraphQL -> every public repository the account owns  lib/gh.mjs
+ *                |      (forks, archives and the profile repo itself excluded)
  *                |
- *                +-> authoredSnapshots()  ONE clone per pinned repository
+ *                +-> authoredSnapshots()  ONE clone per repository in scope
  *                        |
  *                        +-> LANGUAGE SIGNAL            panels/languages.mjs
  *
- * There is no ranking stage between "pinned" and "shown". The pins ARE the
- * curation; re-scoring them would be a machine second-guessing a decision the
- * author already made by hand, and it is what used to make the page disagree
- * with the profile. Everything the old pipeline needed in order to rank —
- * recency, volume, a core tier, hysteresis, a pool to rank within — is gone
- * with it.
+ * THEY ARE NOT THE SAME SET, AND THEY ARE NOT SUPPOSED TO BE. SELECTED WORK is
+ * a curated shortlist — a claim about taste, made by hand in GitHub's pin
+ * dialog. LANGUAGE SIGNAL measures the body of work that shortlist was drawn
+ * from, so its scope is the whole account. Deriving the scope from the cards,
+ * as an earlier version did, made every percentage a statement about whichever
+ * six repositories happened to be pinned.
+ *
+ * What the two panels DO share is the discipline around the collection: one
+ * pass, one snapshot per repository, and a failure that arrives as a value
+ * ("unavailable") rather than as a silence that can be mistaken for zero.
  *
  * WHY IT MATTERS THAT THE COLLECTION IS SINGLE-PASS. Selection used to need
- * recency, so it cloned the whole pool; the chart then needed lines per
- * language, so it cloned the chosen six again. Two collections of the same
- * repositories, seconds apart, that could disagree — and did, whenever a clone
- * failed in one pass and not the other. The chart could then describe a set of
- * repositories that no longer matched the cards above it, with nothing anywhere
- * reporting the mismatch. Here the pinned set is collected once, into snapshots
- * that both panels read.
+ * recency, so it cloned a pool; the chart then needed lines per language, so it
+ * cloned the chosen six again. Two collections of the same repositories,
+ * seconds apart, that could disagree — and did, whenever a clone failed in one
+ * pass and not the other. Here the scope is collected once, into snapshots that
+ * the chart folds, and nothing else asks for an authored analysis.
  *
- * `collect()` returns `work` in the shape BUILD and CHECK consume. Compared
- * with the ranking version, `picked` now carries cards rather than scored rows,
- * and `staleness` is gone — there is no longer a pool for the page to fall
- * behind, because nothing is being left out.
+ * `collect()` returns `work` in the shape BUILD and CHECK consume. `picked` is
+ * cards rather than scored rows, and `staleness` is gone — there is no longer a
+ * pool for the page to fall behind, because nothing is being left out.
  */
 
-import { events, graphql, pinnedRepos, starred } from "./gh.mjs"
+import { events, graphql, ownedPublicRepos, pinnedRepos, starred } from "./gh.mjs"
 import { authoredSnapshots, aggregateLanguages } from "./authored.mjs"
 import { deEmoji, clamp } from "./design.mjs"
 import { ago } from "./format.mjs"
-import { cardOverrides, languageRepos, resolveCards, signalState } from "./projects.mjs"
+import { cardOverrides, LANGUAGES_CAPTION, languageNote, languageScope, resolveCards, signalState } from "./projects.mjs"
 
 const HOUR = 3600e3
 const DAY = 24 * HOUR
@@ -96,14 +100,49 @@ export async function collect(cfg) {
     )
   }
 
-  const scopeRepos = languageRepos(picked)
-
-  // ---- 3. ONE collection pass, over THE PINNED SET -------------------------
+  // ---- 3. LANGUAGE SIGNAL'S SCOPE. Every public repository this account owns.
   //
-  // Over the scope, which is the pinned set: there is no wider pool to measure,
-  // because nothing outside the pins can affect what is displayed. That is also
-  // why the collection is strictly a single pass — the language chart folds
-  // these same snapshots, and no other call site wants one.
+  // NOT the cards. The grid is a shortlist; the chart measures the body of work
+  // behind it. Deriving the scope from the cards is what made a percentage a
+  // statement about whichever six repositories happened to be pinned.
+  //
+  // Same fail-closed shape as the pins, for the same reason: if the list cannot
+  // be read, falling back to an empty scope would print "0 lines across 0
+  // repositories" — a number that looks like an answer and is not one. The
+  // previous run's scope is held instead, and a first run with no list to hold
+  // fails loudly rather than claiming the account wrote nothing.
+  let repoList = null
+  let scopeError = null
+  try {
+    repoList = await ownedPublicRepos(login)
+  } catch (err) {
+    scopeError = String(err.message).split("\n")[0]
+  }
+
+  let scopeRepos
+  let heldScope = false
+  if (repoList) {
+    scopeRepos = languageScope(repoList, login)
+  } else {
+    scopeRepos = cfg.__lastKnownGood?.scopeRepos ?? null
+    if (!Array.isArray(scopeRepos) || !scopeRepos.length) {
+      throw new Error(
+        `LANGUAGE SIGNAL cannot be drawn: the repository list could not be read (${scopeError}) ` +
+          `and no previous run recorded a scope to hold on to.`
+      )
+    }
+    heldScope = true
+    console.warn(`! repository list could not be read: ${scopeError}`)
+    console.warn(
+      `! holding LANGUAGE SIGNAL's scope at the ${scopeRepos.length} repositories the last successful run ` +
+        `recorded — an unreadable list is never rendered as "zero lines"`
+    )
+  }
+
+  // ---- 4. ONE collection pass, over the whole scope ------------------------
+  //
+  // Over the scope, and it is strictly a single pass: the chart folds exactly
+  // these snapshots, and no other call site asks for an authored analysis.
   const collected = await authoredSnapshots(scopeRepos, options.identities, { skipLanguages: options.exclude })
 
   const [raw, cal, stars] = await Promise.all([
@@ -126,8 +165,6 @@ export async function collect(cfg) {
   const chosen = scopeRepos.map((repo) => collected.byRepo.get(repo) ?? unknown(repo, "not collected"))
   const stats = aggregateLanguages(chosen)
   const partial = stats.failedCount > 0
-  // A repository back to the card that names it, for messages a human reads.
-  const keyOf = (repo) => picked.find((c) => c.repo === repo)?.key ?? repo
   const langs = {
     top: stats.ranked.slice(0, options.limit).map((l) => ({
       name: l.name,
@@ -136,18 +173,32 @@ export async function collect(cfg) {
     })),
     repoCount: stats.okCount,
     scopeCount: chosen.length,
-    measuredKeys: chosen.filter((s) => s.outcome === "ok").map((s) => keyOf(s.repo)),
-    missingKeys: chosen.filter((s) => s.outcome !== "ok").map((s) => keyOf(s.repo)),
-    caption: "LINES I WROTE, ACROSS THE SELECTED WORK ABOVE",
+    // `owner/name`, not a card key: the scope is the whole account now, and most
+    // of these repositories have no card at all. Naming them by a key that only
+    // exists for six of them would be a label pretending to be a lookup.
+    measuredKeys: chosen.filter((s) => s.outcome === "ok").map((s) => s.repo),
+    missingKeys: chosen.filter((s) => s.outcome !== "ok").map((s) => s.repo),
+    // The caption and the note say what the number is over. They used to name
+    // "the selected work above", which stopped being true the moment the scope
+    // became the whole account. Their wording lives in lib/projects.mjs, where
+    // a test can measure it against the panel's real line budget — the panel
+    // truncates this sentence silently.
+    caption: LANGUAGES_CAPTION,
     summary: `${fmtLines(stats.totalLines)} lines`,
-    // Says "3 of 4" when a measurement failed, so a partial reading never
-    // passes itself off as a complete one.
-    note:
-      `Lines I added in ${stats.commits} commits I authored, across ` +
-      `${partial ? `${stats.okCount} of ${chosen.length}` : `all ${chosen.length}`} pinned repos. ` +
-      `Generated and vendored files excluded.`,
+    // A repository that could not be read is reported as missing, never as
+    // having contributed nothing: "13 of 15" and "all 15" are different claims
+    // and the chart has to say which one it is making.
+    note: languageNote({
+      commits: stats.commits,
+      measured: stats.okCount,
+      scope: chosen.length,
+      partial,
+    }),
     method: "authored-lines",
     partial,
+    // True when this run could not read the repository list and is counting the
+    // previous run's scope. The numbers are real; they are just a run behind.
+    heldScope,
   }
 
   return {
@@ -167,10 +218,10 @@ export async function collect(cfg) {
      * For the build log: the proof the build makes about itself.
      *
      * `scopeRepos` IS the collection list — the same array, not a second one
-     * derived from it — so "the chart counted what the grid shows" is a
-     * property of the data flow rather than an assertion anybody has to
-     * remember to re-check. `reposRequested` is printed so a run that silently
-     * asked for fewer repositories than it displayed would be visible.
+     * derived from it — so "one collection over the whole scope" is a property
+     * of the data flow rather than an assertion anybody has to remember to
+     * re-check. `reposRequested` is printed so a run that silently asked for
+     * fewer repositories than it counted over would be visible.
      */
     analysis: {
       collectionPasses: 1,
@@ -411,9 +462,9 @@ export async function languageBytes(cfg, repos) {
     scopeCount: repos.length,
     measuredKeys: [],
     missingKeys: [],
-    caption: "SOURCE BYTES ACROSS THE SELECTED WORK ABOVE",
+    caption: "SOURCE BYTES ACROSS EVERY PUBLIC REPOSITORY",
     summary: fmtBytes(sum),
-    note: `Repository language bytes across ${counted.length} selected repositories. Built and vendored output excluded.`,
+    note: `Repository language bytes across ${counted.length} of my public repositories. Built and vendored output excluded.`,
     method: "bytes",
     partial: counted.length < repos.length,
   }

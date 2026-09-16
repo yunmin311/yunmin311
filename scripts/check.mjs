@@ -48,6 +48,10 @@ const STATE = resolve(ROOT, "assets/generated/selected-work.json")
 let state = null
 try { state = JSON.parse(await readFile(STATE, "utf8")) } catch {}
 
+// Only for the one check that needs to know what the profile repository is.
+let login = ""
+try { login = JSON.parse(await readFile(resolve(ROOT, "scripts/config.json"), "utf8")).login ?? "" } catch {}
+
 /* ------------------------------------------------- cards point at real files */
 
 // SELECTED WORK's membership is the pinned repositories, which change without
@@ -104,26 +108,33 @@ if (state?.keys?.length) {
   }
 }
 
-/* ------------------------------------- the language scope covers what is shown */
+/* ------------------------------------------- the language scope is the account */
 
-// LANGUAGE SIGNAL's scope IS the cards, so this compares the recorded scope
-// against the recorded cards rather than against anything recomputed: a
-// repository shown but not counted makes the chart a caption on a grid it does
-// not describe, and one counted but not shown attributes lines to a project the
-// reader cannot see. Both are quiet failures of exactly the panel this change
-// is about.
-const cards = state?.cards ?? []
-if (cards.length) {
-  const counted = [...new Set((state?.scopeRepos ?? []).map(String))]
-  const want = cards.filter((c) => c.languages === "count").map((c) => c.repo)
-
-  for (const repo of want) {
-    if (!counted.includes(repo)) problems.push(`\`${repo}\` is shown and declared 'count' but was not counted`)
+// LANGUAGE SIGNAL's scope is every public repository the account owns, which is
+// a set this file cannot recompute on a checkout with no network. What it CAN
+// check is that the recorded scope is a plausible one rather than a silently
+// empty or self-referential one: an empty scope would draw a chart claiming
+// zero lines, and the profile repository is the one repository that is never
+// supposed to be in its own chart.
+const counted = [...new Set((state?.scopeRepos ?? []).map(String))]
+if (state?.cards?.length) {
+  if (!counted.length) {
+    problems.push("the recorded LANGUAGE SIGNAL scope is empty — the chart would claim zero lines")
   }
-  for (const repo of counted) {
-    if (!want.includes(repo)) problems.push(`\`${repo}\` was counted by LANGUAGE SIGNAL but is not a shown card`)
+  const profileRepo = login
+    ? counted.find((r) => r.toLowerCase() === `${login}/${login}`.toLowerCase())
+    : null
+  if (profileRepo) {
+    problems.push(`the profile repository \`${profileRepo}\` is counted in its own language chart`)
   }
-  if (!want.length) problems.push("no shown card is declared 'count' — the chart would have nothing to draw")
+  // The scope is the whole account, so it should be at least as large as the
+  // curated shortlist. Smaller would mean the two had been tied together again.
+  if (counted.length < state.cards.length) {
+    problems.push(
+      `the LANGUAGE SIGNAL scope (${counted.length}) is smaller than SELECTED WORK (${state.cards.length}); ` +
+        `the scope is every public repository owned, not the pinned cards`
+    )
+  }
 }
 
 /* ---------------------------------------------------------- orphan accounting */

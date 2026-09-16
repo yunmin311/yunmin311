@@ -5,16 +5,22 @@
  * information, and six unrelated colours only make it harder to read.
  *
  * WHAT IS COUNTED. Lines added by this author, in commits this author wrote,
- * across the PINNED repositories shown in SELECTED WORK — not bytes on disk.
- * Bytes count vendored files, generated output, and whatever a collaborator or
- * a scaffolding tool contributed; an unqualified language chart on a GitHub
- * profile is usually measuring somebody else's boilerplate. The method and the
- * scope are printed on the panel so the claim can be checked.
+ * across EVERY PUBLIC REPOSITORY this account owns — not bytes on disk, and not
+ * just the pinned shortlist above. Bytes count vendored files, generated
+ * output, and whatever a collaborator or a scaffolding tool contributed; an
+ * unqualified language chart on a GitHub profile is usually measuring somebody
+ * else's boilerplate. The method and the scope are printed on the panel so the
+ * claim can be checked.
+ *
+ * THE SCOPE IS THE ACCOUNT, NOT THE GRID. SELECTED WORK shows a curated
+ * shortlist; this measures the work that shortlist was drawn from. Deriving the
+ * scope from the cards, as an earlier version did, made every percentage a
+ * statement about six repositories rather than about the body of work.
  *
  * AND THE SCOPE IS ONE MEASUREMENT, NOT TWO. The numbers here are a fold over
- * the repository snapshots the pinned set was already collected into — see
- * lib/sources.mjs. Nothing on this panel clones anything, so the chart cannot
- * describe a set of repositories that differs from the grid above it.
+ * the snapshots the scope was already collected into — see lib/sources.mjs.
+ * Nothing on this panel clones anything, so the chart cannot describe a set of
+ * repositories that differs from the one it says it counted.
  *
  * A repository that could not be measured contributes nothing AND is declared
  * in the note, because quietly re-normalising percentages around a hole is the
@@ -69,7 +75,9 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
       meta: `${Lang.repoCount} repos · ${Lang.summary}`,
     })
   )
-  // The full caption is 35 glyphs — 280px — and the phone column gives 256.
+  // The caption is tracked at 1px, so a glyph costs 8px and the desktop column
+  // gives 788 — 98 glyphs. The phone column gives 252 and gets a fixed short
+  // caption instead, which is why the full text never has to fit there.
   out.push(label(mobile ? "LINES I WROTE" : Lang.caption, { x: S.sm, y: 40, tracking: 1, fill: t.ink }))
 
   // Four designed steps plus a neutral tail, rather than one blue at falling
@@ -135,17 +143,20 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
   // ---- method ------------------------------------------------------------
   out.push(pixelRule(S.sm, L.rule, innerW, t.lineSoft))
 
-  // A reading taken from fewer repositories than the grid above shows says so
-  // in place, on the panel. The alternative — printing a total as though it
-  // covered everything — is the quiet way this chart can be wrong: a project
-  // that could not be measured would simply contribute nothing, and the
-  // percentages would re-normalise around the hole without anyone noticing.
+  // A reading taken from fewer repositories than the scope says so in place, on
+  // the panel. The alternative — printing a total as though it covered
+  // everything — is the quiet way this chart can be wrong: a repository that
+  // could not be measured would simply contribute nothing, and the percentages
+  // would re-normalise around the hole without anyone noticing.
   const note = Lang.partial
     ? `${Lang.note} Measured ${Lang.repoCount} of ${Lang.scopeCount} — the rest could not be read this run.`
     : Lang.note
 
-  // Wrapped at both widths rather than trusting it to fit: the note grows when a
-  // repository fails to clone, and the desktop version was being cut mid-word.
+  // Wrapped at both widths rather than trusting it to fit, and the slice below
+  // is SILENT — a note that grows past three phone lines is cut mid-sentence
+  // with nothing said. The scope being the whole account makes this note longer
+  // than it used to be, so its width is asserted in test-projects.mjs rather
+  // than left to be noticed on the page.
   wrap(note, innerW)
     .slice(0, mobile ? 3 : 2)
     .forEach((l, i) => out.push(body(l, { x: S.sm, y: L.note + i * S.sm, fill: t.inkFaint })))
@@ -161,9 +172,3 @@ export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, bleed: SHADOW })
 }
-
-
-
-
-
-

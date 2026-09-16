@@ -16,8 +16,11 @@
  *      config array. Order is the pin order. Fewer pins means fewer cards.
  *   2. CONFIG CANNOT CHANGE MEMBERSHIP. It supplies words, and nothing else.
  *   3. A FAILED READ HOLDS. It never substitutes a ranking, and it never empties
- *      the grid.
- *   4. THE CHART MEASURES THE CARDS. One list, one collection.
+ *      the grid or zeroes the chart.
+ *   4. THE TWO PANELS ANSWER TWO QUESTIONS. The cards are the pinned shortlist;
+ *      the chart measures every public repository the account owns, read with
+ *      pagination. Deriving one scope from the other is the regression this file
+ *      exists to catch.
  *
  *   node scripts/test-projects.mjs
  *
@@ -30,13 +33,15 @@ import { readFile } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
 import { dirname, resolve } from "node:path"
 
-import { W_HALF, W_MOBILE, S, THEME } from "./lib/design.mjs"
+import { W_HALF, W_FULL, W_MOBILE, S, THEME, width, MICRO } from "./lib/design.mjs"
 import {
-  slug, cardOverrides, cardFrom, cardsFrom, languageRepos, resolveCards, signalState,
+  slug, cardOverrides, cardFrom, cardsFrom, countsTowardLanguages, languageScope, languageNote,
+  LANGUAGES_CAPTION, resolveCards, signalState,
 } from "./lib/projects.mjs"
 import { CARD_COPY, fitCopy, fitTags, fitsCard, fitsTags, TAG_LINES, TAG_MAX, wrap as panelWrap } from "./lib/cards.mjs"
 import { cardLink, cardLinks, escapeAttr } from "./lib/readme.mjs"
 import { unknown } from "./lib/sources.mjs"
+import { pageThrough } from "./lib/gh.mjs"
 import { aggregateLanguages } from "./lib/authored.mjs"
 // The real drawing code, and the real budget it draws to. `wrap` is imported
 // from lib/cards.mjs because that is the single definition both the panel and
@@ -161,7 +166,6 @@ t("an unknown pin builds its card from description, language and topics", () => 
   assert.equal(c.url, "https://github.com/yunmin311/alpha")
   assert.equal(c.repo, "yunmin311/alpha")
   assert.deepEqual(c.tags, ["Rust", "cli"])
-  assert.equal(c.languages, "count")
   assert.equal(c.unedited, true)
 })
 
@@ -363,24 +367,133 @@ t("a failed read consults no activity data of any kind", () => {
 
 /* ======================================================== 5. LANGUAGE SCOPE */
 
-console.log("\nlanguage scope — the same list, one collection")
+console.log("\nlanguage scope — every public repository the account owns")
 
-t("the scope is exactly the pinned repository set, in pin order", () => {
-  const cards = cardsFrom(six)
-  assert.deepEqual(languageRepos(cards), six.map((r) => r.nameWithOwner))
+/** A repository node, shaped exactly like the GraphQL connection returns it. */
+const owned = (name, extra = {}) => ({
+  nameWithOwner: `yunmin311/${name}`,
+  isFork: false,
+  isArchived: false,
+  visibility: "PUBLIC",
+  ...extra,
 })
 
-t("the scope is derived from the cards, so config cannot widen or narrow it", () => {
-  const stray = new Map([["yunmin311/not-pinned", { name: "Stray", why: "x", tags: ["X"] }]])
-  const cards = cardsFrom([A, B], stray)
-  assert.deepEqual(languageRepos(cards), ["yunmin311/alpha", "yunmin311/beta"])
+t("the scope is the account's public repositories, in the order given", () => {
+  const list = [owned("alpha"), owned("beta"), owned("gamma")]
+  assert.deepEqual(languageScope(list, "yunmin311"), [
+    "yunmin311/alpha",
+    "yunmin311/beta",
+    "yunmin311/gamma",
+  ])
 })
 
-t("a card declared n/a is displayed but not counted", () => {
-  const o = new Map([["yunmin311/beta", { name: "Beta", why: "No comparable count.", tags: ["X"], languages: "n/a" }]])
-  const cards = cardsFrom([A, B], o)
-  assert.equal(cards.length, 2, "an n/a card must still be shown")
-  assert.deepEqual(languageRepos(cards), ["yunmin311/alpha"])
+t("forks are not counted", () => {
+  assert.deepEqual(languageScope([owned("alpha"), owned("forked", { isFork: true })], "yunmin311"), ["yunmin311/alpha"])
+})
+
+t("archived repositories are not counted", () => {
+  assert.deepEqual(languageScope([owned("alpha"), owned("old", { isArchived: true })], "yunmin311"), ["yunmin311/alpha"])
+})
+
+t("non-public repositories are not counted", () => {
+  const list = [owned("alpha"), owned("secret", { visibility: "PRIVATE" }), owned("inner", { visibility: "INTERNAL" })]
+  assert.deepEqual(languageScope(list, "yunmin311"), ["yunmin311/alpha"])
+})
+
+t("the profile repository itself is not counted", () => {
+  assert.deepEqual(languageScope([owned("yunmin311"), owned("alpha")], "yunmin311"), ["yunmin311/alpha"])
+  // Compared case-insensitively: a login is not case-sensitive, and letting the
+  // profile repository into its own chart is the one exclusion whose absence
+  // would be immediately visible on the page.
+  assert.deepEqual(languageScope([owned("YunMin311")], "yunmin311"), [])
+})
+
+t("the scope is NOT the pinned cards", () => {
+  // The whole point of this change. A repository with no card at all is still
+  // counted, and a repository that was never pinned is still counted.
+  const cards = cardsFrom([A, B])
+  assert.deepEqual(keysOf(cards), ["alpha", "beta"])
+  const list = [owned("alpha"), owned("never-pinned"), owned("also-never-pinned")]
+  assert.deepEqual(languageScope(list, "yunmin311"), [
+    "yunmin311/alpha",
+    "yunmin311/never-pinned",
+    "yunmin311/also-never-pinned",
+  ])
+})
+
+t("nothing in config can widen or narrow the scope", () => {
+  const overrides = cardOverrides({ cardOverrides: { "yunmin311/alpha": { why: "x", tags: ["X"] } } })
+  assert.equal(overrides.size, 1, "the overlay is words, not scope")
+  assert.deepEqual(languageScope([owned("alpha"), owned("beta")], "yunmin311"), [
+    "yunmin311/alpha",
+    "yunmin311/beta",
+  ])
+})
+
+await tAsync("pagination walks every page, not just the first hundred", async () => {
+  const pages = [
+    { nodes: [owned("a")], pageInfo: { hasNextPage: true, endCursor: "c1" } },
+    { nodes: [owned("b")], pageInfo: { hasNextPage: true, endCursor: "c2" } },
+    { nodes: [owned("c")], pageInfo: { hasNextPage: false, endCursor: "c3" } },
+  ]
+  const asked = []
+  const all = await pageThrough(async (after) => {
+    asked.push(after)
+    return pages[asked.length - 1]
+  })
+  assert.equal(asked.length, 3, "stopped before the last page")
+  assert.deepEqual(asked, [null, "c1", "c2"], "the cursor was not carried forward")
+  assert.deepEqual(all.map((r) => r.nameWithOwner), ["yunmin311/a", "yunmin311/b", "yunmin311/c"])
+})
+
+await tAsync("a cursor that never advances fails instead of looping", async () => {
+  await assert.rejects(
+    () => pageThrough(async () => ({ nodes: [owned("a")], pageInfo: { hasNextPage: true, endCursor: null } })),
+    /did not advance/
+  )
+})
+
+await tAsync("a connection that never ends eventually gives up", async () => {
+  let n = 0
+  await assert.rejects(
+    () => pageThrough(
+      async () => ({ nodes: [owned("a")], pageInfo: { hasNextPage: true, endCursor: `c${++n}` } }),
+      { maxPages: 3 }
+    ),
+    /refusing to loop/
+  )
+})
+
+t("the panel's caption fits the column it is drawn in", () => {
+  // Tracked at 1px, so a glyph costs adv + 1. The phone column gets a fixed
+  // short caption instead, so only the desktop width has to hold.
+  const drawn = width(LANGUAGES_CAPTION, MICRO, 1)
+  assert.ok(drawn <= W_FULL - S.sm * 2, `caption is ${drawn}px, the column is ${W_FULL - S.sm * 2}px`)
+})
+
+t("the panel's note survives the lines it is allowed", () => {
+  // The panel does `.slice(0, mobile ? 3 : 2)` on the note, SILENTLY — a
+  // sentence that grew past the budget would ship cut in half with nothing
+  // anywhere reporting it. The scope became the whole account in this change,
+  // which is exactly the kind of growth that would do it.
+  const inner = { desktop: W_FULL - S.sm * 2, mobile: W_MOBILE - S.sm * 2 }
+  for (const shape of [
+    { commits: 350, measured: 15, scope: 15, partial: false },
+    { commits: 12345, measured: 156, scope: 156, partial: false },
+    { commits: 99999, measured: 999, scope: 999, partial: false },
+  ]) {
+    const note = languageNote(shape)
+    const d = panelWrap(note, inner.desktop).length
+    const m = panelWrap(note, inner.mobile).length
+    assert.ok(d <= 2, `${JSON.stringify(shape)} needs ${d} desktop lines (budget 2)`)
+    assert.ok(m <= 3, `${JSON.stringify(shape)} needs ${m} mobile lines (budget 3)`)
+  }
+})
+
+t("a partial reading says how many repositories it covered", () => {
+  assert.match(languageNote({ commits: 10, measured: 13, scope: 15, partial: true }), /13 of 15 public repos/)
+  assert.match(languageNote({ commits: 10, measured: 15, scope: 15, partial: false }), /across 15 public repos/)
+  assert.match(languageNote({ commits: 1, measured: 1, scope: 1, partial: false }), /across 1 public repo\./)
 })
 
 t("an unmeasured repository is unavailable, never inactive and never zero", () => {
@@ -417,16 +530,20 @@ t("an empty scope is zero, not a crash", () => {
   assert.deepEqual(stats.ranked, [])
 })
 
-await tAsync("there is exactly one collection call site and one pin read", async () => {
+await tAsync("there is exactly one collection call site and one read of each source", async () => {
   // A source-level invariant, kept because it is the thing that would silently
   // come back: a second `authoredSnapshots` call is a second clone pass, and a
-  // second `pinnedRepos` call is a second chance for the two panels to see
-  // different sets. Neither would fail any behavioural test above.
+  // second read of either list is a second chance for two panels to see
+  // different sources. Neither would fail any behavioural test above.
   const src = await readFile(resolve(ROOT, "scripts/lib/sources.mjs"), "utf8")
-  const collections = src.match(/await authoredSnapshots\(/g) ?? []
-  const pinReads = src.match(/await pinnedRepos\(/g) ?? []
-  assert.equal(collections.length, 1, `expected 1 authoredSnapshots call, found ${collections.length}`)
-  assert.equal(pinReads.length, 1, `expected 1 pinnedRepos call, found ${pinReads.length}`)
+  const counts = {
+    "await authoredSnapshots(": src.match(/await authoredSnapshots\(/g) ?? [],
+    "await pinnedRepos(": src.match(/await pinnedRepos\(/g) ?? [],
+    "await ownedPublicRepos(": src.match(/await ownedPublicRepos\(/g) ?? [],
+  }
+  for (const [call, hits] of Object.entries(counts)) {
+    assert.equal(hits.length, 1, `expected 1 \`${call}\`, found ${hits.length}`)
+  }
 })
 
 /* ==================================================== 6. README FOLLOWS */
@@ -478,9 +595,19 @@ t("the ranking model is gone from config", () => {
 
 t("the language scope options carry no repository list", () => {
   assert.equal(cfg.languageScope?.repos, undefined, "config.languageScope.repos should be gone")
-  assert.equal(cfg.languageScopeOptions?.repos, undefined, "the scope must be derived from the pins, not configured")
+  assert.equal(cfg.languageScopeOptions?.repos, undefined, "the scope comes from the account, not from config")
   assert.ok(Array.isArray(cfg.languageScopeOptions.identities) && cfg.languageScopeOptions.identities.length)
   assert.ok(Array.isArray(cfg.languageScopeOptions.exclude))
+})
+
+t("no card carries a language opt-out any more", () => {
+  // The tri-state `languages` field on a card existed to keep an unsuitable
+  // repository out of a chart whose scope WAS the cards. The scope is the
+  // account now, so the field decides nothing — and a field that decides
+  // nothing but looks like it decides something is worse than no field.
+  for (const [repo_, o] of Object.entries(cfg.cardOverrides)) {
+    assert.equal(o.languages, undefined, `${repo_} still declares \`languages\``)
+  }
 })
 
 t("cardOverrides is an object keyed by owner/name", () => {
@@ -508,7 +635,6 @@ t("normalise rejects a bad override by name", () => {
   assert.throws(bad({ tags: [] }), /non-empty array/)
   assert.throws(bad({ tags: ["a".repeat(40), "b".repeat(40), "c".repeat(40), "d".repeat(40)] }), /too wide/)
   assert.throws(bad({ name: "" }), /non-empty string/)
-  assert.throws(bad({ languages: "sometimes" }), /expected count, exclude or n\/a/)
   assert.throws(() => cardOverrides({ cardOverrides: { "not-a-repo": { why: "x" } } }), /owner\/name/)
   assert.throws(() => cardOverrides({ cardOverrides: [] }), /must be an object/)
 })

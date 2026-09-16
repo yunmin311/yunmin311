@@ -20,15 +20,20 @@
  *
  * So this file no longer ranks anything. It does three things:
  *
- *   cardFrom()       one pinned repository + optional config override -> card
- *   languageRepos()  which of those cards LANGUAGE SIGNAL counts
- *   signalState()    was this repository measured, or merely not reached
+ *   cardFrom()          one pinned repository + optional config override -> card
+ *   languageScope()     which repositories LANGUAGE SIGNAL counts
+ *   resolveCards()      what to draw when the pinned query could not be read
  *
- * LANGUAGE SIGNAL's scope is the SAME pinned set: `languageRepos(cards)`. The
- * chart sits directly under the grid and is read as a caption on it, so a
- * second repository list — even one derived from the first — is a way for the
- * two panels to disagree. Both read one list of snapshots. See lib/sources.mjs
- * for the collection, which happens once per repository.
+ * LANGUAGE SIGNAL'S SCOPE IS NOT THE CARDS. The grid is a curated shortlist —
+ * a claim about taste — and the chart beneath it measures the whole of the
+ * public work that shortlist was drawn from. Deriving one from the other meant
+ * the percentages could only ever describe whichever six repositories happened
+ * to be pinned, which is a fact about the shortlist rather than about the work.
+ * So the scope comes from the account's own repository list (see
+ * `countsTowardLanguages`) and the two panels answer two different questions.
+ * They still share ONE collection of snapshots — see lib/sources.mjs — so the
+ * chart cannot be computed from a different observation than the one the build
+ * made.
  *
  * WHAT IS CURATED AND WHAT IS DYNAMIC. This distinction is the whole reason the
  * original page went stale, so it is stated exactly:
@@ -70,8 +75,6 @@ export const slug = (name) =>
     .replace(/^-+|-+$/g, "")
 
 /* ---------------------------------------------------------- config overlay */
-
-const LANGUAGES = ["count", "exclude", "n/a"]
 
 /**
  * The hand-written half of a card, keyed by `owner/name`.
@@ -123,9 +126,6 @@ export function cardOverrides(cfg) {
     if (o.name !== undefined && (typeof o.name !== "string" || !o.name.trim())) {
       throw new Error(`config.json: ${where}.name must be a non-empty string`)
     }
-    if (o.languages !== undefined && !LANGUAGES.includes(o.languages)) {
-      throw new Error(`config.json: ${where}.languages is \`${o.languages}\`; expected count, exclude or n/a`)
-    }
 
     out.set(repo.toLowerCase(), o)
   }
@@ -171,7 +171,6 @@ export function cardFrom(repo, overrides = new Map()) {
     tags: o.tags ?? fitTags(derivedTags),
     url: repo.url,
     repo: repo.nameWithOwner,
-    languages: o.languages ?? "count",
     // Records where the copy came from, so the build log can say which cards
     // still need a sentence written for them instead of leaving it to be
     // noticed on the page.
@@ -201,22 +200,89 @@ export function cardsFrom(repos, overrides = new Map()) {
 /* ----------------------------------------------------------- language scope */
 
 /**
- * Repositories LANGUAGE SIGNAL counts.
+ * Does this repository belong in LANGUAGE SIGNAL?
  *
- * THE SCOPE IS THE PINNED SET, which is also exactly what is displayed. The
- * chart sits directly under SELECTED WORK and is read as a caption on it, so
- * "the language mix of the work above" is the only reading that matches what a
- * reader sees.
+ * The scope is EVERY PUBLIC REPOSITORY THIS ACCOUNT OWNS, which is a different
+ * question from "which projects are on the page". The cards are a curated
+ * shortlist — a claim about taste — and the chart under them measures the body
+ * of work that shortlist was drawn from. Tying the two together meant the chart
+ * could only ever describe six repositories, which made a percentage a fact
+ * about the shortlist rather than about the work.
  *
- * `languages` is three-state and stays that way, because the states are still
- * real and would otherwise have to be re-expressed as a second list:
- *   `count`    contributes to the chart (the default, and what every pin is)
- *   `exclude`  real code, but generated or vendored, so it distorts the mix
- *   `n/a`      nothing comparable to count at all (a stylesheet collection)
- * An opt-out is a deliberate hand-edit in config, never an inference.
+ * Four exclusions, each for its own reason:
+ *
+ *   forks      somebody else's code; counting it would count their lines
+ *   archived   no longer maintained, and usually superseded
+ *   not PUBLIC GitHub can hand over private repositories to an authorised
+ *              token, and this page is public — a chart computed from them
+ *              would publish a number nobody outside can verify
+ *   the profile repository itself (`<login>/<login>`) — it contains one README
+ *              and no code, and it is the page the chart is drawn on
+ *
+ * The last one is compared case-insensitively: GitHub returns canonical casing,
+ * but a login is not case-sensitive and a mismatch here would put the profile
+ * repository back into its own chart with nothing to show for it.
+ *
+ * `visibility` is tested on the node rather than trusted from the query's
+ * `privacy: PUBLIC` filter, and `isArchived` is not a filter this connection
+ * even exposes. The query narrows; this decides.
  */
-export const languageRepos = (cards) =>
-  cards.filter((c) => c.languages === "count").map((c) => c.repo)
+export function countsTowardLanguages(repo, login) {
+  if (!repo || !repo.nameWithOwner) return false
+  if (repo.isFork || repo.isArchived) return false
+  if (String(repo.visibility ?? "").toUpperCase() !== "PUBLIC") return false
+  if (repo.nameWithOwner.toLowerCase() === `${login}/${login}`.toLowerCase()) return false
+  return true
+}
+
+/**
+ * The repository list LANGUAGE SIGNAL counts, in the order GitHub returned it
+ * (by name, so the list is stable between runs).
+ *
+ * There is no second list anywhere: this is the only place the scope is
+ * derived, and every consumer — the collection, the chart, the state file, the
+ * gate — reads its output.
+ */
+export const languageScope = (repos, login) =>
+  repos.filter((r) => countsTowardLanguages(r, login)).map((r) => r.nameWithOwner)
+
+/**
+ * The two sentences on the LANGUAGE SIGNAL panel.
+ *
+ * They live here rather than inline in the collector because the panel cuts its
+ * note to a fixed number of lines SILENTLY — `.slice(0, mobile ? 3 : 2)` — so a
+ * note that grew past the budget would ship as a sentence ending mid-word with
+ * nothing anywhere reporting it. Keeping the wording somewhere a test can reach
+ * is what makes that checkable: see the width assertion in test-projects.mjs,
+ * which measures these strings with the same wrap the panel uses.
+ *
+ * The caption says what the number is over. It used to read "across the
+ * selected work above", which stopped being true the moment the scope became
+ * the whole account — a caption naming repositories the chart does not measure
+ * is worse than no caption.
+ */
+export const LANGUAGES_CAPTION = "LINES I WROTE, ACROSS EVERY PUBLIC REPOSITORY"
+
+/**
+ * The panel's note, sized to the lines it is actually given.
+ *
+ * The wording is not free: on the phone layout the panel draws three lines of
+ * thirty-six characters and SILENTLY drops the rest, so a sentence a few words
+ * longer than this ships cut mid-word with nothing reporting it. Saying "across
+ * all 15 public repos" instead of "across 15 public repos" costs four characters
+ * and pushes it to four lines — which is how the width assertion in
+ * test-projects.mjs came to exist, and why the phrase reads the way it does.
+ *
+ * The completeness statement survives as the number itself: a complete reading
+ * names the scope, and a partial one says how much of it was reached.
+ */
+export function languageNote({ commits, measured, scope, partial }) {
+  const covered = partial ? `${measured} of ${scope}` : String(scope)
+  return (
+    `Lines I added in ${commits} commits I authored, across ${covered} ` +
+    `${scope === 1 ? "public repo" : "public repos"}. Generated and vendored excluded.`
+  )
+}
 
 /* ----------------------------------------------------------- the decision */
 

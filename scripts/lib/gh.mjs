@@ -75,6 +75,84 @@ export const languagesOf = (fullName) => rest(`/repos/${fullName}/languages`)
 export const repoOf = (fullName) => rest(`/repos/${fullName}`)
 
 /**
+ * Walk a GraphQL connection to its end.
+ *
+ * WHY THIS IS NOT A LOOP INLINE IN THE CALLER. GitHub returns at most 100 nodes
+ * per page and reports whether more exist; a caller that reads one page and
+ * moves on is not "reading the repositories", it is reading the first hundred
+ * of them and presenting that as the whole set — which is exactly the failure
+ * this panel cannot afford, because the chart claims a total.
+ *
+ * `fetchPage(after)` returns a connection ({ nodes, pageInfo }). Pages are
+ * appended in server order, so the caller's list order is GitHub's order.
+ *
+ * THE TWO GUARDS ARE LOOP SAFETY, NOT POLICY. `hasNextPage` alone is enough in
+ * practice, but a cursor that fails to advance or a server that never says
+ * "last page" would hang the build rather than fail it, and a hung build in CI
+ * looks like nothing at all. Both cases throw with the page number and how much
+ * was already read, so the failure names itself.
+ */
+export async function pageThrough(fetchPage, { maxPages = 50 } = {}) {
+  const out = []
+  let after = null
+  for (let page = 1; ; page++) {
+    const { nodes, pageInfo } = await fetchPage(after)
+    out.push(...(nodes ?? []).filter(Boolean))
+    if (!pageInfo?.hasNextPage) return out
+    if (!pageInfo.endCursor || pageInfo.endCursor === after) {
+      throw new Error(`graphql: pagination did not advance after page ${page} (${out.length} node(s) read)`)
+    }
+    if (page >= maxPages) {
+      throw new Error(`graphql: pagination passed ${maxPages} pages (${out.length} node(s) read); refusing to loop`)
+    }
+    after = pageInfo.endCursor
+  }
+}
+
+/**
+ * Every public repository this account owns, forks and archives aside.
+ *
+ * This is LANGUAGE SIGNAL's scope. It is deliberately NOT what SELECTED WORK
+ * shows: the cards are the author's curated shortlist, and the chart underneath
+ * them describes the whole body of work the shortlist was drawn from. Two
+ * different questions, answered from two different places — the pins are a
+ * hand-made decision, this list is a fact about the account.
+ *
+ * THE SERVER-SIDE FILTERS AND THE CLIENT-SIDE ONES ARE NOT REDUNDANT.
+ * `ownerAffiliations: [OWNER]` keeps this to repositories the account owns
+ * rather than ones it merely contributes to; `privacy: PUBLIC` and
+ * `isFork: false` cut the two largest categories before they travel. `isArchived`
+ * is then checked here, on the returned nodes, because it is not a filter this
+ * connection exposes — treating a missing argument as a filter would silently
+ * include every archived repository. `visibility` is re-checked for the same
+ * reason: the filter is an optimisation, and the value on the node is the fact.
+ *
+ * Ordered by name, so the list is deterministic: the recorded scope then only
+ * changes when a repository is actually added, removed or renamed, rather than
+ * reshuffling every time something is pushed.
+ */
+export async function ownedPublicRepos(login) {
+  return pageThrough(async (after) => {
+    const data = await graphql(
+      `query($login:String!,$after:String){
+         user(login:$login){
+           repositories(first:100, after:$after, ownerAffiliations:[OWNER], privacy:PUBLIC,
+                        isFork:false, orderBy:{field:NAME,direction:ASC}){
+             pageInfo{ hasNextPage endCursor }
+             nodes{ nameWithOwner isFork isArchived visibility }
+           }
+         }
+       }`,
+      { login, after }
+    )
+    const conn = data?.user?.repositories
+    if (!conn) throw new Error(`graphql: user \`${login}\` has no repositories connection`)
+    return conn
+  })
+}
+
+
+/**
  * THE PINNED REPOSITORIES ON THE PROFILE — the source SELECTED WORK reads.
  *
  * Why this and not a ranking of any kind: "which projects are worth showing" is

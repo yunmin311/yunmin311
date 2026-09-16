@@ -20,7 +20,6 @@
       ],
       "url": "https://github.com/yunmin311/context-distiller",
       "repo": "yunmin311/context-distiller",
-      "languages": "count",
       "unedited": false
     },
     {
@@ -35,7 +34,6 @@
       ],
       "url": "https://github.com/yunmin311/governance-framework",
       "repo": "yunmin311/governance-framework",
-      "languages": "count",
       "unedited": false
     },
     {
@@ -50,7 +48,6 @@
       ],
       "url": "https://github.com/yunmin311/window-annotator",
       "repo": "yunmin311/window-annotator",
-      "languages": "count",
       "unedited": false
     },
     {
@@ -65,7 +62,6 @@
       ],
       "url": "https://github.com/yunmin311/work-capsule",
       "repo": "yunmin311/work-capsule",
-      "languages": "count",
       "unedited": false
     },
     {
@@ -80,7 +76,6 @@
       ],
       "url": "https://github.com/yunmin311/pixel-panels",
       "repo": "yunmin311/pixel-panels",
-      "languages": "count",
       "unedited": false
     },
     {
@@ -94,17 +89,25 @@
       ],
       "url": "https://github.com/yunmin311/dsh-universal-palette",
       "repo": "yunmin311/dsh-universal-palette",
-      "languages": "count",
       "unedited": false
     }
   ],
   "scopeRepos": [
+    "yunmin311/ai-systematic-notes",
+    "yunmin311/calendar-app",
     "yunmin311/context-distiller",
+    "yunmin311/DenseGPT",
+    "yunmin311/dsh-universal-palette",
+    "yunmin311/game",
     "yunmin311/governance-framework",
+    "yunmin311/obsidian-config",
+    "yunmin311/pixel-panels",
     "yunmin311/window-annotator",
     "yunmin311/work-capsule",
-    "yunmin311/pixel-panels",
-    "yunmin311/dsh-universal-palette"
+    "yunmin311/ym-obsidian-course-notes-standard",
+    "yunmin311/yunmin-workbench",
+    "yunmin311/yunmin311.github.io",
+    "yunmin311/zheng-tally-obsidian"
   ],
-  "generated": "2026-09-16T04:16:05.083Z"
+  "generated": "2026-09-16T04:45:39.415Z"
 }

@@ -44,13 +44,14 @@ const OUT = resolve(ROOT, "assets/generated")
 const CACHE = resolve(ROOT, "scripts/.cache.json")
 
 /**
- * LAST-KNOWN-GOOD SELECTED WORK.
+ * LAST-KNOWN-GOOD STATE, for both panels.
  *
- * The membership of SELECTED WORK is the pinned repositories on the GitHub
- * profile, read over the network. This file is what keeps a failed read from
- * emptying the showcase: when the pinned query cannot be completed, the build
- * holds the cards recorded here instead of falling back to any kind of ranking,
- * and says so in the log.
+ * SELECTED WORK's membership is the pinned repositories on the GitHub profile,
+ * and LANGUAGE SIGNAL's scope is the account's public repository list. Both are
+ * read over the network. This file is what keeps a failed read from emptying or
+ * zeroing a panel: when either query cannot be completed, the build holds the
+ * cards and the scope recorded here instead of falling back to any kind of
+ * ranking or to an empty set, and says so in the log.
  *
  * That is the ONLY reason it holds the full card payload rather than just the
  * keys. Metadata for a pin usually comes from config.json, but a pin that has
@@ -76,11 +77,14 @@ const cfg = JSON.parse(await readFile(resolve(ROOT, "scripts/config.json"), "utf
 
 await mkdir(OUT, { recursive: true })
 
-// Feed the last known-good card set in before collect() runs, so a failed
-// pinned read has something real to hold instead of a guess.
+// Feed the last known-good card set and language scope in before collect()
+// runs, so a failed read has something real to hold instead of a guess.
 try {
   const prev = JSON.parse(await readFile(STATE, "utf8"))
-  if (Array.isArray(prev?.cards) && prev.cards.length) cfg.__lastKnownGood = { cards: prev.cards }
+  cfg.__lastKnownGood = {
+    cards: Array.isArray(prev?.cards) && prev.cards.length ? prev.cards : null,
+    scopeRepos: Array.isArray(prev?.scopeRepos) && prev.scopeRepos.length ? prev.scopeRepos : null,
+  }
 } catch { /* no state yet — first build, or the file was removed on purpose */ }
 
 let ctx
@@ -163,12 +167,12 @@ console.log(`\n${written} file(s) -> assets/generated/`)
 
 /* ---------------------------------------------------- selected work state */
 
-// THE CARDS, in pin order, plus the scope the language chart counted over.
+// THE CARDS, in pin order, plus LANGUAGE SIGNAL's scope.
 //
-// The finished payload is recorded rather than the keys alone, because this is
-// what a later run holds when it cannot reach the pinned query — and a pin with
-// no config override has nothing else to be rebuilt from. See the note on STATE
-// at the top of this file.
+// The two are NOT the same set — the cards are the curated shortlist, the scope
+// is every public repository the account owns — and both are recorded because
+// both are what a later run holds when a read fails. See the note on STATE at
+// the top of this file.
 //
 // A build with no cards at all (every pin removed from the profile) records
 // nothing: there is no last-known-good worth keeping, and an empty grid is the
@@ -230,7 +234,17 @@ if (ctx?.work?.picked?.length) {
         (c.unedited ? "   (no hand-written why — using the GitHub description)" : "")
     )
   })
-  console.log(`  language scope  ${scopeRepos.join(" ")}`)
+  // The scope is the whole account, so this line is long on purpose: the count
+  // is the number worth reading at a glance, and the list is what makes the
+  // count checkable. It is NOT the card list, and a run where it was would mean
+  // the language scope had gone back to being derived from the pins.
+  console.log(`  language scope  ${scopeRepos.length} repo(s): ${scopeRepos.join(" ")}`)
+  if (ctx.languages?.heldScope) {
+    console.warn(
+      `! LANGUAGE SIGNAL is counting the previous run's scope — the repository list could not be read this ` +
+        `run. The numbers are real, they are one run behind, and nothing was rendered as zero lines.`
+    )
+  }
   if (ctx.languages?.partial) {
     console.warn(
       `! LANGUAGE SIGNAL could not reach ${ctx.languages.missingKeys.join(", ")} — ` +
@@ -348,6 +362,3 @@ function reviveCtx(raw) {
   if (!raw.analysis) raw.analysis = null
   return raw
 }
-
-
-
