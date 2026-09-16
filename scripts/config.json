@@ -1,69 +1,46 @@
 {
   "login": "yunmin311",
   "timezone": "Asia/Shanghai",
-
   "sections": [
-    { "key": "01", "num": "01", "title": "About me" },
-    { "key": "02", "num": "02", "title": "Through my lens", "sub": "Frames, light, places, and things that made me stop for a second." },
-    { "key": "03", "num": "03", "title": "Selected work", "sub": "Tools I wanted to exist, so I built them." },
-    { "key": "04", "num": "04", "title": "How I work", "sub": "Where the hours go, and what the code is actually made of." },
-    { "key": "05", "num": "05", "title": "Contributions" },
-    { "key": "07", "num": "07", "title": "Contact" },
-    { "key": "08", "num": "08", "title": "Fortune" }
-  ],
-
-  "_workNote": "The six pinned repositories, in pin order. Descriptions are written here rather than taken from each repo, because a repo description explains what a thing is and a card has to explain why it exists. Tech tags were read off each repository's actual manifest and language breakdown, not off its README badges.",
-  "work": [
     {
-      "key": "context-distiller",
+      "key": "01",
       "num": "01",
-      "name": "Context Distiller",
-      "why": "Choosing what an AI gets to see is the step nobody built a tool for. A workspace for picking, grouping and compiling that context into one plain-text message — locally, and never sent anywhere.",
-      "tags": ["TypeScript", "React 19", "WXT", "Manifest V3"],
-      "url": "https://github.com/yunmin311/context-distiller"
+      "title": "About me"
     },
     {
-      "key": "governance-framework",
+      "key": "02",
       "num": "02",
-      "name": "Governance Framework",
-      "why": "Run several AI agents and they forget, contradict each other, and disagree about which file is real. Pinning the facts into files fixes what a smarter model cannot.",
-      "tags": ["Markdown", "YAML", "Python", "Validators"],
-      "url": "https://github.com/yunmin311/governance-framework"
+      "title": "Through my lens",
+      "sub": "Frames, light, places, and things that made me stop for a second."
     },
     {
-      "key": "window-annotator",
+      "key": "03",
       "num": "03",
-      "name": "Window Annotator",
-      "why": "Drawing on the thing you are looking at should not depend on the app supporting it. Hand-drawn marks pin to any Windows window and follow it as it moves, resizes and scrolls.",
-      "tags": ["Electron", "JavaScript", "koffi FFI", "Windows"],
-      "url": "https://github.com/yunmin311/window-annotator"
+      "title": "Selected work",
+      "sub": "Tools I wanted to exist, so I built them."
     },
     {
-      "key": "work-capsule",
+      "key": "04",
       "num": "04",
-      "name": "Work Capsule",
-      "why": "Keeping work in sync across machines should not risk it. One click pulls, optionally commits and pushes every folder you chose — fast-forward only, never rewriting history.",
-      "tags": ["Rust", "egui", "Git", "Windows"],
-      "url": "https://github.com/yunmin311/work-capsule"
+      "title": "How I work",
+      "sub": "Where the hours go, and what the code is actually made of."
     },
     {
-      "key": "densegpt",
+      "key": "05",
       "num": "05",
-      "name": "DenseGPT",
-      "why": "A long answer you cannot scan is a long answer nobody reads. One stylesheet tightens the reading layout and the content width; a companion spec asks the model for answers shaped to fit it.",
-      "tags": ["UserCSS", "Stylus", "Typography", "Prompt spec"],
-      "url": "https://github.com/yunmin311/DenseGPT"
+      "title": "Contributions"
     },
     {
-      "key": "pixel-panels",
-      "num": "06",
-      "name": "Pixel Panels",
-      "why": "The components this page is built from, lifted out and documented. One 2px grid, one embedded bitmap face, and the four rules that keep fourteen separate parts reading as a single instrument.",
-      "tags": ["JavaScript", "SVG", "Zero-dependency", "MIT"],
-      "url": "https://github.com/yunmin311/pixel-panels"
+      "key": "07",
+      "num": "07",
+      "title": "Contact"
+    },
+    {
+      "key": "08",
+      "num": "08",
+      "title": "Fortune"
     }
   ],
-
   "about": {
     "name": "Qiyu Li",
     "meta": "creative engineering",
@@ -72,39 +49,125 @@
       "Outside the editor you'll usually find me around photography, films, table tennis, and whatever I'm curious about next."
     ]
   },
-
-  "exploring": ["Human–AI interaction", "Creative software", "Cinematography", "Visual systems"],
-
+  "exploring": [
+    "Human–AI interaction",
+    "Creative software",
+    "Cinematography",
+    "Visual systems"
+  ],
   "principles": [
     "Human judgment stays in the loop.",
     "Build the tools I wish already existed."
   ],
-
   "_componentNote": "Not shown on the profile. These drive the reusable component set — see docs/COMPONENTS.md. Everything is config, so a fork changes these values and never touches the code.",
-  "display": { "text": "QIYU LI", "treatment": "hollow", "colour": "ink", "sweep": true, "sweepPeriod": 4600 },
+  "display": {
+    "text": "QIYU LI",
+    "treatment": "hollow",
+    "colour": "ink",
+    "sweep": true,
+    "sweepPeriod": 4600
+  },
   "tiles": [
-    { "label": "SHIPPED", "value": "4 tools", "note": "MIT" },
-    { "label": "OBSERVED", "value": "22 days" },
-    { "label": "PEAK", "value": "143", "note": "Aug 19" },
-    { "label": "STREAK", "value": "15 days" }
+    {
+      "label": "SHIPPED",
+      "value": "4 tools",
+      "note": "MIT"
+    },
+    {
+      "label": "OBSERVED",
+      "value": "22 days"
+    },
+    {
+      "label": "PEAK",
+      "value": "143",
+      "note": "Aug 19"
+    },
+    {
+      "label": "STREAK",
+      "value": "15 days"
+    }
   ],
-  "quote": { "text": "Human judgment stays in the loop. A model can hold the context; it cannot hold the responsibility.", "by": "the point of all of this" },
-
+  "quote": {
+    "text": "Human judgment stays in the loop. A model can hold the context; it cannot hold the responsibility.",
+    "by": "the point of all of this"
+  },
   "_photobandNote": "Photographs must live in assets/photography/. Keep native aspect ratios; the band scales, never crops. Titles and exposure lines are plain ASCII because the embedded bitmap face has a limited subset.",
   "photoband": {
     "photos": [
-      { "file": "assets/photography/01-lowveld.jpg",     "w": 1000, "h": 666,  "ratio": "3:2",    "title": "Lowveld View",   "exp": "f/8 · 1/250s · ISO100 · 24mm" },
-      { "file": "assets/photography/02-gurudongmar.jpg", "w": 1000, "h": 666,  "ratio": "3:2",    "title": "Gurudongmar",    "exp": "f/11 · 1/320s · ISO64 · 16mm" },
-      { "file": "assets/photography/03-oval.jpg",        "w": 667,  "h": 1000, "ratio": "2:3",    "title": "Oval Miniature", "exp": "f/2.8 · 1/125s · ISO200 · 85mm" },
-      { "file": "assets/photography/04-selfportrait.jpg","w": 655,  "h": 1000, "ratio": "2:3",    "title": "Self-Portrait",  "exp": "f/4 · 1/60s · ISO400 · 50mm" },
-      { "file": "assets/photography/05-arch.jpg",        "w": 1000, "h": 548,  "ratio": "16:9",   "title": "Landscape Arch", "exp": "f/9 · 1/250s · ISO100 · 18mm" },
-      { "file": "assets/photography/06-night.jpg",       "w": 533,  "h": 1000, "ratio": "9:16",   "title": "Night Sky",      "exp": "f/1.8 · 15s · ISO3200 · 14mm" },
-      { "file": "assets/photography/07-coastline.jpg",   "w": 1000, "h": 426,  "ratio": "2.35:1", "title": "Coastline",      "exp": "f/9 · 1/200s · ISO100 · 21mm" },
-      { "file": "assets/photography/08-stilllife.jpg",   "w": 1000, "h": 763,  "ratio": "4:3",    "title": "Still Life",     "exp": "f/4 · 1/200s · ISO100 · 60mm" },
-      { "file": "assets/photography/09-window.jpg",      "w": 723,  "h": 1000, "ratio": "4:3",    "title": "Window Light",   "exp": "f/2 · 1/160s · ISO200 · 35mm" }
+      {
+        "file": "assets/photography/01-lowveld.jpg",
+        "w": 1000,
+        "h": 666,
+        "ratio": "3:2",
+        "title": "Lowveld View",
+        "exp": "f/8 · 1/250s · ISO100 · 24mm"
+      },
+      {
+        "file": "assets/photography/02-gurudongmar.jpg",
+        "w": 1000,
+        "h": 666,
+        "ratio": "3:2",
+        "title": "Gurudongmar",
+        "exp": "f/11 · 1/320s · ISO64 · 16mm"
+      },
+      {
+        "file": "assets/photography/03-oval.jpg",
+        "w": 667,
+        "h": 1000,
+        "ratio": "2:3",
+        "title": "Oval Miniature",
+        "exp": "f/2.8 · 1/125s · ISO200 · 85mm"
+      },
+      {
+        "file": "assets/photography/04-selfportrait.jpg",
+        "w": 655,
+        "h": 1000,
+        "ratio": "2:3",
+        "title": "Self-Portrait",
+        "exp": "f/4 · 1/60s · ISO400 · 50mm"
+      },
+      {
+        "file": "assets/photography/05-arch.jpg",
+        "w": 1000,
+        "h": 548,
+        "ratio": "16:9",
+        "title": "Landscape Arch",
+        "exp": "f/9 · 1/250s · ISO100 · 18mm"
+      },
+      {
+        "file": "assets/photography/06-night.jpg",
+        "w": 533,
+        "h": 1000,
+        "ratio": "9:16",
+        "title": "Night Sky",
+        "exp": "f/1.8 · 15s · ISO3200 · 14mm"
+      },
+      {
+        "file": "assets/photography/07-coastline.jpg",
+        "w": 1000,
+        "h": 426,
+        "ratio": "2.35:1",
+        "title": "Coastline",
+        "exp": "f/9 · 1/200s · ISO100 · 21mm"
+      },
+      {
+        "file": "assets/photography/08-stilllife.jpg",
+        "w": 1000,
+        "h": 763,
+        "ratio": "4:3",
+        "title": "Still Life",
+        "exp": "f/4 · 1/200s · ISO100 · 60mm"
+      },
+      {
+        "file": "assets/photography/09-window.jpg",
+        "w": 723,
+        "h": 1000,
+        "ratio": "4:3",
+        "title": "Window Light",
+        "exp": "f/2 · 1/160s · ISO200 · 35mm"
+      }
     ]
   },
-
   "hero": {
     "lines": [
       "Building tools for thinking, creating, and working with AI.",
@@ -112,21 +175,6 @@
       "Always building something I wish already existed."
     ]
   },
-
-  "_languageNote": "method 'authored-lines' clones each repo and counts lines added in commits this author wrote — the in-depth reading. 'bytes' is the cheap fallback and is used automatically if cloning fails; the panel says which one it is showing. Scope is exactly the four tools in SELECTED WORK so the chart can be checked against the section above it. yunmin311.github.io is out on purpose (~8.7 MB of built HTML once reported '86% HTML'), and so is calendar-app (198 KB of generated markup). `identities` is matched case-insensitively against each commit's author email and name.",
-  "languageScope": {
-    "method": "authored-lines",
-    "repos": [
-      "yunmin311/work-capsule",
-      "yunmin311/window-annotator",
-      "yunmin311/context-distiller",
-      "yunmin311/governance-framework"
-    ],
-    "identities": ["liqiyu311@gmail.com", "yunmin311"],
-    "exclude": ["JSON", "SVG", "HTML", "TOML", "Batchfile", "VBScript", "Makefile", "Dockerfile"],
-    "limit": 6
-  },
-
   "_motionNote": "Per-component switches so layout stays the author's decision. Each module has its OWN effect — 01 lights indicator keys, rhythm flickers at its meter ceilings, languages sweeps, the two list panels share a row highlight because they are a matched pair, contributions runs a diagonal wave, work marches a selection marquee. `ambient: false` keeps entrances but stops the never-ending ones; `enabled: false` makes the whole page static. Every animated file also carries a prefers-reduced-motion guard, and no effect may start from opacity 0 — see lib/motion.mjs.",
   "motion": {
     "enabled": true,
@@ -143,22 +191,46 @@
     "work": true,
     "fortune": true
   },
-
   "activity": {
-    "types": ["pr", "release", "review", "issue", "ref/create", "public", "fork"],
+    "types": [
+      "pr",
+      "release",
+      "review",
+      "issue",
+      "ref/create",
+      "public",
+      "fork"
+    ],
     "limit": 5,
     "days": 120
   },
-
-
   "_contactNote": "A README cannot run script — GitHub strips it — so copy-to-clipboard on click is not possible on this page. EMAIL uses mailto:, which hands the click to whatever the reader's machine uses for mail without printing the address as text. WECHAT links to a QR stripped of the avatar, display name and city that came with it. WEBSITE stays off until yunmin311.github.io actually serves something; it currently 404s.",
   "contact": [
-    { "key": "email", "label": "EMAIL", "href": "mailto:liqiyu311@gmail.com", "enabled": true },
-    { "key": "douyin", "label": "DOUYIN", "href": "https://www.douyin.com/user/MS4wLjABAAAACCMGACneEnYcKlqMPe5wKvyxkUQTcX39bBzWcbGbpBSfWN4hHKN0dnZc64sV6SHR", "enabled": true },
-    { "key": "wechat", "label": "WECHAT", "href": "assets/contact/wechat-qr.png", "enabled": true },
-    { "key": "website", "label": "WEBSITE", "href": "", "enabled": false }
+    {
+      "key": "email",
+      "label": "EMAIL",
+      "href": "mailto:liqiyu311@gmail.com",
+      "enabled": true
+    },
+    {
+      "key": "douyin",
+      "label": "DOUYIN",
+      "href": "https://www.douyin.com/user/MS4wLjABAAAACCMGACneEnYcKlqMPe5wKvyxkUQTcX39bBzWcbGbpBSfWN4hHKN0dnZc64sV6SHR",
+      "enabled": true
+    },
+    {
+      "key": "wechat",
+      "label": "WECHAT",
+      "href": "assets/contact/wechat-qr.png",
+      "enabled": true
+    },
+    {
+      "key": "website",
+      "label": "WEBSITE",
+      "href": "",
+      "enabled": false
+    }
   ],
-
   "fortunes": [
     "The tool you keep meaning to build is the one you need most.",
     "A system nobody can explain is a system nobody can fix.",
@@ -180,7 +252,166 @@
     "Prototypes are arguments. Ship the one that wins.",
     "Most 'AI problems' are unclear-input problems wearing a costume.",
     "Two hours of naming things saves two weeks of explaining them."
-  ]
+  ],
+  "_projectsNote": "THE SINGLE SOURCE OF TRUTH for both SELECTED WORK and LANGUAGE SIGNAL. There is no second repository list anywhere: the cards and the language chart are both derived from this array by scripts/lib/projects.mjs. LANGUAGE SIGNAL counts exactly the projects currently SHOWN as cards, so the chart is always a caption on the grid above it — never on projects the reader cannot see. THE RULE, IN THREE STATES: tier 'core' = strongly preferred, leads a comparison by coreLeadDays, then competes on merit like everything else and RETAINS THE ABILITY TO RETIRE; tier 'candidate' = no preference beyond the stability guard; `pinned` (top level) = genuinely permanent, never retires — the ONLY way to say 'always on the page', and a deliberate hand-edit rather than a side effect of being important. ORDERING: recency (days since my last commit, weight 0.6, linear over 180 days) plus volume (log10 of lines I wrote, weight 0.4). Deliberately NOT stars, forks or raw commit counts. languages: 'count' = contributes to LANGUAGE SIGNAL, 'exclude' = real code but distorting (generated or vendored), 'n/a' = nothing comparable to count; a project unsuitable for language stats must be declared HERE, never dropped into a second list. DYNAMIC: the cards' member set and order, and the chart's numbers AND its scope. CURATED, changing only when this file changes: every word on a card.",
+  "projects": [
+    {
+      "key": "context-distiller",
+      "name": "Context Distiller",
+      "why": "Choosing what an AI gets to see is the step nobody built a tool for. A workspace for picking, grouping and compiling that context into one plain-text message — locally, and never sent anywhere.",
+      "tags": [
+        "TypeScript",
+        "React 19",
+        "WXT",
+        "Manifest V3"
+      ],
+      "url": "https://github.com/yunmin311/context-distiller",
+      "repo": "yunmin311/context-distiller",
+      "tier": "core",
+      "languages": "count"
+    },
+    {
+      "key": "governance-framework",
+      "name": "Governance Framework",
+      "why": "Run several AI agents and they forget, contradict each other, and disagree about which file is real. Pinning the facts into files fixes what a smarter model cannot.",
+      "tags": [
+        "Markdown",
+        "YAML",
+        "Python",
+        "Validators"
+      ],
+      "url": "https://github.com/yunmin311/governance-framework",
+      "repo": "yunmin311/governance-framework",
+      "tier": "core",
+      "languages": "count"
+    },
+    {
+      "key": "yunmin-workbench",
+      "name": "Yunmin Workbench",
+      "why": "A clean-room desktop workbench for running Claude Code and Codex side by side — rebuilt from a frozen baseline rather than patched forward, because a tool you depend on has to be explainable.",
+      "tags": [
+        "TypeScript",
+        "Electron",
+        "Local-first",
+        "Windows"
+      ],
+      "url": "https://github.com/yunmin311/yunmin-workbench",
+      "repo": "yunmin311/yunmin-workbench",
+      "tier": "candidate",
+      "languages": "count"
+    },
+    {
+      "key": "dsh-universal-palette",
+      "name": "DSH Universal Palette",
+      "why": "Three products with three different colour systems, and a designer retyping hex codes between them. One plugin turns whatever you are looking at into the palette you actually use.",
+      "tags": [
+        "TypeScript",
+        "Figma Plugin",
+        "Design Tokens"
+      ],
+      "url": "https://github.com/yunmin311/dsh-universal-palette",
+      "repo": "yunmin311/dsh-universal-palette",
+      "tier": "candidate",
+      "languages": "count"
+    },
+    {
+      "key": "window-annotator",
+      "name": "Window Annotator",
+      "why": "Drawing on the thing you are looking at should not depend on the app supporting it. Hand-drawn marks pin to any Windows window and follow it as it moves, resizes and scrolls.",
+      "tags": [
+        "Electron",
+        "JavaScript",
+        "koffi FFI",
+        "Windows"
+      ],
+      "url": "https://github.com/yunmin311/window-annotator",
+      "repo": "yunmin311/window-annotator",
+      "tier": "candidate",
+      "languages": "count"
+    },
+    {
+      "key": "zheng-tally-obsidian",
+      "name": "Zheng Tally for Obsidian",
+      "why": "Counting things in a note should not mean leaving the note. Tally marks you can strike through inline, with the running total kept where the writing happens.",
+      "tags": [
+        "TypeScript",
+        "Obsidian",
+        "CodeMirror 6"
+      ],
+      "url": "https://github.com/yunmin311/zheng-tally-obsidian",
+      "repo": "yunmin311/zheng-tally-obsidian",
+      "tier": "candidate",
+      "languages": "count"
+    },
+    {
+      "key": "work-capsule",
+      "name": "Work Capsule",
+      "why": "Keeping work in sync across machines should not risk it. One click pulls, optionally commits and pushes every folder you chose — fast-forward only, never rewriting history.",
+      "tags": [
+        "Rust",
+        "egui",
+        "Git",
+        "Windows"
+      ],
+      "url": "https://github.com/yunmin311/work-capsule",
+      "repo": "yunmin311/work-capsule",
+      "tier": "candidate",
+      "languages": "count"
+    },
+    {
+      "key": "pixel-panels",
+      "name": "Pixel Panels",
+      "why": "The components this page is built from, lifted out and documented. One 2px grid, one embedded bitmap face, and the four rules that keep fourteen separate parts reading as a single instrument.",
+      "tags": [
+        "JavaScript",
+        "SVG",
+        "Zero-dependency",
+        "MIT"
+      ],
+      "url": "https://github.com/yunmin311/pixel-panels",
+      "repo": "yunmin311/pixel-panels",
+      "tier": "candidate",
+      "languages": "count"
+    },
+    {
+      "key": "densegpt",
+      "name": "DenseGPT",
+      "why": "A long answer you cannot scan is a long answer nobody reads. One stylesheet tightens the reading layout and the content width; a companion spec asks the model for answers shaped to fit it.",
+      "tags": [
+        "UserCSS",
+        "Stylus",
+        "Typography",
+        "Prompt spec"
+      ],
+      "url": "https://github.com/yunmin311/DenseGPT",
+      "repo": "yunmin311/DenseGPT",
+      "tier": "candidate",
+      "languages": "n/a"
+    }
+  ],
+  "workSlots": 6,
+  "coreLeadDays": 45,
+  "hysteresisDays": 14,
+  "stalenessToleranceDays": 45,
+  "pinned": [],
+  "_policyNote": "EVERY NUMBER HERE IS INITIAL POLICY, NOT AN EMPIRICAL RESULT. They were chosen to be reasonable, deterministic and easy to change — nothing was fitted to anything and none of them should be treated as settled. THE FOUR KNOBS, and what to turn: `hysteresisDays` is how many days fresher a challenger must be before it takes a card from what is already there — raise it if cards flicker in and out, lower it if a card you expect to see cannot get in. `coreLeadDays` is the head start `tier: 'core'` gets — raise it if a core project drops off, lower it if one is overstaying. `stalenessToleranceDays` is when the page admits the rule has drifted and fails the build — it affects reporting only, never what is displayed. `pinned` is not a number: it is the list of keys that never retire.",
+  "_languageScopeNote": "HOW the language chart counts — not WHICH repositories. Scope is derived from `projects` above by lib/projects.mjs, so there is no repository list to keep in sync here. `identities` is matched case-insensitively against each commit's author email AND name; add an entry when a new machine commits under a different address, or those commits disappear from the chart with no error at all — the quietest way this panel can be wrong. `exclude` drops generated and vendored languages from the line count: the chart claims 'lines I wrote', and markup or lockfile churn is not writing. `method` is 'authored-lines' (clone each repo, count my insertions) and degrades to 'bytes' automatically if cloning fails; the panel prints which one is in force, because the two measure different things.",
+  "languageScopeOptions": {
+    "method": "authored-lines",
+    "identities": [
+      "liqiyu311@gmail.com",
+      "yunmin311"
+    ],
+    "exclude": [
+      "JSON",
+      "SVG",
+      "HTML",
+      "TOML",
+      "Batchfile",
+      "VBScript",
+      "Makefile",
+      "Dockerfile"
+    ],
+    "limit": 6
+  }
 }
-
-

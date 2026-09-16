@@ -5,11 +5,18 @@
  * why the thing exists and puts the stack underneath, because the stack is the
  * least interesting true fact about any of them.
  *
+ * WHICH cards appear, and in what order, is decided in lib/projects.mjs from the
+ * single declared pool in config.json — never here. The panel draws what it is
+ * handed. That split is what keeps this file pure drawing code, and it is why
+ * the same pool can also drive the language chart's scope without the two ever
+ * disagreeing.
+ *
  * Every card is the same height whatever its copy says, so the grid reads as one
  * object. That makes the copy budget a hard constraint, enforced below.
  *
  * No stars, forks, issues or language percentages: those are the numbers a
- * profile reaches for when it has nothing to say about the work.
+ * profile reaches for when it has nothing to say about the work. That is also
+ * why the selection rule is deliberately not star- or commit-count based.
  *
  * The project name rides the top rail as a plate, exactly like every other
  * panel's title, and the type inside is the same 11px as the dashboard. An
@@ -102,8 +109,21 @@ export function card(t, p, cfg, { mobile = false } = {}) {
   }
 }
 
-export const build = (t, _ctx, cfg, v) =>
-  cfg.work.map((p) => {
+/**
+ * Draw one card per selected project.
+ *
+ * The list arrives pre-ordered and pre-capped from lib/projects.mjs, so this is
+ * a map and nothing else. The `num` field is deliberately NOT stamped here: the
+ * card no longer prints an index, and a number that silently renumbered itself
+ * whenever the ordering shifted would be a caption claiming more stability than
+ * the rule actually has.
+ *
+ * `svgDoc`'s title is what a screen reader and the native tooltip get, so it
+ * carries the live "why" text rather than anything derived from the score —
+ * the score is a selection signal, not something to put in front of a reader.
+ */
+export const build = (t, ctx, cfg, v) =>
+  (ctx?.work?.picked ?? []).map((p) => {
     const c = card(t, p, cfg, v)
     return { key: `work-${p.key}`, svg: svgDoc({ w: c.w, h: c.h, theme: t, body: c.body, css: c.css, title: c.title, bleed: SHADOW }) }
   })
