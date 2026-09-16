@@ -23,7 +23,12 @@
       "reason": null,
       "commits": 82,
       "lines": 13050,
-      "languages": {},
+      "languages": {
+        "Markdown": 1477,
+        "TypeScript": 9843,
+        "YAML": 33,
+        "CSS": 1697
+      },
       "lastCommitAt": "2026-08-26T10:05:22.000Z"
     },
     "yunmin311/governance-framework": {
@@ -32,7 +37,13 @@
       "reason": null,
       "commits": 47,
       "lines": 5381,
-      "languages": {},
+      "languages": {
+        "PowerShell": 980,
+        "Markdown": 2731,
+        "YAML": 560,
+        "JavaScript": 678,
+        "Python": 432
+      },
       "lastCommitAt": "2026-08-21T02:17:21.000Z"
     },
     "yunmin311/yunmin-workbench": {
@@ -41,7 +52,13 @@
       "reason": null,
       "commits": 141,
       "lines": 66521,
-      "languages": {},
+      "languages": {
+        "Markdown": 1598,
+        "TypeScript": 55545,
+        "CSS": 8894,
+        "JavaScript": 252,
+        "YAML": 232
+      },
       "lastCommitAt": "2026-09-13T11:22:41.000Z"
     },
     "yunmin311/dsh-universal-palette": {
@@ -50,7 +67,13 @@
       "reason": null,
       "commits": 30,
       "lines": 17999,
-      "languages": {},
+      "languages": {
+        "Markdown": 2932,
+        "TypeScript": 12215,
+        "JavaScript": 2290,
+        "CSS": 385,
+        "YAML": 177
+      },
       "lastCommitAt": "2026-09-14T04:44:08.000Z"
     },
     "yunmin311/window-annotator": {
@@ -59,7 +82,12 @@
       "reason": null,
       "commits": 29,
       "lines": 6002,
-      "languages": {},
+      "languages": {
+        "JavaScript": 4929,
+        "CSS": 316,
+        "Markdown": 500,
+        "PowerShell": 257
+      },
       "lastCommitAt": "2026-09-08T14:00:43.000Z"
     },
     "yunmin311/zheng-tally-obsidian": {
@@ -68,7 +96,11 @@
       "reason": null,
       "commits": 8,
       "lines": 4039,
-      "languages": {},
+      "languages": {
+        "TypeScript": 3364,
+        "JavaScript": 62,
+        "Markdown": 613
+      },
       "lastCommitAt": "2026-09-15T05:11:12.000Z"
     },
     "yunmin311/work-capsule": {
@@ -77,7 +109,12 @@
       "reason": null,
       "commits": 42,
       "lines": 13069,
-      "languages": {},
+      "languages": {
+        "YAML": 393,
+        "Rust": 9224,
+        "Markdown": 2887,
+        "PowerShell": 565
+      },
       "lastCommitAt": "2026-09-13T04:14:26.000Z"
     },
     "yunmin311/pixel-panels": {
@@ -86,7 +123,10 @@
       "reason": null,
       "commits": 4,
       "lines": 4266,
-      "languages": {},
+      "languages": {
+        "Markdown": 794,
+        "JavaScript": 3472
+      },
       "lastCommitAt": "2026-08-21T08:42:31.000Z"
     },
     "yunmin311/DenseGPT": {
@@ -95,9 +135,12 @@
       "reason": null,
       "commits": 29,
       "lines": 3619,
-      "languages": {},
+      "languages": {
+        "Markdown": 2745,
+        "CSS": 874
+      },
       "lastCommitAt": "2026-08-21T08:20:14.000Z"
     }
   },
-  "generated": "2026-09-15T14:16:04.257Z"
+  "generated": "2026-09-16T00:40:47.514Z"
 }
