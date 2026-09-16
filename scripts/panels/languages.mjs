@@ -5,14 +5,14 @@
  * information, and six unrelated colours only make it harder to read.
  *
  * WHAT IS COUNTED. Lines added by this author, in commits this author wrote,
- * across the repositories shown in SELECTED WORK — not bytes on disk. Bytes
- * count vendored files, generated output, and whatever a collaborator or a
- * scaffolding tool contributed; an unqualified language chart on a GitHub
+ * across the PINNED repositories shown in SELECTED WORK — not bytes on disk.
+ * Bytes count vendored files, generated output, and whatever a collaborator or
+ * a scaffolding tool contributed; an unqualified language chart on a GitHub
  * profile is usually measuring somebody else's boilerplate. The method and the
  * scope are printed on the panel so the claim can be checked.
  *
  * AND THE SCOPE IS ONE MEASUREMENT, NOT TWO. The numbers here are a fold over
- * the repository snapshots SELECTED WORK's rule already took — see
+ * the repository snapshots the pinned set was already collected into — see
  * lib/sources.mjs. Nothing on this panel clones anything, so the chart cannot
  * describe a set of repositories that differs from the grid above it.
  *

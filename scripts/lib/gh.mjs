@@ -73,3 +73,65 @@ export async function starred(login, limit = 3) {
 
 export const languagesOf = (fullName) => rest(`/repos/${fullName}/languages`)
 export const repoOf = (fullName) => rest(`/repos/${fullName}`)
+
+/**
+ * THE PINNED REPOSITORIES ON THE PROFILE — the source SELECTED WORK reads.
+ *
+ * Why this and not a ranking of any kind: "which projects are worth showing" is
+ * a judgement, and the author already makes it once, by hand, in GitHub's own
+ * `Customize your pins` dialog. Re-deriving that from commits, recency or stars
+ * meant the page could disagree with the author about their own portfolio, and
+ * meant that changing the page required editing a config file. Reading the pins
+ * makes the profile the single place that decision is made.
+ *
+ * ORDER IS THE SERVER'S, DELIBERATELY. `pinnedItems` returns pins in the order
+ * they were arranged on the profile. That order is re-sorted nowhere — the
+ * cards are drawn in exactly the sequence returned, so dragging a pin moves the
+ * card.
+ *
+ * NOT SCRAPING. The public profile page renders pins as plain HTML, and reading
+ * that would break on any markup change and would be invisible until it did.
+ * The GraphQL field is the documented interface for the same data.
+ *
+ * THE LIMIT IS NOT POLICY. GitHub caps a profile at six pins, so `first: 6` is
+ * the maximum meaningful page size rather than a tunable number — asking for
+ * fewer would silently hide pins the author can see on their own profile. A
+ * profile with four pins returns four nodes and the page shows four cards;
+ * nothing pads the list.
+ *
+ * THROWS ON FAILURE, and that is the point. The caller must be able to tell
+ * "this profile has no pins" (an empty array — an authoritative answer) from
+ * "we could not ask" (an exception). Collapsing the two is what would let a
+ * transient network error empty the showcase.
+ */
+export const PIN_LIMIT = 6
+
+export async function pinnedRepos(login, limit = PIN_LIMIT) {
+  const data = await graphql(
+    `query($login:String!,$n:Int!){
+       user(login:$login){
+         pinnedItems(first:$n, types:[REPOSITORY]){
+           nodes{
+             ... on Repository{
+               name
+               nameWithOwner
+               url
+               description
+               primaryLanguage{ name }
+               repositoryTopics(first:6){ nodes{ topic{ name } } }
+             }
+           }
+         }
+       }
+     }`,
+    { login, n: limit }
+  )
+  const user = data?.user
+  if (!user) throw new Error(`graphql: user \`${login}\` does not exist`)
+  const nodes = user.pinnedItems?.nodes
+  if (!Array.isArray(nodes)) throw new Error("graphql: pinnedItems returned no nodes array")
+  // `... on Repository` leaves a null for any node that is not a repository,
+  // which cannot happen for `types: [REPOSITORY]` but would crash the card
+  // builder rather than degrade. Dropping them here keeps that guarantee local.
+  return nodes.filter(Boolean)
+}

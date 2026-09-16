@@ -5,18 +5,24 @@
  * why the thing exists and puts the stack underneath, because the stack is the
  * least interesting true fact about any of them.
  *
- * WHICH cards appear, and in what order, is decided in lib/projects.mjs from the
- * single declared pool in config.json — never here. The panel draws what it is
- * handed. That split is what keeps this file pure drawing code, and it is why
- * the same pool can also drive the language chart's scope without the two ever
+ * WHICH cards appear, and in what order, is decided by the PINNED REPOSITORIES
+ * on the GitHub profile — read in lib/sources.mjs, turned into cards in
+ * lib/projects.mjs, never decided here. The panel draws what it is handed. That
+ * split is what keeps this file pure drawing code, and it is why the same
+ * pinned set can also drive the language chart's scope without the two ever
  * disagreeing.
  *
  * Every card is the same height whatever its copy says, so the grid reads as one
- * object. That makes the copy budget a hard constraint, enforced below.
+ * object. That makes the copy budget a hard constraint, enforced below — and
+ * because a card's text may now come from a repository description nobody edits
+ * before it arrives, the budget itself lives in lib/cards.mjs so the data layer
+ * can truncate against the same numbers this file draws to.
  *
  * No stars, forks, issues or language percentages: those are the numbers a
- * profile reaches for when it has nothing to say about the work. That is also
- * why the selection rule is deliberately not star- or commit-count based.
+ * profile reaches for when it has nothing to say about the work. The membership
+ * is not computed from any of them either — it is the set the author pinned on
+ * their own profile, which is a human decision this page follows rather than
+ * re-litigates. See the note at the top of lib/projects.mjs.
  *
  * The project name rides the top rail as a plate, exactly like every other
  * panel's title, and the type inside is the same 11px as the dashboard. An
@@ -28,27 +34,19 @@
 
 import { rect, panel, tab, svgDoc, body, W_HALF, W_MOBILE, S , SHADOW, pixelRule} from "../lib/design.mjs"
 import { styles, ants, nudge, enabled } from "../lib/motion.mjs"
-import { adv, MICRO } from "../lib/type.mjs"
+import { CARD_COPY, wrap } from "../lib/cards.mjs"
 
 export const id = "work"
 export const responsive = true
 
-const DESKTOP = { w: W_HALF, h: 136, svgH: 152, lines: 4, top: 40, tags: 116 }
-const MOBILE = { w: W_MOBILE, h: 184, svgH: 200, lines: 6, top: 40, tags: 164 }
+// The line budgets come from lib/cards.mjs rather than being typed in twice:
+// that module is what truncates a repository description down to what will fit
+// here, and a divergence between the two would be a build that fails on data
+// nobody in this repository can edit. Exported so a test can assert that the
+// panel and the truncation really do read the same numbers.
+export const DESKTOP = { w: W_HALF, h: 136, svgH: 152, lines: CARD_COPY.desktop.lines, top: 40, tags: 116 }
+export const MOBILE = { w: W_MOBILE, h: 184, svgH: 200, lines: CARD_COPY.mobile.lines, top: 40, tags: 164 }
 const LINE_H = S.sm
-
-/** Greedy wrap at a known advance — the face is monospaced, so this is exact. */
-function wrap(text, px, size = MICRO) {
-  const max = Math.floor(px / adv(size))
-  const out = []
-  let line = ""
-  for (const word of String(text).split(/\s+/)) {
-    const next = line ? `${line} ${word}` : word
-    if (next.length > max && line) { out.push(line); line = word } else { line = next }
-  }
-  if (line) out.push(line)
-  return out
-}
 
 export function card(t, p, cfg, { mobile = false } = {}) {
   const L = mobile ? MOBILE : DESKTOP
@@ -69,7 +67,9 @@ export function card(t, p, cfg, { mobile = false } = {}) {
   if (all.length > L.lines) {
     throw new Error(
       `work/${p.key}: "why" needs ${all.length} lines on ${mobile ? "mobile" : "desktop"}, budget is ` +
-        `${L.lines}. Shorten it in config.json — the dropped tail was ${JSON.stringify(all.slice(L.lines).join(" "))}.`
+        `${L.lines}. This should be unreachable — lib/projects.mjs truncates a repository ` +
+        `description with fitCopy() before it reaches here, and a hand-written "why" in ` +
+        `config.cardOverrides must fit. The dropped tail was ${JSON.stringify(all.slice(L.lines).join(" "))}.`
     )
   }
   const lines = all.slice(0, L.lines)
@@ -110,17 +110,17 @@ export function card(t, p, cfg, { mobile = false } = {}) {
 }
 
 /**
- * Draw one card per selected project.
+ * Draw one card per pinned repository.
  *
- * The list arrives pre-ordered and pre-capped from lib/projects.mjs, so this is
- * a map and nothing else. The `num` field is deliberately NOT stamped here: the
- * card no longer prints an index, and a number that silently renumbered itself
- * whenever the ordering shifted would be a caption claiming more stability than
- * the rule actually has.
+ * The list arrives already built, in pin order, from lib/projects.mjs, so this
+ * is a map and nothing else. The `num` field is deliberately NOT stamped here:
+ * the card does not print an index, and an index over a list the author
+ * reorders by dragging on GitHub would be a caption claiming more meaning than
+ * the order has.
  *
  * `svgDoc`'s title is what a screen reader and the native tooltip get, so it
- * carries the live "why" text rather than anything derived from the score —
- * the score is a selection signal, not something to put in front of a reader.
+ * carries the card's "why" text — the sentence the reader is already being
+ * shown — and nothing derived from a score, because there is no longer one.
  */
 export const build = (t, ctx, cfg, v) =>
   (ctx?.work?.picked ?? []).map((p) => {

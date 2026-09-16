@@ -253,10 +253,10 @@
     "Most 'AI problems' are unclear-input problems wearing a costume.",
     "Two hours of naming things saves two weeks of explaining them."
   ],
-  "_projectsNote": "THE SINGLE SOURCE OF TRUTH for both SELECTED WORK and LANGUAGE SIGNAL. There is no second repository list anywhere: the cards and the language chart are both derived from this array by scripts/lib/projects.mjs. LANGUAGE SIGNAL counts exactly the projects currently SHOWN as cards, so the chart is always a caption on the grid above it — never on projects the reader cannot see. THE RULE, IN THREE STATES: tier 'core' = strongly preferred, leads a comparison by coreLeadDays, then competes on merit like everything else and RETAINS THE ABILITY TO RETIRE; tier 'candidate' = no preference beyond the stability guard; `pinned` (top level) = genuinely permanent, never retires — the ONLY way to say 'always on the page', and a deliberate hand-edit rather than a side effect of being important. ORDERING: recency (days since my last commit, weight 0.6, linear over 180 days) plus volume (log10 of lines I wrote, weight 0.4). Deliberately NOT stars, forks or raw commit counts. languages: 'count' = contributes to LANGUAGE SIGNAL, 'exclude' = real code but distorting (generated or vendored), 'n/a' = nothing comparable to count; a project unsuitable for language stats must be declared HERE, never dropped into a second list. DYNAMIC: the cards' member set and order, and the chart's numbers AND its scope. CURATED, changing only when this file changes: every word on a card.",
-  "projects": [
-    {
-      "key": "context-distiller",
+  "_cardOverridesNote": "THE WORDS ON A SELECTED WORK CARD, and nothing else. WHICH cards appear, and in what order, is decided by the PINNED REPOSITORIES on the GitHub profile — change them at github.com/yunmin311 -> Customize your pins, and the next rebuild follows. Nothing here can add, remove or reorder a card. HOW THE TWO HALVES SPLIT: `name`, `why` and `tags` are curated here, because a sentence worth reading is written by a person; membership, order, `url` and the fallback text come from GitHub. A pin with NO entry here is not an error and needs no code change — its card is built from the repository's own description, primary language and topics, and the build log names it under 'unedited pins' so the wording can be chosen later. Keeping an entry for a project that is not currently pinned is fine and useful: pin it again and the good copy is waiting. `languages` is three-state and optional: 'count' (the default) contributes to LANGUAGE SIGNAL, 'exclude' is real code but generated or vendored so it would distort the mix, 'n/a' is nothing comparable to count at all. Only `languages` still needs a second list's worth of intent, and it is a per-card opt-out rather than a scope.",
+  "_dynamicNote": "WHAT IS DYNAMIC HERE, IN ONE PLACE: the set of cards (the pins), their order (the pin order), the url and repo behind each, LANGUAGE SIGNAL's numbers, and LANGUAGE SIGNAL's scope — which is exactly the pinned set. WHAT IS CURATED: every hand-written word, which lives in `cardOverrides` below and changes only when this file is edited.",
+  "cardOverrides": {
+    "yunmin311/context-distiller": {
       "name": "Context Distiller",
       "why": "Choosing what an AI gets to see is the step nobody built a tool for. A workspace for picking, grouping and compiling that context into one plain-text message — locally, and never sent anywhere.",
       "tags": [
@@ -264,14 +264,9 @@
         "React 19",
         "WXT",
         "Manifest V3"
-      ],
-      "url": "https://github.com/yunmin311/context-distiller",
-      "repo": "yunmin311/context-distiller",
-      "tier": "core",
-      "languages": "count"
+      ]
     },
-    {
-      "key": "governance-framework",
+    "yunmin311/governance-framework": {
       "name": "Governance Framework",
       "why": "Run several AI agents and they forget, contradict each other, and disagree about which file is real. Pinning the facts into files fixes what a smarter model cannot.",
       "tags": [
@@ -279,14 +274,9 @@
         "YAML",
         "Python",
         "Validators"
-      ],
-      "url": "https://github.com/yunmin311/governance-framework",
-      "repo": "yunmin311/governance-framework",
-      "tier": "core",
-      "languages": "count"
+      ]
     },
-    {
-      "key": "yunmin-workbench",
+    "yunmin311/yunmin-workbench": {
       "name": "Yunmin Workbench",
       "why": "A clean-room desktop workbench for running Claude Code and Codex side by side — rebuilt from a frozen baseline rather than patched forward, because a tool you depend on has to be explainable.",
       "tags": [
@@ -294,28 +284,18 @@
         "Electron",
         "Local-first",
         "Windows"
-      ],
-      "url": "https://github.com/yunmin311/yunmin-workbench",
-      "repo": "yunmin311/yunmin-workbench",
-      "tier": "candidate",
-      "languages": "count"
+      ]
     },
-    {
-      "key": "dsh-universal-palette",
+    "yunmin311/dsh-universal-palette": {
       "name": "DSH Universal Palette",
       "why": "Three products with three different colour systems, and a designer retyping hex codes between them. One plugin turns whatever you are looking at into the palette you actually use.",
       "tags": [
         "TypeScript",
         "Figma Plugin",
         "Design Tokens"
-      ],
-      "url": "https://github.com/yunmin311/dsh-universal-palette",
-      "repo": "yunmin311/dsh-universal-palette",
-      "tier": "candidate",
-      "languages": "count"
+      ]
     },
-    {
-      "key": "window-annotator",
+    "yunmin311/window-annotator": {
       "name": "Window Annotator",
       "why": "Drawing on the thing you are looking at should not depend on the app supporting it. Hand-drawn marks pin to any Windows window and follow it as it moves, resizes and scrolls.",
       "tags": [
@@ -323,28 +303,18 @@
         "JavaScript",
         "koffi FFI",
         "Windows"
-      ],
-      "url": "https://github.com/yunmin311/window-annotator",
-      "repo": "yunmin311/window-annotator",
-      "tier": "candidate",
-      "languages": "count"
+      ]
     },
-    {
-      "key": "zheng-tally-obsidian",
+    "yunmin311/zheng-tally-obsidian": {
       "name": "Zheng Tally for Obsidian",
       "why": "Counting things in a note should not mean leaving the note. Tally marks you can strike through inline, with the running total kept where the writing happens.",
       "tags": [
         "TypeScript",
         "Obsidian",
         "CodeMirror 6"
-      ],
-      "url": "https://github.com/yunmin311/zheng-tally-obsidian",
-      "repo": "yunmin311/zheng-tally-obsidian",
-      "tier": "candidate",
-      "languages": "count"
+      ]
     },
-    {
-      "key": "work-capsule",
+    "yunmin311/work-capsule": {
       "name": "Work Capsule",
       "why": "Keeping work in sync across machines should not risk it. One click pulls, optionally commits and pushes every folder you chose — fast-forward only, never rewriting history.",
       "tags": [
@@ -352,14 +322,9 @@
         "egui",
         "Git",
         "Windows"
-      ],
-      "url": "https://github.com/yunmin311/work-capsule",
-      "repo": "yunmin311/work-capsule",
-      "tier": "candidate",
-      "languages": "count"
+      ]
     },
-    {
-      "key": "pixel-panels",
+    "yunmin311/pixel-panels": {
       "name": "Pixel Panels",
       "why": "The components this page is built from, lifted out and documented. One 2px grid, one embedded bitmap face, and the four rules that keep fourteen separate parts reading as a single instrument.",
       "tags": [
@@ -367,14 +332,9 @@
         "SVG",
         "Zero-dependency",
         "MIT"
-      ],
-      "url": "https://github.com/yunmin311/pixel-panels",
-      "repo": "yunmin311/pixel-panels",
-      "tier": "candidate",
-      "languages": "count"
+      ]
     },
-    {
-      "key": "densegpt",
+    "yunmin311/DenseGPT": {
       "name": "DenseGPT",
       "why": "A long answer you cannot scan is a long answer nobody reads. One stylesheet tightens the reading layout and the content width; a companion spec asks the model for answers shaped to fit it.",
       "tags": [
@@ -383,19 +343,10 @@
         "Typography",
         "Prompt spec"
       ],
-      "url": "https://github.com/yunmin311/DenseGPT",
-      "repo": "yunmin311/DenseGPT",
-      "tier": "candidate",
       "languages": "n/a"
     }
-  ],
-  "workSlots": 6,
-  "coreLeadDays": 45,
-  "hysteresisDays": 14,
-  "stalenessToleranceDays": 45,
-  "pinned": [],
-  "_policyNote": "EVERY NUMBER HERE IS INITIAL POLICY, NOT AN EMPIRICAL RESULT. They were chosen to be reasonable, deterministic and easy to change — nothing was fitted to anything and none of them should be treated as settled. THE FOUR KNOBS, and what to turn: `hysteresisDays` is how many days fresher a challenger must be before it takes a card from what is already there — raise it if cards flicker in and out, lower it if a card you expect to see cannot get in. `coreLeadDays` is the head start `tier: 'core'` gets — raise it if a core project drops off, lower it if one is overstaying. `stalenessToleranceDays` is when the page admits the rule has drifted and fails the build — it affects reporting only, never what is displayed. `pinned` is not a number: it is the list of keys that never retire.",
-  "_languageScopeNote": "HOW the language chart counts — not WHICH repositories. Scope is derived from `projects` above by lib/projects.mjs, so there is no repository list to keep in sync here. `identities` is matched case-insensitively against each commit's author email AND name; add an entry when a new machine commits under a different address, or those commits disappear from the chart with no error at all — the quietest way this panel can be wrong. `exclude` drops generated and vendored languages from the line count: the chart claims 'lines I wrote', and markup or lockfile churn is not writing. `method` is 'authored-lines' (clone each repo, count my insertions) and degrades to 'bytes' automatically if cloning fails; the panel prints which one is in force, because the two measure different things.",
+  },
+  "_languageScopeNote": "HOW the language chart counts. Its SCOPE is not configured — it is the pinned repositories, derived by lib/projects.mjs, so there is no repository list to keep in sync here or anywhere else. `identities` is matched case-insensitively against each commit's author email AND name; add an entry when a new machine commits under a different address, or those commits disappear from the chart with no error at all — the quietest way this panel can be wrong. `exclude` drops generated and vendored languages from the line count: the chart claims 'lines I wrote', and markup or lockfile churn is not writing. `method` is 'authored-lines' (clone each pinned repo, count my insertions); 'bytes' is an explicit escape hatch that measures something different, so it is never selected automatically.",
   "languageScopeOptions": {
     "method": "authored-lines",
     "identities": [

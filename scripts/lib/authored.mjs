@@ -26,15 +26,20 @@
  *   lines · languages             how much they wrote, and in what
  *
  * CALLERS MUST NOT READ A FAILED SNAPSHOT AS "INACTIVE". That was the bug this
- * shape exists to prevent: before, a repository whose clone hit a transient
- * network error simply had no entry, and `select()` scored its absence as
- * "age unknown", which is the same floor a genuinely abandoned project gets.
- * A five-second DNS hiccup could therefore drop a project off the profile for
- * six hours. `outcome` makes "we could not measure it" a fact the caller is
- * forced to handle rather than a silence it can mistake for evidence.
+ * shape exists to prevent: a repository whose clone hit a transient network
+ * error simply had no entry, and the ranking rule that used to run on top of
+ * these snapshots scored its absence as "age unknown" — the same floor a
+ * genuinely abandoned project got — so a five-second DNS hiccup could drop a
+ * project off the profile for six hours. `outcome` makes "we could not measure
+ * it" a fact the caller is forced to handle rather than a silence it can
+ * mistake for evidence.
  *
- * There is exactly ONE clone per repository per build. The selection rule and
- * the language chart read the same snapshots, so they cannot be computed from
+ * Membership no longer depends on any of this: the pins decide what is shown.
+ * What survives is the distinction LANGUAGE SIGNAL needs — a pinned repository
+ * that could not be reached is UNAVAILABLE, never zero lines.
+ *
+ * There is exactly ONE clone per repository per build. The chart folds the same
+ * snapshots the pinned set was collected into, so nothing can be computed from
  * two different points in time.
  */
 
@@ -179,7 +184,9 @@ export async function authoredSnapshots(repos, identities, { skipLanguages = [] 
 
       // A repository that cloned but has no commits by this author is a
       // SUCCESSFUL measurement of zero, not a failure. The distinction matters:
-      // it is real evidence, and it should be allowed to lose a card on merit.
+      // this is real evidence — the whole history was read and none of it is
+      // ours — and collapsing it into "unavailable" would make a real zero
+      // indistinguishable from a clone that never happened.
       const langs = {}
       let mine = false
       let repoCommits = 0

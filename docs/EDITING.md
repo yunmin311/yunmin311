@@ -6,6 +6,10 @@
 [`scripts/config.json`](../scripts/config.json)。在浏览器里改那一个文件，
 提交，大约 30 秒后页面就换了。不用装 Node，不用 clone，不用命令行。
 
+**一个例外，而且是故意的**：`03 SELECTED WORK` 放哪几张卡、按什么顺序，
+由 GitHub 主页上的 **Pinned repositories** 决定，不在 config 里——改那个要去主页上
+点 `Customize your pins`。详见第四节。
+
 ---
 
 ## 一、原理（读一遍，之后不用再想）
@@ -50,14 +54,13 @@ GitHub 的 README 不能跑脚本，只能放图片。所以这一页上每一�
 | `about.name` / `about.paragraphs` | 01 里的名字和两段自我介绍 |
 | `exploring` | 01 里那排「在研究什么」的小方块 |
 | `principles` | 01 底部那两条原则 |
-| `projects` | 03 作品卡的**唯一事实源**，同时也是语言占比统计的仓库来源（详见下面第四节） |
-| `workSlots` / `coreLeadDays` / `hysteresisDays` / `stalenessToleranceDays` / `pinned` | 选卡规则的五个参数，**都是初始策略值不是实测结论**（详见第四节） |
+| `cardOverrides` | 03 作品卡上的**文字**（名字、`why`、`tags`）。**它决定不了放哪几张卡**——那是 pin 决定的（详见第四节） |
 | `contact` | 07 的联系方式按钮，`enabled: false` 就是关掉不显示 |
 | `fortunes` | 08 每天换一句的那句话，往数组里加就行，加多少都可以 |
 | `quote` / `tiles` / `display` | 主页上**没有**用，只出现在 `docs/COMPONENTS.md` 里当样例 |
 | `motion` | 每个模块的动画开关。整页静止就把 `enabled` 改成 `false` |
 | `activity.days` / `activity.limit` | 「最近动态」看多久以内、最多列几条 |
-| `languageScopeOptions` | 语言占比**怎么算**（算谁的提交、排除哪些语言）。算**哪些仓库**由 `projects` 决定 |
+| `languageScopeOptions` | 语言占比**怎么算**（算谁的提交、排除哪些语言）。算**哪些仓库**由 pin 决定，不在这里配 |
 
 ### 哪些会自己变，哪些不会
 
@@ -65,80 +68,100 @@ GitHub 的 README 不能跑脚本，只能放图片。所以这一页上每一�
 
 | 会自己变（每 6 小时按真实数据重算） | 不会自己变（只有你改 config.json 才变） |
 |---|---|
-| 作息热力图 · 语言占比的数字 · 最近星标 · 最近动态 · 一年的贡献图 · 每日一句 | **作品卡上的每一个字**（名字、`why`、`tags`、链接）、分节标题、开场三句话、每日一句的池子、联系方式 |
-| **作品卡的成员和顺序**（按最近活跃度重排，见第四节） | 作品卡**长什么样**（尺寸、字体、配色、动画） |
+| 作息热力图 · 语言占比的数字 · 最近星标 · 最近动态 · 一年的贡献图 · 每日一句 | **作品卡上你写的那几个字**（`name`、`why`、`tags`）、分节标题、开场三句话、每日一句的池子、联系方式 |
+| **作品卡的入选名单和排列顺序**（= GitHub 上的 pin，见第四节） | 作品卡**长什么样**（尺寸、字体、配色、动画） |
+| 语言占比统计的**范围**（= 同一批 pin） | |
 
-换句话说：卡片上的文案是「策展」内容，不会自动换；卡片的**入选名单和排列顺序**是动态的。
+换句话说：卡片上的文案是「策展」内容，不会自动换；卡片的**入选名单、排列顺序、
+以及语言统计的范围**全部跟着 GitHub 上的 pin 走。
 
 > **为什么以前看起来像冻住了。** 卡片内容 100% 来自 config，所以一次健康的构建会
 > 把卡片图字节级一模一样地重画一遍，工作流提交不了任何东西、直接报 `no change`
 > 收工。这本身是对的——但它和「选卡规则本身已经过时」长得完全一样。
-> 现在 `scripts/check.mjs` 会检查这件事，规则跑偏了会直接让运行失败，见第六节。
+> 现在名单来自 GitHub 上的 pin，所以「页面没变」只可能意味着「pin 没变」。
+> `scripts/check.mjs` 每次都会核对 README 里那一块和记录下来的名单是否一致，见第六节。
 
 ---
 
-## 四、作品卡（唯一有长度上限的地方）
+## 四、作品卡：名单来自 pin，文字来自这里
 
-`projects` 数组里每一项：
+### 名单：GitHub 上的 Pinned repositories
+
+**放哪几张卡，是你在 GitHub 主页上 pin 出来的。** 操作只有一步：
+
+```text
+github.com/yunmin311 → 主页右上 Customize your pins → 勾选 / 拖动排序 → Save
+```
+
+下一轮 rebuild（最多 6 小时，或者你手动 Run workflow）就会跟上。**不用改 config，
+不用改代码。**
+
+- **顺序就是 pin 的顺序**，不重排、不打分。
+- **pin 几张就显示几张。** 只 pin 了 4 个就是 4 张卡，不会给你补「最近的项目」。
+- 全都不 pin 就一张都不显示——那是你的决定，页面照做。
+- 读的是 GitHub 官方 GraphQL 的 `pinnedItems`，不是扒网页。
+
+> 为什么不再用「最近最活跃的 6 个」。那个规则要回答的问题是「哪六个项目值得展示」——
+> 这本来就是你的判断，而 pin 就是你已经做过这个判断的地方。让代码再算一遍，等于
+> 两套策展互相打架，而且机器那套会赢。所以 `tier` / `coreLeadDays` /
+> `hysteresisDays` / `pinned` / 最近度打分这些全部删掉了，config 里也没有了。
+
+### 文字：`cardOverrides`
+
+名单是 pin 定的，**卡片上那几个字仍然是你写的**，在 `cardOverrides` 里，按
+`owner/name` 索引：
 
 ```json
-{
-  "key": "context-distiller",
+"yunmin311/context-distiller": {
   "name": "Context Distiller",
   "why": "为什么这个东西存在——一到两句。",
-  "tags": ["TypeScript", "React 19", "WXT", "Manifest V3"],
-  "url": "https://github.com/yunmin311/context-distiller",
-  "repo": "yunmin311/context-distiller",
-  "tier": "core",
-  "languages": "count"
+  "tags": ["TypeScript", "React 19", "WXT", "Manifest V3"]
 }
 ```
 
-- **`tier`** —— 偏好强度，**不是永久占位**：
-  - `"core"` —— 强烈偏好。和对手比的时候先拿到 `coreLeadDays` 天的领先，
-    但**仍然会退场**：落后太多的话名额就是别人的。这才是对的——
-    一个两年没动的项目不该永远占住一张卡。
-  - `"candidate"`（默认）—— 除了稳定性保护之外没有任何偏好。
-- **`languages`** 决定它算不算进语言占比：
+- **`name`** —— 卡片顶上那块牌子上的名字。
+- **`why`** —— 正文那一两句。这就是卡片存在的理由，也是唯一有长度上限的地方（见下）。
+- **`tags`** —— 底部那行小字。最多两行，四个短词是舒服的量。
+- **`languages`**（可选）决定它算不算进语言占比：
   - `"count"`（默认）—— 算。
   - `"exclude"` —— 是真实代码，但算进去会失真（生成物、vendored）。
   - `"n/a"` —— 没有可对比的「新增代码行」口径，比如纯样式表或提示词规范。
-- `key` 是文件名。改了它，README 里那张图的路径要跟着改——**不想改路径就别动 `key`。**
 
-`weight`（单项目分数下限）和 `hysteresis`（单项目保护天数）两个字段代码还认，
-但**这一版刻意没在用**：它们和 `coreLeadDays` / `hysteresisDays` 是同一个意图的两种
-写法，放在一起只会互相打架。要托住某个项目就调 `coreLeadDays`，
-要稳住某张卡就调 `hysteresisDays`，两个都在 config 顶层。
+**新 pin 一个还没登记过的仓库，不需要动任何代码。** 卡片会自动用仓库自己的
+description、primary language 和 topics 拼出来：`why` 用 description，`tags` 用
+主语言 + topics。构建日志里会把这些列在 `unedited pins` 下面——意思是「这张卡现在
+用的是 GitHub 上的描述，想换成自己写的句子就往 `cardOverrides` 里加一条」。
 
-### 全局的几个「旋钮」
+- description 太长时会被**按词边界截短**（加 `…`），不会截半个单词，也不会让构建失败
+  ——那段文字在 GitHub 上，不归这个仓库管，用错误来逼你改是没道理的。
+- description 为空时 `why` 就用仓库名本身。故意不做发挥：宁可是个明显的占位，
+  也不要凭空生成一句关于别人项目的宣传语。
+- 反过来，**你手写的 `why` 和 `tags` 超长了会直接构建失败**并且报出多了几行——
+  手写的文字你改得动，报错是有用的。
 
-下面这些在 `config.json` 顶层。**全部是初始策略值，不是实测结论**，觉得不对就改：
+逗号、括号这些分隔符前会去掉再补 `…`，所以「……instrument,…」这种不会出现。
 
-| 字段 | 作用 | 怎么调 |
-|---|---|---|
-| `workSlots` | 页面上放几张卡（默认 6，改它要连布局一起改） | —— |
-| `coreLeadDays` | `core` 相对普通项目领先多少天 | core 掉下去了就调大，赖着不走就调小 |
-| `hysteresisDays` | 挑战者要比在位者新多少天才换人 | 卡片来回闪就调大，想换的卡进不来就调小 |
-| `stalenessToleranceDays` | 落后多少天算「规则跑偏了」并让构建失败 | 只影响报错，不影响展示 |
-| `pinned` | **永不退场**的项目 key 列表 | 唯一能说「永远留在页面上」的地方，手改 |
-
-**入选规则**（`scripts/lib/projects.mjs`）：`pinned` 先占位，然后所有项目按一个统一的
-排序键竞争，其中 `core` 带 `coreLeadDays` 的领先。分数 = 0.6 × 最近度（距我最后一次
-提交的天数，180 天线性衰减）+ 0.4 × 体量（我写的行数的 log10）。**刻意不用** star /
-fork / 裸 commit 数——那些衡量的是观众，不是工作。
-
-**语言占比统计的是「上面正在展示的那几张卡」**，不是整个 `projects` 池。因为它就贴在
-作品卡下面，读者只会把它当成那排卡的注解；统计池子里没露面的项目，等于把数字挂在了
-读者看不见的东西上。
+### 长度的硬上限
 
 六张卡等高，这是它们看起来像一整块而不是六张海报的原因。所以 `why` 有硬上限：
 **英文约 180 个字符以内是安全的**（桌面 4 行 × 每行 53 字，手机 6 行 × 每行 36 字）。
-超了不会被悄悄截断——构建会直接失败，并在报错里告诉你多了几行、被砍掉的是哪几个字。
-`tags` 最多两行，四个短词是舒服的量。
+上限定义在 `scripts/lib/cards.mjs`，工作卡和截断逻辑读的是同一份数字。
 
-**页面顺序由规则决定，不再等于你在 config 里写的顺序**，也不再等于 GitHub 上的 pin 顺序。
-README 里那一整块卡片链接是构建自动重写的（`SELECTED_WORK_START` / `SELECTED_WORK_END`
-两个注释之间），**不要手改**——改了会被下次构建覆盖，而且 `check.mjs` 会发现不一致并报错。
+**页面顺序 = pin 顺序。** README 里那一整块卡片链接是构建自动重写的
+（`SELECTED_WORK_START` / `SELECTED_WORK_END` 两个注释之间），**不要手改**——
+改了会被下次构建覆盖，而且 `check.mjs` 会发现不一致并报错。
+
+### 语言占比统计的是同一批 pin
+
+`04 HOW I WORK` 里的语言占比，统计范围**就是上面这几张卡**，一个不多一个不少。
+它贴在作品卡下面，读者只会把它当成那排卡的注解。数字来自「我本人写的新增行数」，
+不是磁盘字节数——所以它是先 clone 每个 pin 的仓库再统计的，**每个仓库每轮只 clone
+一次**，两个面板读的是同一份结果。
+
+某个 pin 这一轮没读成功（网络抖了一下）时：
+
+- 那张卡**照常显示**，不会因为读不到就把项目踢下去；
+- 语言占比里它算「读不到」，会明确写出「6 个仓库里的 5 个」，**不会当成 0 行**。
 
 ---
 
@@ -152,13 +175,15 @@ README 里那一整块卡片链接是构建自动重写的（`SELECTED_WORK_STAR
 
 1. **JSON 语法** — 少一个逗号、多一个逗号、中文引号“”混进了英文引号 `"` 的位置。
    报错长这样：`SyntaxError: Unexpected token ... in JSON`，后面跟行号。
-2. **文字太长** — 报错会明说：`work/context-distiller: "why" needs 7 lines on mobile, budget is 6`，
-   后面还跟着被砍掉的那半句原文。
-3. **作品卡跑偏了** — 报错长这样：
-   `SELECTED WORK has gone stale: a project 1d old is not displayed, while a displayed one is 230d old`。
-   意思是：有个项目比页面上某张卡活跃得多，但一直没被选上。通常有两种情况——
-   新项目没加进 `projects`，或者在位那张卡被保护得太死（`hysteresisDays` 太大、
-   或者 `coreLeadDays` 给得太多）。去 `projects` 里补一条，或者把这两个值调小。
+2. **手写的文字太长** — 报错会明说：
+   `config.json: cardOverrides["yunmin311/xxx"].why does not fit a card`，
+   或者在渲染阶段报 `work/xxx: "why" needs 7 lines on mobile, budget is 6`。
+   两种都只要把 `why` 写短一点。
+3. **README 和记录下来的名单不一致** — 报错长这样：
+   `the README's SELECTED_WORK block does not match the recorded cards, in order`，
+   后面会同时列出 README 里的顺序和记录里的顺序。几乎只有一个原因：
+   `SELECTED_WORK_START` / `SELECTED_WORK_END` 之间被人手改了。
+   把那一块还原成构建写的样子，或者在 Actions 里手动 Run workflow 让它重写一遍。
 
 修法：回到 `config.json` 再编辑一次改掉；或者在仓库的 Commits 里找到那次提交，
 点 **Revert** 撤回。修好后机器人自己重跑，Issue 可以手动关掉。
@@ -166,9 +191,10 @@ README 里那一整块卡片链接是构建自动重写的（`SELECTED_WORK_STAR
 > 只有**你自己改文件**触发的失败才会开 Issue。每 6 小时那次定时跑挂了不开——
 > 通常是 GitHub 接口抖了一下，下一轮自己就好了。
 >
-> 上面第 3 条（作品卡跑偏）走的是同一套：定时跑时它只会在 Actions 里标红、不打扰你。
-> 所以如果连着几天觉得卡片不对劲，值得去 Actions 页面看一眼日志里有没有
-> `SELECTED WORK is lagging`。
+> **pin 读不到的时候不会失败，也不会换卡。** 日志里会出现
+> 「holding SELECTED WORK at the last known-good cards」，意思是用上一轮记下来的
+> 那一组卡继续画。**绝不会**临时换一批「最近活跃的」上去——采集失败不是关于项目的
+> 证据，何况六小时后网络恢复了卡片还要换回来，那才是最难看的行为。
 
 ---
 

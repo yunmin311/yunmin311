@@ -17,6 +17,8 @@ import { dirname, resolve } from "node:path"
 
 import { THEME } from "./lib/design.mjs"
 import { collect, languageBytes } from "./lib/sources.mjs"
+import { signalState } from "./lib/projects.mjs"
+import { cardLinks } from "./lib/readme.mjs"
 
 import * as hero from "./panels/hero.mjs"
 import * as rhythm from "./panels/rhythm.mjs"
@@ -42,18 +44,24 @@ const OUT = resolve(ROOT, "assets/generated")
 const CACHE = resolve(ROOT, "scripts/.cache.json")
 
 /**
- * HYSTERESIS STATE.
+ * LAST-KNOWN-GOOD SELECTED WORK.
  *
- * SELECTED WORK's ordering has a stability guard (see lib/projects.mjs): a
- * challenger must lead an incumbent by `hysteresisDays` before it takes the
- * seat. That guard needs to know what the previous run displayed, and the only
- * durable, inspectable place to keep it is a committed file next to the images
- * it describes — a workflow cache would be invisible and would silently reset.
+ * The membership of SELECTED WORK is the pinned repositories on the GitHub
+ * profile, read over the network. This file is what keeps a failed read from
+ * emptying the showcase: when the pinned query cannot be completed, the build
+ * holds the cards recorded here instead of falling back to any kind of ranking,
+ * and says so in the log.
  *
- * It records the membership AND the activity readings that produced it, so a
- * checkout with no network can still be checked by `check.mjs`. It is written
- * ONLY when the membership actually changes, so a stable page does not produce
- * a pointless commit every six hours.
+ * That is the ONLY reason it holds the full card payload rather than just the
+ * keys. Metadata for a pin usually comes from config.json, but a pin that has
+ * no override yet is built from the repository's own description — and on a
+ * failed read there is no repository object to rebuild it from. Recording the
+ * finished cards is therefore the only way to hold a set that includes pins
+ * nobody has written copy for.
+ *
+ * It is committed rather than cached so it is inspectable, and it is written
+ * ONLY when it changes, so a stable page does not produce a commit every six
+ * hours.
  */
 const STATE = resolve(OUT, "selected-work.json")
 
@@ -68,12 +76,11 @@ const cfg = JSON.parse(await readFile(resolve(ROOT, "scripts/config.json"), "utf
 
 await mkdir(OUT, { recursive: true })
 
-// Feed the previous membership in before collect() runs, so the ordering rule
-// can apply its stability guard. Absent on a first build, which is the
-// unguarded path.
+// Feed the last known-good card set in before collect() runs, so a failed
+// pinned read has something real to hold instead of a guess.
 try {
   const prev = JSON.parse(await readFile(STATE, "utf8"))
-  if (Array.isArray(prev?.keys)) cfg.__pickedProjects = prev.keys
+  if (Array.isArray(prev?.cards) && prev.cards.length) cfg.__lastKnownGood = { cards: prev.cards }
 } catch { /* no state yet — first build, or the file was removed on purpose */ }
 
 let ctx
@@ -156,14 +163,19 @@ console.log(`\n${written} file(s) -> assets/generated/`)
 
 /* ---------------------------------------------------- selected work state */
 
-// The membership, plus the activity readings behind it. The readings are here
-// rather than in a separate file because they are what `check.mjs` needs to
-// judge staleness on a checkout that has no network and cannot re-measure —
-// and because a state file that records only WHAT was chosen, with no trace of
-// WHY, cannot be audited six weeks later.
+// THE CARDS, in pin order, plus the scope the language chart counted over.
+//
+// The finished payload is recorded rather than the keys alone, because this is
+// what a later run holds when it cannot reach the pinned query — and a pin with
+// no config override has nothing else to be rebuilt from. See the note on STATE
+// at the top of this file.
+//
+// A build with no cards at all (every pin removed from the profile) records
+// nothing: there is no last-known-good worth keeping, and an empty grid is the
+// correct rendering of that decision rather than a failure to hide.
 if (ctx?.work?.picked?.length) {
-  const keys = ctx.work.picked.map((p) => p.key)
-  const signal = ctx.work.signal ?? {}
+  const cards = ctx.work.picked
+  const keys = cards.map((c) => c.key)
   const scopeRepos = ctx.work.scopeRepos ?? []
 
   // Read what the last run left BEFORE deciding whether to write. Comparing on
@@ -174,100 +186,93 @@ if (ctx?.work?.picked?.length) {
   try { before = JSON.parse(await readFile(STATE, "utf8")) } catch {}
 
   const sameAs = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
-  const moved =
-    !before ||
-    !sameAs(before.keys, keys) ||
-    !sameAs(before.signal, signal) ||
-    !sameAs(before.scopeRepos, scopeRepos)
+  const moved = !before || !sameAs(before.cards, cards) || !sameAs(before.scopeRepos, scopeRepos)
 
-  // THE HOLD IS REPORTED, NOT WRITTEN.
+  // A HELD RUN DOES NOT WRITE.
   //
-  // A run that could not measure every candidate keeps the previous membership
-  // (see lib/projects.mjs). It must NOT rewrite the state file in that case,
-  // and not because the content would differ — it is precisely so that the
-  // `generated` stamp keeps pointing at the last run whose evidence was
-  // COMPLETE. `check.mjs` judges staleness from these readings, and a page
-  // held on incomplete evidence has nothing new to say about itself. Leaving
-  // the file untouched is also what makes a hold produce no commit: the
-  // workflow sees a clean tree and stops, six hours later, on its own.
+  // The cards it is drawing came out of this file, so rewriting them would only
+  // restamp `generated` with a time at which nothing was actually learned, and
+  // would hand the workflow a diff to commit for a run that learned nothing.
+  // Leaving the file alone is also what keeps a hold out of the history, so the
+  // next run gets a clean try six hours later.
   if (ctx.work.held) {
     console.warn(
-      `! SELECTED WORK held at the previous membership: ${ctx.work.holdReason}. ` +
-        `${ctx.work.unmeasured.length ? `unmeasured: ${ctx.work.unmeasured.join(" ")}. ` : ""}` +
-        `The state file was left alone so the last complete reading stays on record.`
+      `! SELECTED WORK held at the last known-good cards (${keys.join(",")}): ${ctx.work.holdReason}. ` +
+        `The state file was left alone, and no ranking fallback was used.`
     )
   } else if (moved) {
-    const next = {
-      keys,
-      slots: cfg.workSlots ?? 6,
-      scopeRepos,
-      // The readings are kept because `check.mjs` judges staleness from them on
-      // a checkout with no network. A file that recorded only WHAT was chosen,
-      // with no trace of WHY, could not be audited six weeks later.
-      signal,
-      generated: ctx.now.toISOString(),
-    }
+    const next = { keys, cards, scopeRepos, generated: ctx.now.toISOString() }
     await writeFile(STATE, JSON.stringify(next, null, 2) + "\n", "utf8")
-    console.log(`  selected-work   keys=${keys.join(",")}${before ? " (changed)" : " (first build)"}`)
+    console.log(`  selected-work   ${cards.length} card(s) ${keys.join(",")}${before ? " (changed)" : " (first build)"}`)
   } else {
-    console.log(`  selected-work   keys=${keys.join(",")} (unchanged)`)
+    console.log(`  selected-work   ${cards.length} card(s) ${keys.join(",")} (unchanged)`)
   }
 
-  // Per-project state, so the log distinguishes the three readings rather than
-  // printing "age unknown" for a project that failed to clone AND for one that
-  // genuinely has no commits by this author. Those call for different actions.
-  for (const p of ctx.work.picked) {
-    const d =
-      p._state === "unknown" ? "UNMEASURED"
-      : p._state === "stale" ? "no commits by me"
-      : `${Math.round(p._days)}d ago`
-    console.log(`    ${p.tier.padEnd(9)} ${p.key.padEnd(24)} ${d.padEnd(17)} score ${p._score.toFixed(3)}`)
+  // Per-card state, so the log distinguishes the three readings rather than
+  // printing one placeholder for a repository that could not be reached AND for
+  // one that was read successfully and simply has no commits by this author.
+  // Those call for different actions: the first is a network incident, the
+  // second is a fact about the work.
+  const ageDays = (iso, now) => {
+    const ms = Date.parse(iso)
+    return Number.isFinite(ms) ? Math.round((now.getTime() - ms) / 86400e3) : null
   }
-  console.log(`  language scope  ${(ctx.work.scopeRepos ?? []).join(" ")}`)
+  cards.forEach((c, i) => {
+    const snap = ctx.work.signal?.[c.repo]
+    const state = signalState(snap)
+    const age = state === "fresh" ? ageDays(snap.lastCommitAt, ctx.now) : null
+    const when =
+      state === "unknown" ? "UNAVAILABLE"
+      : state === "stale" ? "no commits by me"
+      : `${age}d ago`
+    console.log(
+      `    ${String(i + 1).padStart(2)}. ${c.key.padEnd(24)} ${when.padEnd(17)} ${c.repo}` +
+        (c.unedited ? "   (no hand-written why — using the GitHub description)" : "")
+    )
+  })
+  console.log(`  language scope  ${scopeRepos.join(" ")}`)
   if (ctx.languages?.partial) {
     console.warn(
-      `! LANGUAGE SIGNAL could not measure ${ctx.languages.missingKeys.join(", ")} — ` +
-        `the panel says ${ctx.languages.repoCount} of ${ctx.languages.scopeCount} repos.`
+      `! LANGUAGE SIGNAL could not reach ${ctx.languages.missingKeys.join(", ")} — ` +
+        `the panel says ${ctx.languages.repoCount} of ${ctx.languages.scopeCount} repos, and a ` +
+        `repository it could not read is reported as unavailable rather than as zero lines.`
     )
   }
 
-  // The gate itself lives in check.mjs and runs as its own step. Reporting it
-  // here as well means the build log says why before the check fails, which is
-  // the difference between "the build is red" and "the rule has drifted".
-  const st = ctx.work.staleness
-  if (st.stale) {
-    console.warn(
-      `! SELECTED WORK is lagging: freshest unshown project is ${st.bestOutsideDays}d old vs ` +
-        `${st.worstInsideDays}d for the stalest shown one (${st.lagDays}d gap, tolerance ` +
-        `${cfg.stalenessToleranceDays ?? 45}d).`
-    )
-  } else if (!st.comparable) {
-    console.log(`  staleness       not checked this run (not enough measured readings${st.unmeasured ? `, ${st.unmeasured} unmeasured` : ""})`)
-  }
-
-  // ---- THE CLONE PROOF, IN THE LOG RATHER THAN IN A COMMENT ---------------
+  // ---- THE COLLECTION PROOF, IN THE LOG RATHER THAN IN A COMMENT ----------
   //
-  // "At most one clone per repository per build" is a property of the whole
-  // run, so it is checked here, at the end, from a count that `sources.mjs`
-  // keeps per repository. A repeat is served from the first snapshot and
-  // reported the moment it happens; this line is the summary that fails the
-  // build if it ever did.
-  const cloneProof = ctx.analysis
-  if (cloneProof) {
-    if (cloneProof.repeats > 0) {
-      console.error(`! authored analysis was requested twice for ${cloneProof.repeats} repo(s) — the single-pass rule is broken`)
+  // "One collection per repository per build" is a property of the data flow —
+  // `scopeRepos` is handed to `authoredSnapshots` once, and the chart folds the
+  // snapshots that come back. What is worth checking, then, is that the flow
+  // still holds: the collection covered exactly the scope, and the scope names
+  // no repository twice. Either failing would mean a panel had been computed
+  // from a second, differently-timed observation.
+  const proof = ctx.analysis
+  if (proof) {
+    if (new Set(scopeRepos).size !== scopeRepos.length) {
+      console.error("! the language scope lists a repository more than once — the single-pass rule is broken")
       process.exitCode = 1
     }
-    // `cloneCounts` is a Map, which JSON cannot carry, so an --offline cache
-    // round-trip arrives as `{}`. The proof is only meaningful on a run that
-    // actually collected, so a cache reports what the cache knows and says so
-    // rather than printing `undefined repo(s)`.
-    const requested = cloneProof.cloneCounts instanceof Map ? cloneProof.cloneCounts.size : null
+    if (proof.reposMeasured + proof.reposFailed !== proof.reposRequested) {
+      console.error(
+        `! the collection covered ${proof.reposMeasured + proof.reposFailed} of ${proof.reposRequested} ` +
+          `scoped repo(s) — the single-pass rule is broken`
+      )
+      process.exitCode = 1
+    }
     console.log(
-      `  clone proof     ${requested == null ? "not measured (cache)" : `${requested} repo(s) requested`}, ` +
-        `${cloneProof.repeats} repeat request(s), limit ${cloneProof.cloneLimit} clone(s)/repo  ` +
-        `[${cloneProof.reposMeasured} measured, ${cloneProof.reposFailed} failed]`
+      `  clone proof     ${proof.reposRequested} repo(s) collected once ` +
+        `(<=${proof.cloneAttempts - 1} retry on failure), ${proof.collectionPasses} collection(s)/repo  ` +
+        `[${proof.reposMeasured} measured, ${proof.reposFailed} failed]`
     )
+  }
+
+  // A pin nobody has written copy for is not an error — it is the case that
+  // makes "pin it and walk away" true — but it is worth naming, because that
+  // card is showing a repository description rather than a sentence somebody
+  // chose for it.
+  if (ctx.work.unedited?.length) {
+    console.log(`  unedited pins   ${ctx.work.unedited.join(" ")}   (add them to config.cardOverrides to choose the wording)`)
   }
 
   await rewriteReadmeCards(ctx.work.picked)
@@ -276,20 +281,10 @@ if (ctx?.work?.picked?.length) {
 /**
  * Rewrite the card links between SELECTED_WORK_START/END in README.md.
  *
- * WHY THE README IS EDITABLE AT ALL. GitHub renders a README from committed
- * markup, so introducing a project that has a card image means adding a link
- * for it — there is no globbing of assets. Leaving that block hand-maintained
- * would put the cast back under manual control and re-create the original bug
- * in a new place: the rule would pick new projects and the page would still
- * show the old ones.
- *
- * Each <a> stays on ONE line. Broken across lines, the markdown parser closes
- * the inline context and the side-by-side cards stop flowing together — the
- * note at the top of README.md says so, and it is the reason this is built with
- * string concatenation rather than a template literal that prettier would wrap.
- *
- * The alt and title mirror what the SVG itself carries, so the reader gets the
- * same sentence whether the image loaded or not.
+ * The markup itself — and the reason it is one line per card, in the order
+ * given — lives in lib/readme.mjs, where it can be tested. This function only
+ * does the file surgery: find the block, keep the START comment's own
+ * explanatory text, replace what follows it.
  */
 async function rewriteReadmeCards(picked) {
   const path = resolve(ROOT, "README.md")
@@ -303,25 +298,11 @@ async function rewriteReadmeCards(picked) {
     return
   }
 
-  // Attribute values are quoted, so only these three characters can break out.
-  // Declared here rather than at module scope: as a `const` further down the
-  // file it was in its temporal dead zone when this ran, and the call only
-  // happened to be reached for the first time on an --offline build.
-  const escapeAttr = (s) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;")
-
-  const lines = picked.map((p) => {
-    const alt = `${p.name} — ${p.why.replace(/\s+/g, " ")} ${p.tags.join(", ")}.`
-    return (
-      `<a href="${p.url}"><picture>` +
-      `<source media="(max-width: 500px)" srcset="assets/generated/work-${p.key}-m.svg">` +
-      `<img alt="${escapeAttr(alt)}" title="Open ${p.key} on GitHub" ` +
-      `src="assets/generated/work-${p.key}.svg"></picture></a>`
-    )
-  })
+  const lines = cardLinks(picked)
 
   // Keep the START comment's own explanatory text; replace only what follows it.
   const openEnd = src.indexOf("-->", a) + 3
-  const next = src.slice(0, openEnd) + "\n" + lines.join("\n") + "\n" + src.slice(b)
+  const next = src.slice(0, openEnd) + "\n" + lines + "\n" + src.slice(b)
   if (next === src) {
     console.log("  readme          SELECTED_WORK block unchanged")
     return
@@ -330,7 +311,7 @@ async function rewriteReadmeCards(picked) {
   // The README is not under assets/, so the workflow's commit step would miss
   // it. It is committed alongside on purpose: a card that is generated but not
   // linked is a card nobody sees.
-  console.log(`  readme          SELECTED_WORK rewritten (${lines.length} cards)`)
+  console.log(`  readme          SELECTED_WORK rewritten (${picked.length} cards)`)
 }
 
 /* ----------------------------------------------------------------- helpers */
@@ -357,12 +338,13 @@ function reviveCtx(raw) {
   const levels = raw.contributions.levels
   raw.now = new Date(raw.now)
   raw.contributions.level = (n) => (n <= 0 ? 0 : n < levels[1] ? 1 : n < levels[2] ? 2 : n < levels[3] ? 3 : 4)
-  // `work.picked` carries no closures, but a cache written by an older build
-  // has no `work` at all. Falling back to the unguarded selection keeps
-  // --offline usable for layout work instead of crashing on a missing key.
-  if (!raw.work) raw.work = { picked: [], signal: {}, staleness: { stale: false } }
-  // A cache written before the single-pass change has no clone proof in it. The
-  // log step is skipped rather than reported as a failure the run never earned.
+  // `work.picked` carries no closures, but a cache written by an older build has
+  // no `work` at all. Falling back to the empty selection keeps --offline usable
+  // for layout work instead of crashing on a missing key.
+  if (!raw.work) raw.work = { picked: [], signal: {}, scopeRepos: [] }
+  // A cache written before the pinned-source change has no collection proof in
+  // it. The log step is skipped rather than reported as a failure the run never
+  // earned.
   if (!raw.analysis) raw.analysis = null
   return raw
 }

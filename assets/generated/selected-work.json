@@ -1,146 +1,110 @@
 {
   "keys": [
-    "yunmin-workbench",
-    "dsh-universal-palette",
-    "work-capsule",
-    "zheng-tally-obsidian",
     "context-distiller",
-    "governance-framework"
+    "governance-framework",
+    "window-annotator",
+    "work-capsule",
+    "pixel-panels",
+    "dsh-universal-palette"
   ],
-  "slots": 6,
-  "scopeRepos": [
-    "yunmin311/yunmin-workbench",
-    "yunmin311/dsh-universal-palette",
-    "yunmin311/work-capsule",
-    "yunmin311/zheng-tally-obsidian",
-    "yunmin311/context-distiller",
-    "yunmin311/governance-framework"
-  ],
-  "signal": {
-    "yunmin311/context-distiller": {
+  "cards": [
+    {
+      "key": "context-distiller",
+      "name": "Context Distiller",
+      "why": "Choosing what an AI gets to see is the step nobody built a tool for. A workspace for picking, grouping and compiling that context into one plain-text message — locally, and never sent anywhere.",
+      "tags": [
+        "TypeScript",
+        "React 19",
+        "WXT",
+        "Manifest V3"
+      ],
+      "url": "https://github.com/yunmin311/context-distiller",
       "repo": "yunmin311/context-distiller",
-      "outcome": "ok",
-      "reason": null,
-      "commits": 82,
-      "lines": 13050,
-      "languages": {
-        "Markdown": 1477,
-        "TypeScript": 9843,
-        "YAML": 33,
-        "CSS": 1697
-      },
-      "lastCommitAt": "2026-08-26T10:05:22.000Z"
+      "languages": "count",
+      "unedited": false
     },
-    "yunmin311/governance-framework": {
+    {
+      "key": "governance-framework",
+      "name": "Governance Framework",
+      "why": "Run several AI agents and they forget, contradict each other, and disagree about which file is real. Pinning the facts into files fixes what a smarter model cannot.",
+      "tags": [
+        "Markdown",
+        "YAML",
+        "Python",
+        "Validators"
+      ],
+      "url": "https://github.com/yunmin311/governance-framework",
       "repo": "yunmin311/governance-framework",
-      "outcome": "ok",
-      "reason": null,
-      "commits": 47,
-      "lines": 5381,
-      "languages": {
-        "PowerShell": 980,
-        "Markdown": 2731,
-        "YAML": 560,
-        "JavaScript": 678,
-        "Python": 432
-      },
-      "lastCommitAt": "2026-08-21T02:17:21.000Z"
+      "languages": "count",
+      "unedited": false
     },
-    "yunmin311/yunmin-workbench": {
-      "repo": "yunmin311/yunmin-workbench",
-      "outcome": "ok",
-      "reason": null,
-      "commits": 141,
-      "lines": 66521,
-      "languages": {
-        "Markdown": 1598,
-        "TypeScript": 55545,
-        "CSS": 8894,
-        "JavaScript": 252,
-        "YAML": 232
-      },
-      "lastCommitAt": "2026-09-13T11:22:41.000Z"
-    },
-    "yunmin311/dsh-universal-palette": {
-      "repo": "yunmin311/dsh-universal-palette",
-      "outcome": "ok",
-      "reason": null,
-      "commits": 30,
-      "lines": 17999,
-      "languages": {
-        "Markdown": 2932,
-        "TypeScript": 12215,
-        "JavaScript": 2290,
-        "CSS": 385,
-        "YAML": 177
-      },
-      "lastCommitAt": "2026-09-14T04:44:08.000Z"
-    },
-    "yunmin311/window-annotator": {
+    {
+      "key": "window-annotator",
+      "name": "Window Annotator",
+      "why": "Drawing on the thing you are looking at should not depend on the app supporting it. Hand-drawn marks pin to any Windows window and follow it as it moves, resizes and scrolls.",
+      "tags": [
+        "Electron",
+        "JavaScript",
+        "koffi FFI",
+        "Windows"
+      ],
+      "url": "https://github.com/yunmin311/window-annotator",
       "repo": "yunmin311/window-annotator",
-      "outcome": "ok",
-      "reason": null,
-      "commits": 29,
-      "lines": 6002,
-      "languages": {
-        "JavaScript": 4929,
-        "CSS": 316,
-        "Markdown": 500,
-        "PowerShell": 257
-      },
-      "lastCommitAt": "2026-09-08T14:00:43.000Z"
+      "languages": "count",
+      "unedited": false
     },
-    "yunmin311/zheng-tally-obsidian": {
-      "repo": "yunmin311/zheng-tally-obsidian",
-      "outcome": "ok",
-      "reason": null,
-      "commits": 8,
-      "lines": 4039,
-      "languages": {
-        "TypeScript": 3364,
-        "JavaScript": 62,
-        "Markdown": 613
-      },
-      "lastCommitAt": "2026-09-15T05:11:12.000Z"
-    },
-    "yunmin311/work-capsule": {
+    {
+      "key": "work-capsule",
+      "name": "Work Capsule",
+      "why": "Keeping work in sync across machines should not risk it. One click pulls, optionally commits and pushes every folder you chose — fast-forward only, never rewriting history.",
+      "tags": [
+        "Rust",
+        "egui",
+        "Git",
+        "Windows"
+      ],
+      "url": "https://github.com/yunmin311/work-capsule",
       "repo": "yunmin311/work-capsule",
-      "outcome": "ok",
-      "reason": null,
-      "commits": 42,
-      "lines": 13069,
-      "languages": {
-        "YAML": 393,
-        "Rust": 9224,
-        "Markdown": 2887,
-        "PowerShell": 565
-      },
-      "lastCommitAt": "2026-09-13T04:14:26.000Z"
+      "languages": "count",
+      "unedited": false
     },
-    "yunmin311/pixel-panels": {
+    {
+      "key": "pixel-panels",
+      "name": "Pixel Panels",
+      "why": "The components this page is built from, lifted out and documented. One 2px grid, one embedded bitmap face, and the four rules that keep fourteen separate parts reading as a single instrument.",
+      "tags": [
+        "JavaScript",
+        "SVG",
+        "Zero-dependency",
+        "MIT"
+      ],
+      "url": "https://github.com/yunmin311/pixel-panels",
       "repo": "yunmin311/pixel-panels",
-      "outcome": "ok",
-      "reason": null,
-      "commits": 4,
-      "lines": 4266,
-      "languages": {
-        "Markdown": 794,
-        "JavaScript": 3472
-      },
-      "lastCommitAt": "2026-08-21T08:42:31.000Z"
+      "languages": "count",
+      "unedited": false
     },
-    "yunmin311/DenseGPT": {
-      "repo": "yunmin311/DenseGPT",
-      "outcome": "ok",
-      "reason": null,
-      "commits": 29,
-      "lines": 3619,
-      "languages": {
-        "Markdown": 2745,
-        "CSS": 874
-      },
-      "lastCommitAt": "2026-08-21T08:20:14.000Z"
+    {
+      "key": "dsh-universal-palette",
+      "name": "DSH Universal Palette",
+      "why": "Three products with three different colour systems, and a designer retyping hex codes between them. One plugin turns whatever you are looking at into the palette you actually use.",
+      "tags": [
+        "TypeScript",
+        "Figma Plugin",
+        "Design Tokens"
+      ],
+      "url": "https://github.com/yunmin311/dsh-universal-palette",
+      "repo": "yunmin311/dsh-universal-palette",
+      "languages": "count",
+      "unedited": false
     }
-  },
-  "generated": "2026-09-16T00:40:47.514Z"
+  ],
+  "scopeRepos": [
+    "yunmin311/context-distiller",
+    "yunmin311/governance-framework",
+    "yunmin311/window-annotator",
+    "yunmin311/work-capsule",
+    "yunmin311/pixel-panels",
+    "yunmin311/dsh-universal-palette"
+  ],
+  "generated": "2026-09-16T04:16:05.083Z"
 }
