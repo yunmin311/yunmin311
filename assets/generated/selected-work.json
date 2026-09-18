@@ -3,9 +3,9 @@
     "context-distiller",
     "governance-framework",
     "window-annotator",
-    "work-capsule",
     "pixel-panels",
-    "dsh-universal-palette"
+    "dsh-universal-palette",
+    "quiet-shelf-obsidian"
   ],
   "cards": [
     {
@@ -51,20 +51,6 @@
       "unedited": false
     },
     {
-      "key": "work-capsule",
-      "name": "Work Capsule",
-      "why": "Keeping work in sync across machines should not risk it. One click pulls, optionally commits and pushes every folder you chose — fast-forward only, never rewriting history.",
-      "tags": [
-        "Rust",
-        "egui",
-        "Git",
-        "Windows"
-      ],
-      "url": "https://github.com/yunmin311/work-capsule",
-      "repo": "yunmin311/work-capsule",
-      "unedited": false
-    },
-    {
       "key": "pixel-panels",
       "name": "Pixel Panels",
       "why": "The components this page is built from, lifted out and documented. One 2px grid, one embedded bitmap face, and the four rules that keep fourteen separate parts reading as a single instrument.",
@@ -90,6 +76,20 @@
       "url": "https://github.com/yunmin311/dsh-universal-palette",
       "repo": "yunmin311/dsh-universal-palette",
       "unedited": false
+    },
+    {
+      "key": "quiet-shelf-obsidian",
+      "name": "quiet-shelf-obsidian",
+      "why": "Hide archived and index notes from the Obsidian file explorer without moving them, and focus the tree on one set of folders at a time.",
+      "tags": [
+        "JavaScript",
+        "file-explorer",
+        "focus-mode",
+        "markdown"
+      ],
+      "url": "https://github.com/yunmin311/quiet-shelf-obsidian",
+      "repo": "yunmin311/quiet-shelf-obsidian",
+      "unedited": true
     }
   ],
   "scopeRepos": [
@@ -102,6 +102,9 @@
     "yunmin311/governance-framework",
     "yunmin311/obsidian-config",
     "yunmin311/pixel-panels",
+    "yunmin311/quiet-shelf-obsidian",
+    "yunmin311/reading-rail-sidebar-obsidian",
+    "yunmin311/toolbar-pin-toggle-obsidian",
     "yunmin311/window-annotator",
     "yunmin311/work-capsule",
     "yunmin311/ym-obsidian-course-notes-standard",
@@ -109,5 +112,5 @@
     "yunmin311/yunmin311.github.io",
     "yunmin311/zheng-tally-obsidian"
   ],
-  "generated": "2026-09-16T04:45:39.415Z"
+  "generated": "2026-09-18T05:19:31.027Z"
 }
