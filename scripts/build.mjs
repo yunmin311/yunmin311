@@ -12,13 +12,15 @@
  */
 
 import { readFile, writeFile, mkdir } from "node:fs/promises"
+import { existsSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { dirname, resolve } from "node:path"
 
 import { THEME } from "./lib/design.mjs"
-import { collect, languageBytes } from "./lib/sources.mjs"
+import { collect, languageBytes, SOURCE_BACKED } from "./lib/sources.mjs"
 import { signalState } from "./lib/projects.mjs"
 import { cardLinks } from "./lib/readme.mjs"
+import { verifyCredentials } from "./lib/gh.mjs"
 
 import * as hero from "./panels/hero.mjs"
 import * as rhythm from "./panels/rhythm.mjs"
@@ -99,6 +101,29 @@ if (flag("offline")) {
   if (ageH > 6) console.warn(`! CACHE IS ${ageH.toFixed(0)}h OLD — rebuild without --offline before committing`)
 } else {
   console.log("· fetching")
+
+  // ---- PREFLIGHT: is the token alive? -------------------------------------
+  //
+  // One cheap authenticated call, before anything expensive happens. Without
+  // it, a dead credential is discovered after nineteen repository clones — the
+  // slowest possible way to find out — and the answer arrives at the bottom of
+  // a long log. With it, the run stops in about a second and the message says
+  // outright that this will not fix itself (see `isAuthRejection`).
+  //
+  // It is deliberately not fatal on ANY error: an unreachable API at this
+  // moment is not proof that the build will fail, and the steps below have
+  // their own holds. It is fatal only for a rejected credential, which cannot
+  // recover and would fail everything downstream one call at a time.
+  try {
+    const me = await verifyCredentials()
+    console.log(`· credentials ok (${me.login})`)
+  } catch (err) {
+    const msg = String(err.message).split("\n")[0]
+    if (/CREDENTIALS REJECTED/.test(msg)) throw new Error(msg)
+    console.warn(`! credential preflight was inconclusive: ${msg}`)
+    console.warn("! continuing — the fetch below reports its own failures")
+  }
+
   ctx = await collect(cfg)
   if (flag("cache")) {
     await writeFile(CACHE, JSON.stringify(ctx, replacer, 2))
@@ -134,8 +159,40 @@ if ((cfg.languageScopeOptions?.method ?? "authored-lines") === "bytes" && ctx?.l
 }
 
 let written = 0
+const heldPanels = []
 for (const panel of PANELS) {
   if (only && !only.has(panel.id)) continue
+
+  // HOLD A PANEL WHOSE SOURCE COULD NOT BE READ THIS RUN.
+  //
+  // Skipping the write leaves the last committed image exactly where it is.
+  // That is the same rule the pins and the language scope already follow —
+  // keep the last real reading, never fabricate one — and it costs no new state
+  // file, because the previous image IS the state: it is committed in this
+  // repository, which is the whole reason these panels are committed at all.
+  //
+  // What it must never become: a redraw from an absence. `activity: null` is an
+  // unreadable feed, not a quiet week, and a panel drawn from it would say
+  // "nothing happened" with no way for a reader to tell the difference.
+  //
+  // And with nothing to hold — a first-ever build, or somebody deleted the
+  // file — the run fails right here, saying which panel and why, rather than
+  // shipping a page with a hole in it.
+  const unavailable = SOURCE_BACKED.includes(panel.id) && ctx.availability?.[panel.id]?.ok === false
+  if (unavailable) {
+    const reason = ctx.availability[panel.id].reason
+    const kept = VARIANTS.map((v) => `${panel.id}${v.key}.svg`).filter((f) => existsSync(resolve(OUT, f)))
+    if (!kept.length) {
+      throw new Error(
+        `${panel.id}: its source could not be read (${reason}) and there is no previous panel to hold. ` +
+          `Nothing is ever drawn from an unreadable source — fix the source and run again.`
+      )
+    }
+    heldPanels.push(panel.id)
+    console.log(`  ${panel.id.padEnd(15)} ${"HELD".padStart(7)}      keeping the last good image — ${reason}`)
+    continue
+  }
+
   for (const variant of VARIANTS) {
     if (variant.mobile && !panel.responsive) continue
     const svg = panel.build(THEME, ctx, cfg, variant)
@@ -145,6 +202,12 @@ for (const panel of PANELS) {
       console.log(`  ${panel.id.padEnd(15)} ${String(svg.length).padStart(7)} B  ${describe(panel.id, ctx)}`)
     }
   }
+}
+if (heldPanels.length) {
+  console.warn(
+    `! ${heldPanels.length} panel(s) held this run (${heldPanels.join(", ")}) — their images are unchanged, ` +
+      `and the page keeps showing the last real reading rather than an empty one`
+  )
 }
 
 // Modules that emit a set of files rather than one, keyed by name.

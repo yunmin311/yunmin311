@@ -52,6 +52,42 @@ const DAY = 24 * HOUR
 const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
+/**
+ * PANELS THAT READ A THIRD-PARTY SOURCE, AND THE SOURCE THEY READ.
+ *
+ * These three are the panels whose data comes from a network call that nothing
+ * else depends on, which is exactly why they must not be able to fail the run.
+ * On 2026-09-17 a dead token made `starred` throw, and because the three calls
+ * shared one unguarded `Promise.all`, the whole build died: **fifteen panels
+ * stopped updating because one of three peripheral endpoints was unreachable**.
+ * The pins and the repository list already held their ground on failure; these
+ * three simply had never been given the same treatment.
+ *
+ * The list lives here, next to the availability it describes, so the build and
+ * the tests read one definition instead of two that drift.
+ */
+export const SOURCE_BACKED = ["activity", "stars", "contributions"]
+
+/**
+ * Run one source and turn its failure into a value.
+ *
+ * The shape is the same one `resolveCards` uses, for the same reason: a source
+ * that could not be read has to arrive downstream as a FACT ("unavailable, and
+ * here is why") rather than as an exception that takes everything with it or as
+ * a silence that looks like an empty result. Never a fabricated value — the
+ * caller decides what to do with an absence, and the only thing it may do is
+ * hold what it already had.
+ */
+export async function attempt(what, fn) {
+  try {
+    return { ok: true, value: await fn(), reason: null }
+  } catch (err) {
+    const reason = String(err?.message ?? err).split("\n")[0]
+    console.warn(`! ${what} could not be read: ${reason}`)
+    return { ok: false, value: null, reason }
+  }
+}
+
 export async function collect(cfg) {
   const login = cfg.login
   const offsetH = 8 // Asia/Shanghai, no DST
@@ -156,15 +192,34 @@ export async function collect(cfg) {
     offsetHours: offsetH,
   })
 
-  const [raw, cal, stars] = await Promise.all([
-    events(login, 3),
-    calendar(login),
-    starred(login, 3),
+  // ---- 4a. THE THREE PERIPHERAL SOURCES, EACH ISOLATED --------------------
+  //
+  // One unguarded `Promise.all` used to sit here, and any one of the three
+  // throwing took the whole build down with it — so a rate limit on `starred`
+  // stopped LANGUAGE SIGNAL, CODING RHYTHM and SELECTED WORK from updating as
+  // well. The blast radius of the least important endpoint was the entire page.
+  //
+  // Each call is now an `attempt`: it succeeds, or it reports why it did not and
+  // returns nothing. `availability` carries that fact out to the build, which
+  // holds the panel rather than redrawing it from an absence.
+  const [ev, cl, st] = await Promise.all([
+    attempt("activity", () => events(login, 3)),
+    attempt("contributions", () => calendar(login)),
+    attempt("stars", () => starred(login, 3)),
   ])
+  const availability = {
+    activity: { ok: ev.ok, reason: ev.reason },
+    contributions: { ok: cl.ok, reason: cl.reason },
+    stars: { ok: st.ok, reason: st.reason },
+  }
 
-  const evs = raw
-    .filter((e) => e.actor?.login?.toLowerCase() === login.toLowerCase())
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  // An empty event list is a real answer ("nothing public recently") and stays
+  // one; a failed read is `null` and is never turned into an empty list.
+  const evs = ev.ok
+    ? ev.value
+        .filter((e) => e.actor?.login?.toLowerCase() === login.toLowerCase())
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    : null
 
   // ---- LANGUAGE SIGNAL: a fold over snapshots ALREADY TAKEN -----------------
   //
@@ -216,15 +271,21 @@ export async function collect(cfg) {
     now,
     login,
     rhythm: rhythmFromSnapshots(collected.snapshots, offsetH),
-    contributions: contributions(cal),
-    stars: stars.map((s) => ({
-      name: s.full_name,
-      description: clamp(deEmoji(s.description), 96),
-      language: s.language,
-      starredAt: s.starredAt,
-    })),
+    // `null`, never a zero-shaped stand-in, for anything whose source could not
+    // be read this run. The build reads `availability` and holds that panel
+    // instead of redrawing it — see SOURCE_BACKED.
+    contributions: cl.ok ? contributions(cl.value) : null,
+    stars: st.ok
+      ? st.value.map((s) => ({
+          name: s.full_name,
+          description: clamp(deEmoji(s.description), 96),
+          language: s.language,
+          starredAt: s.starredAt,
+        }))
+      : null,
     languages: langs,
-    activity: activity(evs, cfg),
+    activity: evs ? activity(evs, cfg) : null,
+    availability,
     /**
      * For the build log: the proof the build makes about itself.
      *

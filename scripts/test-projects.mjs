@@ -24,6 +24,9 @@
  *   5. CODING RHYTHM HAS ONE WINDOW. Its distributions and its run length all
  *      come from the same commit walk the language chart already pays for, so
  *      the panel cannot describe two different periods at once.
+ *   6. ONE BAD SOURCE CANNOT TAKE THE PAGE DOWN. The three panels that read a
+ *      third-party feed are registered, isolated and held on failure — never
+ *      redrawn from an absence.
  *
  *   node scripts/test-projects.mjs
  *
@@ -32,7 +35,7 @@
  */
 
 import assert from "node:assert/strict"
-import { readFile } from "node:fs/promises"
+import { readFile, readdir } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
 import { dirname, resolve } from "node:path"
 
@@ -43,8 +46,8 @@ import {
 } from "./lib/projects.mjs"
 import { CARD_COPY, fitCopy, fitTags, fitsCard, fitsTags, TAG_LINES, TAG_MAX, wrap as panelWrap } from "./lib/cards.mjs"
 import { cardLink, cardLinks, escapeAttr } from "./lib/readme.mjs"
-import { unknown, rhythmFromSnapshots } from "./lib/sources.mjs"
-import { pageThrough } from "./lib/gh.mjs"
+import { attempt, SOURCE_BACKED, unknown, rhythmFromSnapshots } from "./lib/sources.mjs"
+import { isAuthRejection, pageThrough } from "./lib/gh.mjs"
 import { aggregateLanguages } from "./lib/authored.mjs"
 // The real drawing code, and the real budget it draws to. `wrap` is imported
 // from lib/cards.mjs because that is the single definition both the panel and
@@ -766,6 +769,62 @@ t("normalise rejects a bad override by name", () => {
   assert.throws(bad({ name: "" }), /non-empty string/)
   assert.throws(() => cardOverrides({ cardOverrides: { "not-a-repo": { why: "x" } } }), /owner\/name/)
   assert.throws(() => cardOverrides({ cardOverrides: [] }), /must be an object/)
+})
+
+/* =================================================== 9. PANEL RESILIENCE */
+
+console.log("\npanel resilience — one unreadable source cannot take the page down")
+
+await tAsync("attempt() turns a failure into a value instead of an exception", async () => {
+  const ok = await attempt("thing", async () => 42)
+  assert.deepEqual(ok, { ok: true, value: 42, reason: null })
+
+  const bad = await attempt("thing", async () => { throw new Error("boom\nand a stack line") })
+  assert.equal(bad.ok, false)
+  assert.equal(bad.value, null, "there is no value to fall back on, on purpose")
+  assert.equal(bad.reason, "boom", "only the first line of a multi-line error is kept for the log")
+})
+
+await tAsync("attempt() keeps a real empty answer apart from a failed one", async () => {
+  // The distinction the ACTIVITY panel depends on: "nothing public recently" is
+  // an answer, "the feed could not be read" is not, and they must not collapse
+  // into the same thing.
+  const empty = await attempt("thing", async () => [])
+  assert.equal(empty.ok, true)
+  assert.deepEqual(empty.value, [])
+})
+
+t("a rejected credential is classified as something that will not fix itself", () => {
+  assert.equal(isAuthRejection(401, '{"message":"Bad credentials"}'), true)
+  assert.equal(isAuthRejection(403, '{"message":"Bad credentials"}'), true)
+  // A rate limit clears on its own, so it must NOT be reported as a dead token:
+  // telling somebody to rotate a secret that is fine is its own kind of failure.
+  assert.equal(isAuthRejection(403, '{"message":"API rate limit exceeded for user"}'), false)
+  assert.equal(isAuthRejection(404, "Not Found"), false)
+  assert.equal(isAuthRejection(500, "oops"), false)
+  assert.equal(isAuthRejection(200, ""), false)
+})
+
+await tAsync("the three source-backed panels are exactly the ones reading those sources", async () => {
+  const build = await readFile(resolve(ROOT, "scripts/build.mjs"), "utf8")
+  for (const id of SOURCE_BACKED) {
+    assert.ok(
+      new RegExp(`import \\* as ${id} from "\\./panels/${id}\\.mjs"`).test(build),
+      `build.mjs does not register a panel called \`${id}\` — a typo here would silently disable its hold`
+    )
+  }
+
+  // And the other direction, which is the one that rots: a panel that reads a
+  // source this list does not know about can never be held, so a source failure
+  // would redraw it from an absence with nothing saying so. Adding such a panel
+  // means adding it here.
+  const dir = resolve(ROOT, "scripts/panels")
+  const readers = []
+  for (const f of (await readdir(dir)).filter((x) => x.endsWith(".mjs"))) {
+    const src = await readFile(resolve(dir, f), "utf8")
+    if (/ctx\.(activity|stars|contributions)\b/.test(src)) readers.push(f.replace(/\.mjs$/, ""))
+  }
+  assert.deepEqual(readers.sort(), [...SOURCE_BACKED].sort())
 })
 
 /* ------------------------------------------------------------------ verdict */

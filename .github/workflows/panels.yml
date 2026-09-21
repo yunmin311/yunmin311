@@ -109,27 +109,71 @@ jobs:
       # good version — which is the right behaviour and also means the mistake
       # is completely silent.
       #
-      # So the failure gets written where it will send an email, with the
-      # actual error quoted rather than a link to go and find it. Scheduled
-      # runs are excluded: a rebuild that fails at 05:17 because an API blinked
-      # is not something to be woken up for, and it will pass six hours later.
+      # WHEN IT STAYS QUIET, AND WHY THAT CHANGED.
+      #
+      # This used to notify for any failure except a scheduled one, on the
+      # assumption written here that a scheduled failure "will pass six hours
+      # later". On 2026-09-17 that assumption cost seventeen hours: four
+      # consecutive scheduled runs died on a rejected credential, which never
+      # recovers on its own, and nothing anywhere said so. The page simply
+      # stopped changing.
+      #
+      # So the test is repetition, not event type. A first failure still says
+      # nothing — a blink is not worth waking anybody for — and a failure that
+      # repeats is by definition not a blink, whoever triggered it. A push that
+      # breaks the build still notifies immediately, because that one is
+      # somebody's edit and they are watching.
       #
       # One open issue at a time — further failures are comments on it — so a
-      # bad edit left in place for a day does not produce a day of issues.
+      # bad edit left in place for a day does not produce a day of issues. And
+      # the step below closes it once a run succeeds again: an alarm nobody can
+      # trust is worse than no alarm.
       - name: Say what went wrong, where it will be seen
-        if: failure() && github.event_name != 'schedule'
+        if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          # Two consecutive failures ≈ twelve hours. Raise it to be quieter,
+          # lower it to be faster; one would notify on every blink again.
+          CONSECUTIVE_BEFORE_ALERT: "2"
         run: |
+          # How often is this happening? Count the runs immediately before this
+          # one, newest first, while they are failures.
+          STREAK=0
+          while read -r c; do
+            [ "$c" = "failure" ] || break
+            STREAK=$((STREAK + 1))
+          done <<< "$(gh run list --workflow=panels.yml --limit=10 \
+            --json databaseId,conclusion \
+            --jq ".[] | select(.databaseId != $GITHUB_RUN_ID) | .conclusion" 2>/dev/null || true)"
+
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$STREAK" -lt "$CONSECUTIVE_BEFORE_ALERT" ]; then
+            echo "scheduled rebuild failed. This is failure #$((STREAK + 1)) in a row;"
+            echo "the alert threshold is $CONSECUTIVE_BEFORE_ALERT, so staying quiet as intended."
+            echo "If it keeps failing it will speak up on its own."
+            exit 0
+          fi
+          echo "notifying — event=${{ github.event_name }}, consecutive failures=$((STREAK + 1))"
           {
             echo "The panel rebuild failed. The README still shows the last good"
             echo "version, so nothing on the page is broken — but the change that"
             echo "triggered this run has not been applied."
             echo
-            echo "Most likely cause: an edit to \`scripts/config.json\`. The two that"
-            echo "actually happen are a missing or extra comma, and text too long for"
-            echo "the space it was given — the build names both."
+            if grep -q "CREDENTIALS REJECTED" build.log 2>/dev/null; then
+              echo "**Cause: the credentials were rejected (401).** This does not fix"
+              echo "itself and no later run will get further. \`METRICS_TOKEN\` has to be"
+              echo "replaced under Settings → Secrets and variables → Actions."
+            else
+              echo "Most likely cause: an edit to \`scripts/config.json\`. The two that"
+              echo "actually happen are a missing or extra comma, and text too long for"
+              echo "the space it was given — the build names both."
+            fi
+            echo
+            echo "Panels held this run (they kept their previous image rather than"
+            echo "being redrawn from a source that could not be read):"
+            echo
+            grep -o "panel(s) held this run ([^)]*)" build.log 2>/dev/null \
+              || echo "(none — the failure happened before any panel was drawn)"
             echo
             echo "Tail of the build:"
             echo
@@ -152,3 +196,27 @@ jobs:
             gh issue create --title "Panel rebuild failed" \
               --label build-failure --body-file /tmp/body.md
           fi
+
+      # A FIXED FAILURE MUST NOT LEAVE AN OPEN ALARM BEHIND.
+      #
+      # The issue means "something is wrong right now". The moment a run
+      # succeeds that is no longer true, and an alarm that stays lit after the
+      # problem is gone teaches its reader to ignore it — which is the same
+      # failure mode as never having raised it.
+      #
+      # It only ever touches an issue carrying the label this workflow creates,
+      # and it says why it closed in a comment, so the history stays readable.
+      - name: Close the failure issue, now that a run has succeeded
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          existing=$(gh issue list --label build-failure --state open \
+            --json number --jq '.[0].number // empty' 2>/dev/null || true)
+          if [ -z "$existing" ]; then
+            exit 0
+          fi
+          gh issue comment "$existing" --body "Recovered — a rebuild succeeded at $RUN_URL. Closing."
+          gh issue close "$existing"
+          echo "closed issue #$existing"

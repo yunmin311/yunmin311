@@ -18,6 +18,22 @@ const headers = () => ({
   ...(TOKEN ? { authorization: `Bearer ${TOKEN}` } : {}),
 })
 
+/**
+ * IS THIS FAILURE GOING TO FIX ITSELF?
+ *
+ * The distinction is the whole point of classifying here rather than letting the
+ * caller read a status code. On 2026-09-17 every scheduled run failed for
+ * seventeen hours with `-> 401 {"message":"Bad credentials"}`. Nothing about
+ * that message says "this needs a human": a rate limit, a blip and a dead token
+ * all arrive as a non-2xx with a body, and the only way to tell them apart was
+ * to read the number and know what it means.
+ *
+ * A rejected credential never recovers on its own, so it gets its own sentence.
+ * Everything else keeps the raw status and body, because everything else might.
+ */
+export const isAuthRejection = (status, body = "") =>
+  status === 401 || (status === 403 && /bad credentials|requires authentication|not accessible/i.test(body))
+
 async function request(url, init = {}, attempt = 0) {
   const res = await fetch(url, { ...init, headers: { ...headers(), ...(init.headers || {}) } })
   if (res.status === 403 || res.status === 429) {
@@ -29,11 +45,32 @@ async function request(url, init = {}, attempt = 0) {
       return request(url, init, attempt + 1)
     }
   }
-  if (!res.ok) throw new Error(`${init.method || "GET"} ${url.replace(API, "")} -> ${res.status} ${await res.text()}`)
+  if (!res.ok) {
+    const body = await res.text()
+    const where = `${init.method || "GET"} ${url.replace(API, "")}`
+    if (isAuthRejection(res.status, body)) {
+      throw new Error(
+        `${where} -> ${res.status} CREDENTIALS REJECTED, and this will not fix itself: the ` +
+          `METRICS_TOKEN secret has to be replaced. ${body.slice(0, 140)}`
+      )
+    }
+    throw new Error(`${where} -> ${res.status} ${body}`)
+  }
   return res.json()
 }
 
 export const rest = (path, init) => request(path.startsWith("http") ? path : API + path, init)
+
+/**
+ * The cheapest authenticated call there is, used as a preflight.
+ *
+ * WHY IT EXISTS: without it, a dead token is discovered after nineteen
+ * repository clones — the most expensive possible way to find out, and the
+ * failure arrives at the bottom of a long log. This asks the question in about
+ * a second, before anything expensive has happened, and it goes through the
+ * same client so the answer is about the same token the build will use.
+ */
+export const verifyCredentials = () => rest("/user")
 
 export async function graphql(query, variables = {}) {
   const body = await request(`${API}/graphql`, {
@@ -44,16 +81,26 @@ export async function graphql(query, variables = {}) {
   return body.data
 }
 
-/** Public events for a user, newest first, up to `pages` x 100. */
+/**
+ * Public events for a user, newest first, up to `pages` x 100.
+ *
+ * THIS USED TO SWALLOW ITS OWN FAILURE. The loop caught the error, broke out and
+ * returned whatever it had — usually an empty array — so a dead token produced
+ * "no recent activity" on the ACTIVITY panel with nothing anywhere saying the
+ * feed had not been read. That is the exact failure this repository forbids
+ * everywhere else: an unreadable source rendered as zero. On 2026-09-17 the
+ * events call HAD already failed with the same 401 that killed the run on the
+ * next call, and the panel it fed would have drawn an empty list.
+ *
+ * So a page that cannot be read now throws. A partial read is not returned
+ * either: three pages minus one is not "the recent events", it is an unknown
+ * fraction of them, and the caller's job is to hold the panel rather than to
+ * present a fraction as the whole.
+ */
 export async function events(login, pages = 3) {
   const all = []
   for (let page = 1; page <= pages; page++) {
-    let batch
-    try {
-      batch = await rest(`/users/${login}/events/public?per_page=100&page=${page}`)
-    } catch {
-      break
-    }
+    const batch = await rest(`/users/${login}/events/public?per_page=100&page=${page}`)
     if (!Array.isArray(batch) || !batch.length) break
     all.push(...batch)
     if (batch.length < 100) break
