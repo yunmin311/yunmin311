@@ -21,6 +21,9 @@
  *      the chart measures every public repository the account owns, read with
  *      pagination. Deriving one scope from the other is the regression this file
  *      exists to catch.
+ *   5. CODING RHYTHM HAS ONE WINDOW. Its distributions and its run length all
+ *      come from the same commit walk the language chart already pays for, so
+ *      the panel cannot describe two different periods at once.
  *
  *   node scripts/test-projects.mjs
  *
@@ -40,7 +43,7 @@ import {
 } from "./lib/projects.mjs"
 import { CARD_COPY, fitCopy, fitTags, fitsCard, fitsTags, TAG_LINES, TAG_MAX, wrap as panelWrap } from "./lib/cards.mjs"
 import { cardLink, cardLinks, escapeAttr } from "./lib/readme.mjs"
-import { unknown } from "./lib/sources.mjs"
+import { unknown, rhythmFromSnapshots } from "./lib/sources.mjs"
 import { pageThrough } from "./lib/gh.mjs"
 import { aggregateLanguages } from "./lib/authored.mjs"
 // The real drawing code, and the real budget it draws to. `wrap` is imported
@@ -48,6 +51,7 @@ import { aggregateLanguages } from "./lib/authored.mjs"
 // the truncation use; `DESKTOP`/`MOBILE` come from the panel so the assertion
 // below is about what the panel actually does, not about a copy of it.
 import { card as drawCard, DESKTOP, MOBILE } from "./panels/work.mjs"
+import { render as renderRhythm } from "./panels/rhythm.mjs"
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const cfgRaw = await readFile(resolve(ROOT, "scripts/config.json"), "utf8")
@@ -546,7 +550,132 @@ await tAsync("there is exactly one collection call site and one read of each sou
   }
 })
 
-/* ==================================================== 6. README FOLLOWS */
+/* ======================================================= 6. CODING RHYTHM */
+
+console.log("\ncoding rhythm — the whole commit history, one source")
+
+/** An hour bucket array from { "10": 3 } style input. */
+const hrs = (o) => { const a = Array(24).fill(0); for (const [i, n] of Object.entries(o)) a[+i] = n; return a }
+const dys = (o) => { const a = Array(7).fill(0); for (const [i, n] of Object.entries(o)) a[+i] = n; return a }
+
+const rs = (repo_, over = {}) => ({
+  repo: repo_,
+  outcome: "ok",
+  reason: null,
+  commits: 0,
+  lines: 0,
+  languages: {},
+  lastCommitAt: null,
+  firstCommitAt: null,
+  hours: Array(24).fill(0),
+  days: Array(7).fill(0),
+  activeDays: [],
+  ...over,
+})
+
+t("hours and weekdays fold across every repository in scope", () => {
+  const r = rhythmFromSnapshots([
+    rs("a", { commits: 3, hours: hrs({ 10: 3 }), days: dys({ 2: 3 }), activeDays: ["2026-01-01"] }),
+    rs("b", { commits: 2, hours: hrs({ 10: 1, 14: 1 }), days: dys({ 2: 1, 4: 1 }), activeDays: ["2026-01-01"] }),
+  ], 8)
+  assert.equal(r.total, 5)
+  assert.equal(r.hours[10], 4)
+  assert.equal(r.hours[14], 1)
+  assert.equal(r.days[2], 4, "WED should carry both repositories")
+  assert.equal(r.days[4], 1)
+  assert.equal(r.peakHour, 10)
+  assert.equal(r.peakWindow, "10:00-11:00")
+  assert.equal(r.busiestDay, "Wed")
+  assert.equal(r.activeDayCount, 1, "the same day in two repositories is one active day")
+})
+
+t("a repository that could not be read contributes nothing and resets nothing", () => {
+  const r = rhythmFromSnapshots([
+    rs("a", { commits: 2, hours: hrs({ 9: 2 }), days: dys({ 1: 2 }), activeDays: ["2026-01-01", "2026-01-02"] }),
+    unknown("b", "clone failed"),
+    rs("c", { commits: 1, hours: hrs({ 9: 1 }), days: dys({ 1: 1 }), activeDays: ["2026-01-03"] }),
+  ], 8)
+  assert.equal(r.total, 3, "the failed repository added no commits")
+  assert.equal(r.hours[9], 3)
+  assert.equal(r.longestRun, 3, "the run still spans the days that were read")
+})
+
+t("no snapshots at all is zero, not a crash", () => {
+  const r = rhythmFromSnapshots([], 8)
+  assert.equal(r.total, 0)
+  assert.equal(r.longestRun, 0)
+  assert.equal(r.activeDayCount, 0)
+  assert.equal(r.sinceLabel, "—")
+  assert.equal(r.spanDays, 0)
+})
+
+t("the longest run counts consecutive days and stops at a gap", () => {
+  const r = rhythmFromSnapshots([
+    rs("a", { commits: 5, activeDays: ["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-05", "2026-01-06"] }),
+  ], 8)
+  assert.equal(r.activeDayCount, 5)
+  assert.equal(r.longestRun, 3, "the 5th and 6th start a new run of 2")
+})
+
+t("the run does not bridge a month or a year boundary incorrectly", () => {
+  const r = rhythmFromSnapshots([
+    rs("a", { commits: 3, activeDays: ["2025-12-31", "2026-01-01"] }),
+  ], 8)
+  assert.equal(r.longestRun, 2, "consecutive calendar days across a year boundary")
+})
+
+t("the window opens at the earliest commit and spans to the latest", () => {
+  const r = rhythmFromSnapshots([
+    rs("a", { commits: 1, firstCommitAt: "2025-06-27T00:00:00Z", lastCommitAt: "2025-06-27T00:00:00Z" }),
+    rs("b", { commits: 1, firstCommitAt: "2026-09-19T00:00:00Z", lastCommitAt: "2026-09-19T00:00:00Z" }),
+  ], 8)
+  assert.equal(r.sinceLabel, "Jun 2025")
+  assert.equal(r.spanDays, 449)
+})
+
+t("night shift covers 22:00 through 05:59", () => {
+  const r = rhythmFromSnapshots([rs("a", { commits: 4, hours: hrs({ 23: 1, 2: 1, 12: 2 }) })], 8)
+  assert.equal(r.nightShare, 50)
+})
+
+t("the panel reads its run length from the commit walk, not the calendar", () => {
+  // The bug this whole change is about: LONGEST RUN used to come from the
+  // one-year contribution calendar while everything else on the panel came from
+  // a four-day events feed. Passing a contributions object with an obviously
+  // different number is what makes the old wiring fail here.
+  const rhythm = rhythmFromSnapshots([rs("a", { commits: 2, activeDays: ["2026-01-01", "2026-01-02"] })], 8)
+  const drawn = renderRhythm(THEME, { rhythm, contributions: { longestStreak: 999 } }, cfg, { mobile: false })
+  assert.ok(drawn.body.includes(`${rhythm.longestRun} days`), "the commit-walk run should be drawn")
+  assert.ok(!drawn.body.includes("999"), "the calendar's streak must not reach this panel")
+})
+
+t("the panel's meta line counts commits and names the window", () => {
+  const rhythm = rhythmFromSnapshots([
+    rs("a", { commits: 648, firstCommitAt: "2025-06-27T00:00:00Z", lastCommitAt: "2026-09-19T00:00:00Z" }),
+  ], 8)
+  const drawn = renderRhythm(THEME, { rhythm }, cfg, { mobile: false })
+  assert.ok(/648 COMMITS/i.test(drawn.body), "expected the commit count on the meta line")
+  assert.ok(/SINCE JUN 2025/i.test(drawn.body), "expected the window's opening month")
+})
+
+t("the meta plate fits the phone column, at any plausible commit count", () => {
+  // `tab()` right-anchors the meta plate and does NOT truncate it: a plate wider
+  // than the panel hangs off the left edge, where nobody looks. Measured from
+  // the real rendered string rather than from a copy of the template.
+  for (const commits of [1, 648, 99999]) {
+    const rhythm = rhythmFromSnapshots([
+      rs("a", { commits, firstCommitAt: "2026-09-01T00:00:00Z", lastCommitAt: "2026-09-01T00:00:00Z" }),
+    ], 8)
+    const drawn = renderRhythm(THEME, { rhythm }, cfg, { mobile: true })
+    const texts = [...drawn.body.matchAll(/<text[^>]*>([^<]+)<\/text>/g)].map((m) => m[1])
+    const meta = texts.find((s) => /COMMITS/.test(s) && /SINCE/.test(s))
+    assert.ok(meta, `no meta line drawn for ${commits} commits`)
+    const plate = width(meta, MICRO, 1) + S.md // what tab() allocates
+    assert.ok(plate <= W_MOBILE - S.sm, `"${meta}" needs ${plate}px, the phone panel gives ${W_MOBILE - S.sm}px`)
+  }
+})
+
+/* ====================================================== 7. README FOLLOWS */
 
 console.log("\nREADME — the block follows the pins")
 
@@ -583,7 +712,7 @@ t("copy with quotes and ampersands cannot break out of the attribute", () => {
   assert.equal(escapeAttr('<a href="x">&'), "&lt;a href=&quot;x&quot;>&amp;")
 })
 
-/* ================================================== 7. THE SHIPPED CONFIG */
+/* ================================================== 8. THE SHIPPED CONFIG */
 
 console.log("\nthe shipped configuration")
 

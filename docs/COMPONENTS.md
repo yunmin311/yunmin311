@@ -54,8 +54,8 @@ Full reasoning, and the measured values behind them, in [DESIGN.md](../DESIGN.md
 | `hero` | typewriter over three lines | config only |
 | `about` | name, prose, chips, principles | config only |
 | `sections` | numbered section rules | config only |
-| `work` | project card, one link per card | config only |
-| `rhythm` | segmented hour and weekday meters | public events feed |
+| `work` | project card, one link per card | pinned repositories + config overlay |
+| `rhythm` | segmented hour and weekday meters | `git` (shared with `languages`) |
 | `languages` | authored-line share, from a real clone | `git` + repo list |
 | `stars` | recently starred, with a list rail | starred API |
 | `activity` | releases, issues, PRs — never pushes | public events feed |

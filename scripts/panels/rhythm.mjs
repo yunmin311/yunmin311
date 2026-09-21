@@ -5,20 +5,31 @@
  * an empty colour and fills upward, the way a level meter on a piece of
  * hardware does. Unused capacity is information too.
  *
- * SOURCE AND WINDOW. Built from the public events feed. GitHub stripped
- * `commits` out of PushEvent payloads — which is what broke the usual metrics
- * plugins — but the timestamps survived, and timestamps are all a rhythm chart
- * ever needed.
+ * SOURCE AND WINDOW. Built from the authored commit history of every public
+ * repository in scope — the same `git log` walk that feeds LANGUAGE SIGNAL, so
+ * the timestamps cost nothing extra and the two panels cannot describe
+ * different windows of the same work.
  *
- * The window is therefore not ours to choose. The events API retains roughly
- * the last 300 events or 90 days, whichever runs out first, so the real span is
- * whatever came back — for an active account that is a few weeks, not a
- * quarter. An earlier config carried `rhythm.days: 90`, which nothing read and
- * which implied a guarantee the API does not make. The panel now reports the
- * window it actually observed, and says "observed" on the face of it.
+ * IT USED TO BE THE PUBLIC EVENTS FEED, and that is worth recording because the
+ * panel looked broken: that endpoint retains about 300 events or 90 days,
+ * whichever runs out first, and only public activity. For this account it
+ * returned 98 events spanning FOUR DAYS, so the histogram was drawn from three
+ * days of data while the "longest run" readout beside it came from a full year
+ * of contributions. The panel was telling the truth twice, about two different
+ * windows.
  *
- * Only aggregate distributions are drawn. No repository is named, so a push to
- * a private repository contributes a timestamp and nothing else.
+ * WHAT THE WINDOW IS NOW: every commit this author made in a public repository,
+ * for the whole history of each. The meta line says how many commits and which
+ * month the window opens, because a span of several hundred days next to a
+ * small number of active days reads as a gap when it is simply the shape of the
+ * work.
+ *
+ * Its one blind spot is stated rather than hidden: work committed only to a
+ * private repository leaves no trace here. The contribution calendar does see
+ * it, and that is what the CONTRIBUTIONS panel is for — the calendar has no
+ * hour-of-day resolution, so the two panels are not interchangeable.
+ *
+ * Only aggregate distributions are drawn. No repository is ever named.
  */
 
 import { rect, panel, readout, svgDoc, label, labelWidth, W_FULL, W_MOBILE, S , SHADOW, pixelRule} from "../lib/design.mjs"
@@ -83,7 +94,6 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
   const L = mobile ? MOBILE : DESKTOP
   const W = L.w
   const r = ctx.rhythm
-  const c = ctx.contributions
   const out = []
   const css = []
   const buckets = { off: [], on: [], hot: [] }
@@ -93,7 +103,7 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
     panel(t, {
       x: 0, y: S.xs, w: W, h: L.h,
       title: "Coding rhythm",
-      meta: `${r.total} events · ${r.spanDays} days observed`,
+      meta: `${r.total} commits · since ${r.sinceLabel}`,
     })
   )
 
@@ -151,7 +161,11 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
   // ---- readout -----------------------------------------------------------
   out.push(pixelRule(S.sm, L.rule, W - S.sm * 2, t.lineSoft))
   const cw = (W - S.sm * 2) / L.cols
-  const values = [r.peakWindow, r.busiestDay, `${r.nightShare}%`, `${c.longestStreak} days`]
+  // Every one of the four readouts now comes from the commit history the two
+  // distributions are drawn from. LONGEST RUN used to be read off the
+  // contribution calendar while the other three came from the events feed —
+  // two windows on one panel, which is the ambiguity this change removes.
+  const values = [r.peakWindow, r.busiestDay, `${r.nightShare}%`, `${r.longestRun} days`]
   L.facts.forEach((name, i) => {
     out.push(
       readout(t, {
@@ -165,7 +179,7 @@ export function render(t, ctx, cfg, { mobile = false } = {}) {
   return {
     w: W, h: L.svgH, body: out.join(""),
     css: styles(cfg, "rhythm", css.join("")),
-    title: `Coding rhythm over an observed window of ${r.spanDays} days — peak ${r.peakWindow}, busiest ${r.busiestDay}`,
+    title: `Coding rhythm over ${r.total} commits since ${r.sinceLabel} — peak ${r.peakWindow}, busiest ${r.busiestDay}`,
   }
 }
 
@@ -173,11 +187,3 @@ export const build = (t, ctx, cfg, v) => {
   const r = render(t, ctx, cfg, v)
   return svgDoc({ w: r.w, h: r.h, theme: t, body: r.body, css: r.css, title: r.title, bleed: SHADOW })
 }
-
-
-
-
-
-
-
-

@@ -93,12 +93,12 @@
 
 <picture>
   <source media="(max-width: 500px)" srcset="assets/generated/rhythm-m.svg">
-  <img alt="Coding rhythm — activity by hour and by weekday over the observed window of the public events feed." title="When I work — from the public events feed, aggregate only" src="assets/generated/rhythm.svg">
+  <img alt="Coding rhythm — my commits by hour and by weekday, across every public repository I have written in." title="When I work — from the commit history, aggregate only" src="assets/generated/rhythm.svg">
 </picture>
 
 <picture>
   <source media="(max-width: 500px)" srcset="assets/generated/languages-m.svg">
-  <img alt="Language signal — lines I added in commits I authored, across the four selected repositories." title="Lines I wrote, from a real clone and git log --numstat" src="assets/generated/languages.svg">
+  <img alt="Language signal — lines I added in commits I authored, across every public repository I own." title="Lines I wrote, from a real clone and git log --numstat" src="assets/generated/languages.svg">
 </picture>
 
 <a href="https://github.com/yunmin311?tab=stars"><picture><source media="(max-width: 500px)" srcset="assets/generated/stars-m.svg"><img alt="Recently starred repositories — opens my stars tab" title="Open my stars tab" src="assets/generated/stars.svg"></picture></a>
@@ -146,5 +146,3 @@
   <source media="(max-width: 500px)" srcset="assets/generated/fortune-m.svg">
   <img alt="A line that changes daily" title="Changes daily" src="assets/generated/fortune.svg">
 </picture>
-
-

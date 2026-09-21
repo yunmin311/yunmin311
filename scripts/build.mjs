@@ -333,7 +333,7 @@ async function rewriteReadmeCards(picked) {
 function describe(id, c) {
   if (!c) return ""
   switch (id) {
-    case "rhythm": return `${c.rhythm.total} events, peak ${c.rhythm.peakWindow}, ${c.rhythm.busiestDay}`
+    case "rhythm": return `${c.rhythm.total} commits since ${c.rhythm.sinceLabel}, peak ${c.rhythm.peakWindow}, ${c.rhythm.busiestDay}`
     case "languages": return c.languages.top.map((l) => `${l.name} ${l.pct.toFixed(0)}%`).join(" · ")
     case "work": return (c.work?.picked ?? []).map((p) => p.key).join(" · ") || "(none)"
     case "stars": return c.stars.map((s) => s.name).join(" · ")

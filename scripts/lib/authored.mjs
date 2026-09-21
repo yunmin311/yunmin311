@@ -24,6 +24,12 @@
  *   outcome     "ok" | "failed"   did collection actually succeed
  *   lastCommitAt                  when this author last committed there
  *   lines · languages             how much they wrote, and in what
+ *   hours · days · activeDays     when in the day, and on which days, they wrote
+ *
+ * The rhythm buckets ride along because they come from the same `git log` the
+ * line counts already need. A second walk for the same timestamps, or a second
+ * source for the same question, is how two panels end up describing different
+ * windows of the same work — which is exactly what CODING RHYTHM used to do.
  *
  * CALLERS MUST NOT READ A FAILED SNAPSHOT AS "INACTIVE". That was the bug this
  * shape exists to prevent: a repository whose clone hit a transient network
@@ -102,9 +108,13 @@ const failed = (repo, reason) => ({
   outcome: "failed",
   reason,
   lastCommitAt: null,
-  lines: 0,
+  firstCommitAt: null,
   commits: 0,
+  lines: 0,
   languages: {},
+  hours: Array(24).fill(0),
+  days: Array(7).fill(0),
+  activeDays: [],
 })
 
 /**
@@ -118,9 +128,11 @@ const failed = (repo, reason) => ({
  *
  * @param repos     ["owner/name", ...]
  * @param identities strings matched case-insensitively against author email and name
+ * @param skipLanguages language names to leave out of the line counts
+ * @param offsetHours the wall-clock offset the hour buckets are expressed in
  * @returns { snapshots, byRepo, commits, totalLines, ranked, okCount, failedCount }
  */
-export async function authoredSnapshots(repos, identities, { skipLanguages = [] } = {}) {
+export async function authoredSnapshots(repos, identities, { skipLanguages = [], offsetHours = 0 } = {}) {
   const skip = new Set(skipLanguages)
   const who = identities.map((s) => s.toLowerCase())
   let workdir
@@ -192,6 +204,21 @@ export async function authoredSnapshots(repos, identities, { skipLanguages = [] 
       let repoCommits = 0
       let repoLines = 0
       let lastCommitAt = null
+      let firstCommitAt = null
+      // COUNTED WHILE THE LOG IS ALREADY IN HAND. These buckets are why CODING
+      // RHYTHM no longer reads the public events feed: that feed retains about
+      // 300 events or 90 days, whichever runs out first, and for this account it
+      // amounts to four days — which is what the panel used to draw. The walk
+      // below is the whole history of every repository in scope, and it is
+      // already being paid for by the language chart, so the rhythm costs
+      // nothing extra and shares its window with nothing else.
+      //
+      // The buckets are keyed by WALL CLOCK at `offsetHours`, because "which
+      // hour do I work" is only meaningful in the author's own timezone. `%ct`
+      // is a UTC epoch, so the offset is added before reading the fields.
+      const hours = Array(24).fill(0)
+      const days = Array(7).fill(0)
+      const activeDays = new Set()
 
       for (const line of stdout.split("\n")) {
         if (line.startsWith("\x01")) {
@@ -201,9 +228,17 @@ export async function authoredSnapshots(repos, identities, { skipLanguages = [] 
           if (mine) {
             repoCommits++
             const secs = Number(at)
-            // Commits arrive newest-first, but take the max rather than the first
-            // so a stray out-of-order line cannot understate freshness.
-            if (Number.isFinite(secs) && (lastCommitAt === null || secs > lastCommitAt)) lastCommitAt = secs
+            // Commits arrive newest-first, but take the max (and min) rather
+            // than the first and last so a stray out-of-order line cannot
+            // understate the span.
+            if (Number.isFinite(secs)) {
+              if (lastCommitAt === null || secs > lastCommitAt) lastCommitAt = secs
+              if (firstCommitAt === null || secs < firstCommitAt) firstCommitAt = secs
+              const local = new Date(secs * 1000 + offsetHours * 3600e3)
+              hours[local.getUTCHours()]++
+              days[(local.getUTCDay() + 6) % 7]++ // Monday is index 0
+              activeDays.add(local.toISOString().slice(0, 10))
+            }
           }
           continue
         }
@@ -225,6 +260,14 @@ export async function authoredSnapshots(repos, identities, { skipLanguages = [] 
         lines: repoLines,
         languages: langs,
         lastCommitAt: lastCommitAt === null ? null : new Date(lastCommitAt * 1000).toISOString(),
+        firstCommitAt: firstCommitAt === null ? null : new Date(firstCommitAt * 1000).toISOString(),
+        hours,
+        days,
+        // Distinct local days, not the commit list: a caller that wants a
+        // streak needs the days, and returning every timestamp would make this
+        // snapshot grow with the repository's history rather than with its
+        // calendar.
+        activeDays: [...activeDays].sort(),
       }
     })
   )

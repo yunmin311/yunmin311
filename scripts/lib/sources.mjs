@@ -50,6 +50,7 @@ import { cardOverrides, LANGUAGES_CAPTION, languageNote, languageScope, resolveC
 const HOUR = 3600e3
 const DAY = 24 * HOUR
 const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 export async function collect(cfg) {
   const login = cfg.login
@@ -143,7 +144,17 @@ export async function collect(cfg) {
   //
   // Over the scope, and it is strictly a single pass: the chart folds exactly
   // these snapshots, and no other call site asks for an authored analysis.
-  const collected = await authoredSnapshots(scopeRepos, options.identities, { skipLanguages: options.exclude })
+  //
+  // CODING RHYTHM folds the same snapshots. It used to read the public events
+  // feed instead, which retains about 300 events or 90 days — four days for
+  // this account — so the panel drew a histogram over four days while the
+  // "longest run" beneath it came from a full year of contributions. One panel,
+  // two windows. The walk below already has every timestamp the rhythm needs,
+  // over the whole history, for free.
+  const collected = await authoredSnapshots(scopeRepos, options.identities, {
+    skipLanguages: options.exclude,
+    offsetHours: offsetH,
+  })
 
   const [raw, cal, stars] = await Promise.all([
     events(login, 3),
@@ -204,7 +215,7 @@ export async function collect(cfg) {
   return {
     now,
     login,
-    rhythm: rhythm(evs, offsetH),
+    rhythm: rhythmFromSnapshots(collected.snapshots, offsetH),
     contributions: contributions(cal),
     stars: stars.map((s) => ({
       name: s.full_name,
@@ -287,37 +298,90 @@ export const unknown = (repo, reason) => ({
   lines: 0,
   languages: {},
   lastCommitAt: null,
+  firstCommitAt: null,
+  hours: Array(24).fill(0),
+  days: Array(7).fill(0),
+  activeDays: [],
 })
 
 /* ------------------------------------------------------------------ rhythm */
 
-function rhythm(evs, offsetH) {
+/**
+ * CODING RHYTHM, folded out of the authored commit walk.
+ *
+ * WHAT THIS REPLACED, AND WHY. The panel used to be built from the public
+ * events feed. That endpoint retains roughly 300 events or 90 days — whichever
+ * runs out first — and only public activity, so for this account it returned 98
+ * events spanning four days. The histogram was therefore drawn over four days
+ * while the "longest run" readout beside it came from a full year of
+ * contributions: one panel, two windows, two sources, and no way for a reader
+ * to tell. The label said "3 days observed" and was telling the truth.
+ *
+ * The walk already reads every commit's committer timestamp across every
+ * repository in scope, for the whole history, because the language chart needs
+ * the same log. So the rhythm costs nothing extra, covers everything the
+ * language scope covers, and shares its window with nothing else on the page.
+ *
+ * WHAT IT CANNOT SEE, stated plainly because the panel is a claim: this is
+ * PUBLIC repositories. Work committed only to a private repository leaves no
+ * trace here. The contribution calendar does see it — that is what the
+ * CONTRIBUTIONS panel is for — and it has no hour-of-day resolution, which is
+ * why the two panels are not interchangeable.
+ *
+ * `total` is COMMITS, not events. The panel's meta line says so.
+ */
+export function rhythmFromSnapshots(snapshots, offsetH = 0) {
   const hours = Array(24).fill(0)
   const days = Array(7).fill(0)
-  let first = Infinity
-  let last = -Infinity
+  const activeDays = new Set()
+  let total = 0
+  let first = null
+  let last = null
 
-  for (const e of evs) {
-    const ms = new Date(e.created_at).getTime()
-    if (!Number.isFinite(ms)) continue
-    first = Math.min(first, ms)
-    last = Math.max(last, ms)
-    const local = new Date(ms + offsetH * HOUR)
-    hours[local.getUTCHours()]++
-    days[(local.getUTCDay() + 6) % 7]++ // shift so Monday is index 0
+  for (const s of snapshots) {
+    // A repository that could not be read contributes nothing — but it must not
+    // reset anything either. Its absence is a hole in the reading, and the
+    // language panel is where that hole gets reported; a rhythm chart has no
+    // way to show one, so it simply under-reports and the meta line's window
+    // still comes from the repositories that WERE read.
+    if (!s || s.outcome !== "ok") continue
+    total += s.commits ?? 0
+    for (let i = 0; i < 24; i++) hours[i] += s.hours?.[i] ?? 0
+    for (let i = 0; i < 7; i++) days[i] += s.days?.[i] ?? 0
+    for (const d of s.activeDays ?? []) activeDays.add(d)
+    if (s.firstCommitAt) {
+      const t = Date.parse(s.firstCommitAt)
+      if (Number.isFinite(t) && (first === null || t < first)) first = t
+    }
+    if (s.lastCommitAt) {
+      const t = Date.parse(s.lastCommitAt)
+      if (Number.isFinite(t) && (last === null || t > last)) last = t
+    }
   }
 
-  const total = evs.length
   const peakHour = hours.indexOf(Math.max(...hours))
   const busiest = days.indexOf(Math.max(...days))
   const night = hours.slice(22).concat(hours.slice(0, 6)).reduce((a, b) => a + b, 0)
-  const spanDays = Number.isFinite(first) ? Math.max(1, Math.round((last - first) / DAY)) : 0
+
+  // The longest run of consecutive days with a commit by this author. Over the
+  // whole history rather than a year, because the year was the contribution
+  // calendar's limit and this panel no longer borrows it.
+  const sortedDays = [...activeDays].sort()
+  let longestRun = 0
+  let run = 0
+  let prev = null
+  for (const day of sortedDays) {
+    const t = Date.parse(`${day}T00:00:00Z`)
+    run = prev !== null && t - prev === DAY ? run + 1 : 1
+    if (run > longestRun) longestRun = run
+    prev = t
+  }
 
   return {
     hours,
     days,
     total,
-    spanDays,
+    spanDays: first !== null && last !== null ? Math.max(1, Math.round((last - first) / DAY)) : 0,
     peakHour,
     peakWindow: `${pad(peakHour)}:00-${pad((peakHour + 1) % 24)}:00`,
     // Sentence case: readout values are content, and the label beside them is
@@ -325,6 +389,13 @@ function rhythm(evs, offsetH) {
     busiestDay: WEEKDAYS[busiest][0] + WEEKDAYS[busiest].slice(1).toLowerCase(),
     nightShare: total ? Math.round((night / total) * 100) : 0,
     offsetLabel: `UTC+${offsetH}`,
+    longestRun,
+    activeDayCount: sortedDays.length,
+    // The meta line says when the window starts, because "449 days observed"
+    // invites the reader to assume a density that 47 active days does not have.
+    sinceLabel: first === null ? "—" : `${MONTHS[new Date(first).getUTCMonth()]} ${new Date(first).getUTCFullYear()}`,
+    firstAt: first === null ? null : new Date(first).toISOString(),
+    lastAt: last === null ? null : new Date(last).toISOString(),
   }
 }
 
