@@ -94,6 +94,7 @@
   ],
   "scopeRepos": [
     "yunmin311/ai-systematic-notes",
+    "yunmin311/anatomical-symptom-interface",
     "yunmin311/calendar-app",
     "yunmin311/context-distiller",
     "yunmin311/dense-reading-obsidian",
@@ -115,5 +116,5 @@
     "yunmin311/yunmin311.github.io",
     "yunmin311/zheng-tally-obsidian"
   ],
-  "generated": "2026-09-27T16:57:40.070Z"
+  "generated": "2026-09-29T22:14:40.396Z"
 }
