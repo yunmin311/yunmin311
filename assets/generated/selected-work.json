@@ -4,8 +4,8 @@
     "governance-framework",
     "window-annotator",
     "pixel-panels",
-    "dsh-universal-palette",
-    "quiet-shelf-obsidian"
+    "anatomical-symptom-interface",
+    "gitlineage"
   ],
   "cards": [
     {
@@ -65,30 +65,28 @@
       "unedited": false
     },
     {
-      "key": "dsh-universal-palette",
-      "name": "DSH Universal Palette",
-      "why": "Three products with three different colour systems, and a designer retyping hex codes between them. One plugin turns whatever you are looking at into the palette you actually use.",
+      "key": "anatomical-symptom-interface",
+      "name": "anatomical-symptom-interface",
+      "why": "Turn 'it hurts here' into a structured, anatomical, longitudinal health record. Local-first, provenance-first, and deliberately not a diagnosis tool.",
       "tags": [
-        "TypeScript",
-        "Figma Plugin",
-        "Design Tokens"
+        "TypeScript"
       ],
-      "url": "https://github.com/yunmin311/dsh-universal-palette",
-      "repo": "yunmin311/dsh-universal-palette",
-      "unedited": false
+      "url": "https://github.com/yunmin311/anatomical-symptom-interface",
+      "repo": "yunmin311/anatomical-symptom-interface",
+      "unedited": true
     },
     {
-      "key": "quiet-shelf-obsidian",
-      "name": "quiet-shelf-obsidian",
-      "why": "Hide archived and index notes from the Obsidian file explorer without moving them, and focus the tree on one set of folders at a time.",
+      "key": "gitlineage",
+      "name": "GitLineage",
+      "why": "Evidence-backed repository lineage and software provenance explorer. Builds one auditable lineage graph from public manifests, git objects and documents; every relationship carries the file it…",
       "tags": [
-        "JavaScript",
-        "file-explorer",
-        "focus-mode",
-        "markdown"
+        "TypeScript",
+        "provenance",
+        "software-provenance",
+        "supply-chain"
       ],
-      "url": "https://github.com/yunmin311/quiet-shelf-obsidian",
-      "repo": "yunmin311/quiet-shelf-obsidian",
+      "url": "https://github.com/yunmin311/GitLineage",
+      "repo": "yunmin311/GitLineage",
       "unedited": true
     }
   ],
@@ -118,5 +116,5 @@
     "yunmin311/yunmin311.github.io",
     "yunmin311/zheng-tally-obsidian"
   ],
-  "generated": "2026-10-02T12:34:17.292Z"
+  "generated": "2026-10-05T14:37:21.668Z"
 }
