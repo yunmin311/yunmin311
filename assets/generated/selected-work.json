@@ -1,27 +1,13 @@
 {
   "keys": [
-    "context-distiller",
     "governance-framework",
     "window-annotator",
     "pixel-panels",
     "anatomical-symptom-interface",
-    "gitlineage"
+    "gitlineage",
+    "context-distiller"
   ],
   "cards": [
-    {
-      "key": "context-distiller",
-      "name": "Context Distiller",
-      "why": "Choosing what an AI gets to see is the step nobody built a tool for. A workspace for picking, grouping and compiling that context into one plain-text message — locally, and never sent anywhere.",
-      "tags": [
-        "TypeScript",
-        "React 19",
-        "WXT",
-        "Manifest V3"
-      ],
-      "url": "https://github.com/yunmin311/context-distiller",
-      "repo": "yunmin311/context-distiller",
-      "unedited": false
-    },
     {
       "key": "governance-framework",
       "name": "Governance Framework",
@@ -88,6 +74,20 @@
       "url": "https://github.com/yunmin311/GitLineage",
       "repo": "yunmin311/GitLineage",
       "unedited": true
+    },
+    {
+      "key": "context-distiller",
+      "name": "Context Distiller",
+      "why": "Choosing what an AI gets to see is the step nobody built a tool for. A workspace for picking, grouping and compiling that context into one plain-text message — locally, and never sent anywhere.",
+      "tags": [
+        "TypeScript",
+        "React 19",
+        "WXT",
+        "Manifest V3"
+      ],
+      "url": "https://github.com/yunmin311/context-distiller",
+      "repo": "yunmin311/context-distiller",
+      "unedited": false
     }
   ],
   "scopeRepos": [
@@ -103,6 +103,7 @@
     "yunmin311/GitLineage",
     "yunmin311/governance-framework",
     "yunmin311/intelligent-ui-portability-lab",
+    "yunmin311/native-pdf-theme-bridge",
     "yunmin311/obsidian-config",
     "yunmin311/paper-desk-obsidian",
     "yunmin311/pixel-panels",
@@ -117,5 +118,5 @@
     "yunmin311/yunmin311.github.io",
     "yunmin311/zheng-tally-obsidian"
   ],
-  "generated": "2026-10-18T04:32:52.582Z"
+  "generated": "2026-10-21T17:11:49.445Z"
 }
