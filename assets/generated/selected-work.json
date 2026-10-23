@@ -3,9 +3,9 @@
     "governance-framework",
     "window-annotator",
     "pixel-panels",
-    "anatomical-symptom-interface",
     "gitlineage",
-    "context-distiller"
+    "context-distiller",
+    "focus-island"
   ],
   "cards": [
     {
@@ -51,17 +51,6 @@
       "unedited": false
     },
     {
-      "key": "anatomical-symptom-interface",
-      "name": "anatomical-symptom-interface",
-      "why": "Turn 'it hurts here' into a structured, anatomical, longitudinal health record. Local-first, provenance-first, and deliberately not a diagnosis tool.",
-      "tags": [
-        "TypeScript"
-      ],
-      "url": "https://github.com/yunmin311/anatomical-symptom-interface",
-      "repo": "yunmin311/anatomical-symptom-interface",
-      "unedited": true
-    },
-    {
       "key": "gitlineage",
       "name": "GitLineage",
       "why": "Evidence-backed repository lineage and software provenance explorer. Builds one auditable lineage graph from public manifests, git objects and documents; every relationship carries the file it…",
@@ -88,6 +77,17 @@
       "url": "https://github.com/yunmin311/context-distiller",
       "repo": "yunmin311/context-distiller",
       "unedited": false
+    },
+    {
+      "key": "focus-island",
+      "name": "focus-island",
+      "why": "专注岛-保持心流、提升专注力.番茄清单 备忘录 专注电台",
+      "tags": [
+        "Vue"
+      ],
+      "url": "https://github.com/ipfred/focus-island",
+      "repo": "ipfred/focus-island",
+      "unedited": true
     }
   ],
   "scopeRepos": [
@@ -118,5 +118,5 @@
     "yunmin311/yunmin311.github.io",
     "yunmin311/zheng-tally-obsidian"
   ],
-  "generated": "2026-10-21T17:11:49.445Z"
+  "generated": "2026-10-23T17:06:19.616Z"
 }
