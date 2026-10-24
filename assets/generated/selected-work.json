@@ -81,12 +81,15 @@
     {
       "key": "focus-island",
       "name": "focus-island",
-      "why": "专注岛-保持心流、提升专注力.番茄清单 备忘录 专注电台",
+      "why": "FocusIsland custom fork — notch dock mode, radio import (Bilibili/yt-dlp), notification center, quick volume, Rust-side global shortcuts. Based on ipfred/focus-island v2.9.0.",
       "tags": [
-        "Vue"
+        "Vue",
+        "dynamic-island",
+        "liquid-glass",
+        "pomodoro"
       ],
-      "url": "https://github.com/ipfred/focus-island",
-      "repo": "ipfred/focus-island",
+      "url": "https://github.com/yunmin311/focus-island",
+      "repo": "yunmin311/focus-island",
       "unedited": true
     }
   ],
@@ -118,5 +121,5 @@
     "yunmin311/yunmin311.github.io",
     "yunmin311/zheng-tally-obsidian"
   ],
-  "generated": "2026-10-23T17:06:19.616Z"
+  "generated": "2026-10-24T15:56:21.621Z"
 }
