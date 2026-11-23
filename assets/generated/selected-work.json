@@ -5,7 +5,7 @@
     "pixel-panels",
     "gitlineage",
     "context-distiller",
-    "focus-island"
+    "flow-isle"
   ],
   "cards": [
     {
@@ -79,17 +79,17 @@
       "unedited": false
     },
     {
-      "key": "focus-island",
-      "name": "focus-island",
-      "why": "FocusIsland custom fork — notch dock mode, radio import (Bilibili/yt-dlp), notification center, quick volume, Rust-side global shortcuts. Based on ipfred/focus-island v2.9.0.",
+      "key": "flow-isle",
+      "name": "flow-isle",
+      "why": "屏幕顶部的灵动岛专注计时器（Windows 增强版）· Liquid Glass × Pixel Craft · Tauri 2 + Vue 3 + Rust",
       "tags": [
         "Vue",
-        "dynamic-island",
-        "liquid-glass",
-        "pomodoro"
+        "pomodoro",
+        "productivity",
+        "tauri"
       ],
-      "url": "https://github.com/yunmin311/focus-island",
-      "repo": "yunmin311/focus-island",
+      "url": "https://github.com/yunmin311/flow-isle",
+      "repo": "yunmin311/flow-isle",
       "unedited": true
     }
   ],
@@ -124,5 +124,5 @@
     "yunmin311/yunmin311.github.io",
     "yunmin311/zheng-tally-obsidian"
   ],
-  "generated": "2026-11-16T22:00:55.981Z"
+  "generated": "2026-11-23T07:37:02.731Z"
 }
